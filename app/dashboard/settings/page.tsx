@@ -23,6 +23,10 @@ import {
   AlertTriangle,
   PauseCircle,
   PlayCircle,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -90,6 +94,54 @@ export default function SettingsPage() {
   // Vendor Table Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'property_host' | 'activity_operator' | 'integrated_resort'>('all');
+
+  // Admin Change Password State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [isChangingPass, setIsChangingPass] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
+  const [passSuccess, setPassSuccess] = useState<string | null>(null);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError(null);
+    setPassSuccess(null);
+
+    if (newPassword.length < 8) {
+      setPassError('New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPassError('New passwords do not match. Please verify.');
+      return;
+    }
+
+    setIsChangingPass(true);
+    try {
+      const res = await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      if (res.status === 200 || res.status === 201) {
+        setPassSuccess('Administrator password updated successfully! Please store it securely.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        toast.success('Password updated successfully');
+      } else {
+        setPassError(res.data?.message || 'Failed to update password');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to update password. Please check your current password.';
+      setPassError(msg);
+      toast.error(msg);
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     toast.success(msg);
@@ -698,6 +750,127 @@ export default function SettingsPage() {
             <div className="text-[11px] text-slate-500">Verified against Government of Maharashtra Tourism Portal</div>
           </div>
         </div>
+      </div>
+
+      {/* ── 5. Administrator Password & Security Settings ── */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-5 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-rose-600" />
+              <span>Change Administrator Password</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Update password for administrative access ({user?.email || 'bookingmahastays@gmail.com'})
+            </p>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/60 w-fit">
+            256-Bit Bcrypt Protected
+          </span>
+        </div>
+
+        {passError && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <div className="flex-1 font-medium">{passError}</div>
+          </div>
+        )}
+
+        {passSuccess && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <div className="flex-1 font-medium">{passSuccess}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="space-y-1.5">
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+              Current Password
+            </label>
+            <div className="relative flex items-center">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <input
+                type={showCurrentPass ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition text-xs"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPass(!showCurrentPass)}
+                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+              New Password
+            </label>
+            <div className="relative flex items-center">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <input
+                type={showNewPass ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition text-xs"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPass(!showNewPass)}
+                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+              Confirm New Password
+            </label>
+            <div className="relative flex items-center">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition text-xs"
+                required
+                minLength={8}
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-3 flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isChangingPass || !currentPassword || !newPassword || !confirmPassword}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+            >
+              {isChangingPass ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Updating Password...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Update Admin Password</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════ */}

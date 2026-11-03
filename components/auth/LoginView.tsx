@@ -205,8 +205,102 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
 
       {/* Main Login Card */}
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5">
-        {/* Unified Credentials Form - NO switch tabs */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        {step === 'otp' ? (
+          /* ── Step 2: 2-Step Email Verification Form ── */
+          <form onSubmit={handleOtpSubmit} className="space-y-5 text-xs animate-in fade-in zoom-in-95 duration-200">
+            <div className="text-center space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-900/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-xs mb-3">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Two-Step Verification
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+                Enter the 6-digit one-time passcode sent to{' '}
+                <strong className="text-slate-800 dark:text-slate-200 font-semibold">{otpEmail}</strong>
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs flex items-start gap-2 animate-in fade-in">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <div className="flex-1 leading-relaxed">{error}</div>
+              </div>
+            )}
+
+            {resendSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 text-xs flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <div className="flex-1 font-medium">{resendSuccess}</div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-700 dark:text-slate-300 block text-center">
+                6-Digit Security Code
+              </label>
+              <div className="flex justify-center">
+                <input
+                  type="text"
+                  maxLength={6}
+                  autoFocus
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  className="w-56 py-3 text-center text-2xl tracking-[0.45em] font-mono font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 transition shadow-inner"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 text-center">
+                Check your inbox and spam folder if you do not see it immediately.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || otp.length < 6}
+              className="w-full py-3.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <span className="inline-block animate-spin mr-1">⌛</span>
+              ) : (
+                <>
+                  <span>Verify Code & Complete Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('credentials');
+                  setError(null);
+                  setOtp('');
+                }}
+                className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline font-medium"
+              >
+                ← Back to Login
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={otpCountdown > 0 || isResending}
+                className="text-rose-600 hover:text-rose-700 dark:text-rose-400 font-bold disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {isResending
+                  ? 'Sending...'
+                  : otpCountdown > 0
+                  ? `Resend in ${otpCountdown}s`
+                  : 'Resend Code'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* ── Step 1: Unified Credentials Form ── */
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs flex items-start gap-2 animate-in fade-in">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -225,7 +319,7 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
                 id="login-email-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@mahastays.com or vendor@mahastays.com"
+                placeholder="bookingmahastays@gmail.com or vendor@mahastays.com"
                 className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition"
                 required
               />
@@ -299,6 +393,7 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
             )}
           </button>
         </form>
+        )}
 
         {/* Demo Credentials Box with 1-Click Access for Both Personas */}
         <div className="p-4 rounded-2xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/80 space-y-3">

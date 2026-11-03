@@ -385,11 +385,13 @@ export const authSlice = createSlice({
           state.error = null;
           return;
         }
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.role = action.payload.role;
-        state.token = action.payload.token;
-        state.error = null;
+        if (action.payload?.user) {
+          state.isAuthenticated = true;
+          state.user = action.payload.user;
+          state.role = action.payload.role ?? null;
+          state.token = action.payload.token ?? null;
+          state.error = null;
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
