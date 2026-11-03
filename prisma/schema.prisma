@@ -1,0 +1,1604 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Mahastays — Prisma schema (MongoDB)
+//
+//  Notes for MongoDB + Prisma 6:
+//   • MongoDB MUST run as a replica set (Prisma uses transactions internally).
+//     docker-compose.yml in this repo starts a single-node replica set.
+//   • `@unique` on an OPTIONAL field is avoided on purpose: Prisma creates a
+//     NON-sparse unique index, so only one document could ever lack the field.
+//     Optional-but-unique fields (phone.nationalNumber, Payment.invoiceNumber,
+//     Payment.gatewayPaymentId, ...) get partial unique indexes from
+//     `npm run db:indexes` (scripts/create-indexes.ts).
+//   • Money counters that need atomic `increment` (vendor wallet, ad counters,
+//     user metrics, review votes) are TOP-LEVEL fields, not embedded documents.
+//     The API presenters re-nest them to match the documented response shapes.
+//   • Prisma 7 has no MongoDB connector, so this project pins Prisma 6.19.x.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  ENUMS
+// ═════════════════════════════════════════════════════════════════════════════
+
+enum AuthProvider {
+  local
+  google
+  phone
+  apple
+}
+
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+
+enum MembershipTier {
+  standard
+  gold
+  platinum
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum BusinessType {
+  individual
+  proprietorship
+  private_limited
+  partnership
+}
+
+enum VendorCategory {
+  property_host
+  activity_operator
+  integrated_resort
+}
+
+enum VerificationStatus {
+  pending
+  under_review
+  approved
+  rejected
+}
+
+enum VendorStatus {
+  active
+  pending_approval
+  on_hold
+  blacklisted
+}
+
+enum CommissionType {
+  percentage
+  fixed
+}
+
+enum PayoutCycle {
+  weekly
+  biweekly
+  monthly
+}
+
+enum SubAdminDepartment {
+  customer_support
+  content_moderation
+  booking_operations
+  dispute_handling
+}
+
+enum SubAdminStatus {
+  active
+  inactive
+  suspended
+}
+
+enum AdminStatus {
+  active
+  suspended
+}
+
+enum SuperAdminStatus {
+  active
+  locked
+}
+
+enum ListingStatus {
+  pending_approval
+  active
+  inactive
+  rejected
+  blocked
+  archived
+}
+
+enum PropertyType {
+  resort
+  villa
+  hotel
+  cottage
+  apartment
+}
+
+enum PackageType {
+  couple
+  bachelor_party
+  corporate
+  birthday
+}
+
+enum PackageCategory {
+  Honeymoon
+  Luxury
+  Adventure
+  Heritage
+}
+
+enum Difficulty {
+  Easy
+  Moderate
+  Challenging
+}
+
+enum ScheduleMode {
+  fixed_slot
+  flexible
+}
+
+enum BlockTargetType {
+  property
+  experience
+}
+
+enum AdType {
+  banner
+  card
+  sidebar
+  popup
+}
+
+enum AdPlacement {
+  homepage
+  search_results
+  property_page
+  all
+}
+
+enum AdTargetType {
+  package
+  property
+  activity
+}
+
+enum PaymentStatus {
+  unpaid
+  processing
+  paid
+  refunded
+  partially_refunded
+}
+
+enum StayBookingStatus {
+  pending
+  confirmed
+  checked_in
+  checked_out
+  cancelled
+  no_show
+}
+
+enum PackageBookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+enum ExperienceBookingStatus {
+  pending
+  reserved
+  checked_in
+  completed
+  cancelled
+  no_show
+}
+
+enum CancelledBy {
+  user
+  vendor
+  admin
+  system
+}
+
+enum BookingType {
+  stay
+  package
+  experience
+}
+
+enum PaymentGatewayName {
+  razorpay
+  stripe
+  cashfree
+  mock
+}
+
+enum GatewayPaymentStatus {
+  initiated
+  authorized
+  captured
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PayoutStatus {
+  requested
+  audited_by_admin
+  released_by_superadmin
+  completed
+  failed
+}
+
+enum TransferMethod {
+  NEFT
+  RTGS
+  IMPS
+}
+
+enum ReviewTargetType {
+  property
+  package
+  experience
+}
+
+enum ReviewStatus {
+  pending_moderation
+  approved
+  rejected
+}
+
+enum ActorRole {
+  user
+  vendor
+  sub_admin
+  admin
+  super_admin
+  system
+}
+
+enum OtpPurpose {
+  phone_login
+  password_reset
+  email_verify
+}
+
+enum ServiceableLocation {
+  main_market_mahabaleshwar
+  venna_lake
+  panchgani_mahabaleshwar_road
+  lingmala
+  metgutad
+  mapro_garden
+  old_mahabaleshwar
+  tapola_road
+  medha_road
+  bhilar
+  panchgani
+  avkali
+  bhoise
+  mahabaleshwar_pratapgarh_fort_road
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  COMPOSITE TYPES (embedded documents)
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── Users ────────────────────────────────────────────────────────────────────
+type Phone {
+  countryCode    String
+  nationalNumber String
+  isVerified     Boolean @default(false)
+}
+
+type Membership {
+  isClubMember Boolean        @default(false)
+  tier         MembershipTier @default(standard)
+  joinedAt     DateTime?
+  expiresAt    DateTime?
+}
+
+type UserPreferences {
+  preferredLanguage String  @default("en")
+  currency          String  @default("INR")
+  dietaryPreference String? // "veg" | "non-veg" | "jain" | "vegan"
+}
+
+type UserVerification {
+  isEmailVerified          Boolean @default(false)
+  isPhoneVerified          Boolean @default(false)
+  governmentIdType         String? // "aadhaar" | "passport" | "driving_license"
+  governmentIdNumberMasked String?
+  isIdVerified             Boolean @default(false)
+}
+
+// ── Vendors ──────────────────────────────────────────────────────────────────
+type PostalAddress {
+  addressLine1 String
+  city         String
+  district     String?
+  state        String
+  pincode      String
+  country      String  @default("India")
+}
+
+type VendorContact {
+  primaryContactPerson    String
+  alternatePhone          String?
+  registeredOfficeAddress PostalAddress
+}
+
+type VendorCompliance {
+  panNumber            String
+  gstin                String?
+  tourismLicenseNumber String?
+  identityProofUrl     String?
+  businessProofUrl     String?
+  verificationStatus   VerificationStatus @default(pending)
+  rejectionReason      String?
+  verifiedAt           DateTime?
+  verifiedByAdminId    String?            @db.ObjectId
+}
+
+type VendorBanking {
+  accountHolderName  String
+  accountNumberEnc   String // AES-256-GCM ciphertext (see utils/crypto.ts)
+  accountNumberLast4 String
+  bankName           String
+  ifscCode           String
+  branchName         String?
+  upiId              String?
+  isAccountVerified  Boolean @default(false)
+}
+
+type CommissionTerms {
+  commissionType                  CommissionType @default(percentage)
+  propertyCommissionRatePercent   Float
+  packageCommissionRatePercent    Float
+  experienceCommissionRatePercent Float
+  payoutCycle                     PayoutCycle    @default(monthly)
+}
+
+// ── Staff ────────────────────────────────────────────────────────────────────
+type SubAdminPermissions {
+  canViewBookings                 Boolean @default(true)
+  canInitiateCustomerRefunds      Boolean @default(false)
+  maxRefundCeilingInr             Int     @default(0)
+  canApproveReviews               Boolean @default(false)
+  canFlagFraudulentListings       Boolean @default(false)
+  canManageInquiryTickets         Boolean @default(true)
+  canViewVendorBankDetails        Boolean @default(false)
+  canEditListingDescriptions      Boolean @default(false)
+  canTriggerCustomerNotifications Boolean @default(false)
+}
+
+type AdminPermissions {
+  canApproveVendors              Boolean @default(false)
+  canApproveProperties           Boolean @default(false)
+  canApprovePackages             Boolean @default(false)
+  canApproveExperiences          Boolean @default(false)
+  canApproveAdCampaigns          Boolean @default(false)
+  canProcessOverridesAndDisputes Boolean @default(false)
+  canManageSubAdmins             Boolean @default(false)
+  canExportFinancialReports      Boolean @default(false)
+  canBlockListings               Boolean @default(false)
+}
+
+type StaffSecurity {
+  isTwoFactorEnabled  Boolean  @default(false)
+  twoFactorSecretEnc  String?
+  allowedIpWhitelists String[]
+}
+
+// ── Platform configuration ───────────────────────────────────────────────────
+type GstRates {
+  staysStandardGstPercent Float @default(18)
+  packagesGstPercent      Float @default(5)
+  experiencesGstPercent   Float @default(5)
+}
+
+type PlatformFees {
+  defaultCleaningFeeRatePercent      Float @default(5)
+  defaultGearInsuranceFeeRatePercent Float @default(4)
+  clubMemberDiscountPercent          Float @default(8)
+  packageChildPricePercent           Float @default(60)
+  experienceChildPricePercent        Float @default(70)
+}
+
+type CancellationRules {
+  defaultFreeCancellationHours Int   @default(48)
+  lateCancellationFeePercent   Float @default(50)
+}
+
+type DefaultCommission {
+  propertyCommissionRatePercent   Float       @default(12)
+  packageCommissionRatePercent    Float       @default(10)
+  experienceCommissionRatePercent Float       @default(15)
+  payoutCycle                     PayoutCycle @default(monthly)
+}
+
+type PayoutRules {
+  tdsRatePercent       Float @default(1)
+  minPayoutAmountInr   Int   @default(1000)
+  holdDaysAfterService Int   @default(2)
+}
+
+type DynamicPricingRules {
+  enabled      Boolean  @default(false)
+  holidayDates String[] // "YYYY-MM-DD"
+}
+
+// ── Catalog: properties ──────────────────────────────────────────────────────
+type PropertyAddress {
+  fullAddress String
+  lat         Float
+  lng         Float
+  mapLink     String?
+}
+
+type MediaImage {
+  url     String
+  alt     String?
+  isCover Boolean @default(false)
+}
+
+type HostInfo {
+  name       String
+  role       String?
+  experience String?
+  avatar     String?
+}
+
+type Highlight {
+  title String
+  desc  String
+  icon  String?
+}
+
+type Amenity {
+  name String
+  icon String?
+}
+
+type PropertyPolicies {
+  checkInTime                String  @default("14:00")
+  checkOutTime               String  @default("11:00")
+  cancellationPolicy         String?
+  freeCancellationHours      Int?
+  lateCancellationFeePercent Float?
+  petsAllowed                Boolean @default(false)
+  smokingAllowed             Boolean @default(false)
+  coupleFriendly             Boolean @default(true)
+  maxGuestsPerRoom           Int?
+}
+
+type RoomCapacity {
+  adults   Int
+  children Int
+}
+
+type Room {
+  roomId        String
+  name          String
+  badge         String?
+  tagline       String?
+  roomSize      Int?
+  bedType       String?
+  maxGuests     Int
+  capacity      RoomCapacity
+  basePrice     Int
+  originalPrice Int?
+  weekendPrice  Int?
+  holidayPrice  Int?
+  count         Int          @default(1)
+  images        String[]
+  amenities     String[]
+}
+
+type Attraction {
+  name     String
+  distance String?
+  time     String?
+}
+
+type RatingBreakdown {
+  cleanliness   Float @default(0)
+  accuracy      Float @default(0)
+  communication Float @default(0)
+  location      Float @default(0)
+  checkIn       Float @default(0)
+  value         Float @default(0)
+}
+
+// ── Catalog: packages ────────────────────────────────────────────────────────
+type FreeActivity {
+  experienceId String? @db.ObjectId
+  name         String
+  time         String?
+  image        String?
+  category     String?
+}
+
+type Inclusion {
+  title String
+  desc  String?
+  icon  String?
+}
+
+type ItineraryDay {
+  day        Int
+  title      String
+  activities String[]
+  meals      String?
+  stay       String?
+  image      String?
+}
+
+type PackageTier {
+  tierId         String
+  name           String
+  badge          String?
+  tagline        String?
+  hotelType      String?
+  pricePerPerson Int
+  originalPrice  Int?
+  features       String[]
+}
+
+type PackagePricingRules {
+  basePrice        Int
+  pricePerPerson   Int?
+  weekendSurcharge Int  @default(0)
+  childPrice       Int?
+  minGuests        Int  @default(1)
+  maxGuests        Int
+}
+
+// ── Catalog: experiences ─────────────────────────────────────────────────────
+type TimelineItem {
+  time  String
+  title String
+  desc  String?
+}
+
+type Coordinates {
+  lat Float
+  lng Float
+}
+
+type ExperienceSchedule {
+  mode          ScheduleMode @default(fixed_slot)
+  daysAvailable String[] // "all" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+}
+
+type ExperienceSlot {
+  slotId   String
+  time     String
+  label    String
+  capacity Int
+  price    Int?
+}
+
+type ExperienceTier {
+  tierId         String
+  name           String
+  tagline        String?
+  pricePerPerson Int
+  originalPrice  Int?
+  features       String[]
+}
+
+type GuideInfo {
+  name   String
+  role   String?
+  avatar String?
+}
+
+// ── Ads ──────────────────────────────────────────────────────────────────────
+type AdTarget {
+  targetType AdTargetType
+  targetId   String?      @db.ObjectId
+  ctaLink    String
+}
+
+type AdCreative {
+  headline    String
+  subHeadline String?
+  imageUrl    String
+  badgeText   String?
+  buttonText  String?
+}
+
+type AgeRange {
+  min Int
+  max Int
+}
+
+type AdTargeting {
+  locations    String[]
+  userRoles    String[]
+  interests    String[]
+  occasions    String[]
+  userAgeRange AgeRange?
+  device       String[] // "desktop" | "mobile" | "tablet"
+  showOnPages  String[] // "/", "/explore", "/packages", "/experiences"
+}
+
+type AdBudget {
+  totalBudget       Float
+  dailyBudget       Float?
+  costPerClick      Float  @default(0)
+  costPerImpression Float  @default(0)
+}
+
+// ── Bookings & payments ──────────────────────────────────────────────────────
+type StayPricing {
+  roomPricePerNight Int
+  baseTotal         Int
+  cleaningFee       Int
+  memberDiscount    Int
+  taxableSubtotal   Int
+  taxesGst          Int
+  grandTotalInr     Int
+  gstRatePercent    Float
+}
+
+type PackagePricing {
+  pricePerPerson   Int
+  adultsCost       Int
+  childrenCost     Int
+  weekendSurcharge Int   @default(0)
+  baseCost         Int
+  memberDiscount   Int
+  taxableAmount    Int
+  taxesGst         Int
+  grandTotalInr    Int
+  gstRatePercent   Float
+}
+
+type ExperiencePricing {
+  pricePerPerson   Int
+  adultsCost       Int
+  childrenCost     Int
+  baseCost         Int
+  memberDiscount   Int
+  gearInsuranceFee Int
+  taxableAmount    Int
+  taxesGst         Int
+  grandTotalInr    Int
+  gstRatePercent   Float
+}
+
+type BookingCancellation {
+  cancelledAt      DateTime
+  cancelledBy      CancelledBy
+  reason           String?
+  refundAmountInr  Int
+  penaltyAmountInr Int
+}
+
+type FreeActivityPass {
+  activityId      String?   @db.ObjectId
+  activityName    String?
+  passVoucherCode String
+  isRedeemed      Boolean   @default(false)
+  redeemedAt      DateTime?
+}
+
+type GstDetails {
+  gstinVendor   String?
+  gstinCustomer String?
+  sacCode       String
+  cgstAmountInr Int     @default(0)
+  sgstAmountInr Int     @default(0)
+  igstAmountInr Int     @default(0)
+}
+
+type RefundRecord {
+  refundId  String
+  amountInr Int
+  reason    String?
+  status    String
+  createdAt DateTime
+}
+
+type PayoutLine {
+  bookingType    BookingType
+  bookingId      String      @db.ObjectId
+  reference      String
+  amountInr      Int // what the customer paid (incl. GST)
+  commissionInr  Int
+  tdsInr         Int
+  vendorShareInr Int // amountInr - commissionInr
+}
+
+type BankSnapshot {
+  accountHolderName  String
+  accountNumberEnc   String
+  accountNumberLast4 String
+  ifscCode           String
+  bankName           String
+}
+
+type ReviewSubScores {
+  cleanliness   Int
+  accuracy      Int
+  communication Int
+  location      Int
+  checkIn       Int
+  value         Int
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  ACTORS
+// ═════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  userCode       String           @unique
+  fullName       String
+  email          String           @unique
+  phone          Phone?
+  passwordHash   String?
+  authProvider   AuthProvider     @default(local)
+  authProviderId String?
+  avatarUrl      String?
+  bio            String?
+  dateOfBirth    String?
+  gender         Gender?
+  address        PostalAddress?
+  membership     Membership
+  preferences    UserPreferences
+  verification   UserVerification
+
+  // atomic counters (re-nested as `metrics` by presenters)
+  totalBookingsCount    Int @default(0)
+  completedStaysCount   Int @default(0)
+  totalSpentInr         Int @default(0)
+  reviewsWrittenCount   Int @default(0)
+  totalDiscountSavedInr Int @default(0)
+
+  status              UserStatus @default(active)
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  stayBookings       StayBooking[]
+  packageBookings    PackageBooking[]
+  experienceBookings ExperienceBooking[]
+  reviews            Review[]
+  wishlist           Wishlist?
+  tickets            SupportTicket[]
+
+  @@index([status])
+  @@index([authProvider, authProviderId])
+  @@map("users")
+}
+
+model Vendor {
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  vendorCode        String           @unique
+  businessType      BusinessType
+  category          VendorCategory
+  businessName      String
+  displayName       String
+  displayRole       String
+  experienceSummary String?
+  avatarUrl         String?
+  email             String           @unique
+  phone             String
+  contact           VendorContact
+  passwordHash      String
+  compliance        VendorCompliance
+  banking           VendorBanking?
+  commissionTerms   CommissionTerms
+
+  // wallet (atomic counters; re-nested as `wallet` by presenters)
+  walletPendingInr            Int @default(0)
+  walletAvailableInr          Int @default(0)
+  walletLifetimeEarningsInr   Int @default(0)
+  walletLifetimeCommissionInr Int @default(0)
+
+  status              VendorStatus @default(pending_approval)
+  acceptingBookings   Boolean      @default(true)
+  failedLoginAttempts Int          @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  properties  Property[]
+  packages    Package[]
+  experiences Experience[]
+
+  @@index([status])
+  @@index([compliance.verificationStatus])
+  @@map("vendors")
+}
+
+model SubAdmin {
+  id                  String              @id @default(auto()) @map("_id") @db.ObjectId
+  subAdminCode        String              @unique
+  fullName            String
+  email               String              @unique
+  phone               String
+  passwordHash        String
+  department          SubAdminDepartment
+  permissions         SubAdminPermissions
+  assignedRegions     String[]
+  supervisorAdminId   String              @db.ObjectId
+  supervisor          Admin               @relation(fields: [supervisorAdminId], references: [id])
+  status              SubAdminStatus      @default(active)
+  failedLoginAttempts Int                 @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  lastActiveAt        DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([supervisorAdminId])
+  @@map("sub_admins")
+}
+
+model Admin {
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  adminCode           String           @unique
+  fullName            String
+  email               String           @unique
+  phone               String
+  passwordHash        String
+  roleTitle           String
+  permissions         AdminPermissions
+  security            StaffSecurity
+  status              AdminStatus      @default(active)
+  failedLoginAttempts Int              @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  subAdmins SubAdmin[]
+
+  @@map("admins")
+}
+
+model SuperAdmin {
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  username            String           @unique
+  fullName            String
+  email               String           @unique
+  phone               String
+  passwordHash        String
+  masterPinHash       String
+  security            StaffSecurity
+  isTwoFactorEnforced Boolean          @default(true)
+  recoveryKeyHashes   String[]
+  status              SuperAdminStatus @default(active)
+  failedLoginAttempts Int              @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@map("super_admins")
+}
+
+/// Singleton document (key = "global"). Replaces the doc's SuperAdmin.platformConfig
+/// so pricing never depends on which super-admin account saved it last.
+model PlatformConfig {
+  id                      String              @id @default(auto()) @map("_id") @db.ObjectId
+  key                     String              @unique @default("global")
+  platformBookingsEnabled Boolean             @default(true)
+  platformBookingsMessage String?
+  gstRates                GstRates
+  platformFees            PlatformFees
+  cancellationWindowRules CancellationRules
+  defaultCommission       DefaultCommission
+  payoutRules             PayoutRules
+  dynamicPricing          DynamicPricingRules
+  updatedBySuperAdminId   String?             @db.ObjectId
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@map("platform_configs")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  CATALOG
+// ═════════════════════════════════════════════════════════════════════════════
+
+model Property {
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  slug              String           @unique
+  code              String?
+  vendorId          String           @db.ObjectId
+  vendor            Vendor           @relation(fields: [vendorId], references: [id])
+  name              String
+  propertyType      PropertyType
+  tagline           String?
+  badge             String?
+  tags              String[]
+  amenityKeys       String[] // lower-cased amenity names, derived — used for filtering
+  amenityNames      String[]
+  description       String
+  longDescription   String?
+  location          String
+  locationId        String?
+  serviceableLocation ServiceableLocation?
+  city              String
+  country           String           @default("India")
+  address           PropertyAddress
+  images            MediaImage[]
+  gallery           String[]
+  videos            String[]
+  host              HostInfo?
+  highlights        Highlight[]
+  amenities         Amenity[]
+  policies          PropertyPolicies
+  rooms             Room[]
+  attractions       Attraction[]
+  numericPrice      Int // cheapest room base price (derived)
+  originalPrice     Int?
+  rating            Float            @default(0)
+  reviewsCount      Int              @default(0)
+  ratingBreakdown   RatingBreakdown
+  bgColor           String?
+  gradientOverlay   String?
+  featured          Boolean          @default(false)
+  acceptingBookings Boolean          @default(true)
+  status            ListingStatus    @default(pending_approval)
+  rejectionReason   String?
+  approvedAt        DateTime?
+  approvedByAdminId String?          @db.ObjectId
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  packages     Package[]
+  stayBookings StayBooking[]
+
+  @@index([status, city, propertyType, numericPrice])
+  @@index([vendorId, status])
+  @@index([featured, status])
+  @@map("properties")
+}
+
+model Package {
+  id                 String              @id @default(auto()) @map("_id") @db.ObjectId
+  slug               String              @unique
+  code               String?
+  vendorId           String              @db.ObjectId
+  vendor             Vendor              @relation(fields: [vendorId], references: [id])
+  propertyId         String              @db.ObjectId
+  property           Property            @relation(fields: [propertyId], references: [id])
+  packageType        PackageType
+  category           PackageCategory
+  title              String
+  badge              String?
+  durationDays       Int
+  durationNights     Int
+  location           String
+  locationId         String?
+  serviceableLocation ServiceableLocation?
+  dailyCapacity      Int?                @default(10)
+  city               String
+  country            String              @default("India")
+  numericPrice       Int // cheapest tier price per person (derived)
+  originalPrice      Int?
+  shortDesc          String
+  description        String?
+  overview           String?
+  thumbnail          String?
+  images             String[]
+  freeActivities     FreeActivity[]
+  highlights         String[]
+  inclusions         Inclusion[]
+  rawInclusions      Json?
+  exclusions         String[]
+  itinerary          ItineraryDay[]
+  tiers              PackageTier[]
+  pricing            PackagePricingRules
+  validFrom          String?
+  validTill          String?
+  cancellationPolicy String?
+  rating             Float               @default(0)
+  reviewsCount       Int                 @default(0)
+  totalBookings      Int                 @default(0)
+  featured           Boolean             @default(false)
+  acceptingBookings  Boolean             @default(true)
+  status             ListingStatus       @default(pending_approval)
+  rejectionReason    String?
+  approvedAt         DateTime?
+  approvedByAdminId  String?             @db.ObjectId
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  bookings PackageBooking[]
+
+  @@index([status, category, numericPrice])
+  @@index([vendorId, status])
+  @@index([propertyId, status])
+  @@map("packages")
+}
+
+model Experience {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  slug               String             @unique
+  code               String?
+  vendorId           String             @db.ObjectId
+  vendor             Vendor             @relation(fields: [vendorId], references: [id])
+  title              String
+  country            String             @default("India")
+  flag               String?
+  city               String
+  locationId         String?
+  serviceableLocation ServiceableLocation?
+  duration           String
+  category           String // "Trekking" | "Culture & Food" | "Cruises" | "Safari & Desert" | "Adventure"
+  numericPrice       Int // cheapest tier price per person (derived)
+  originalPrice      Int?
+  difficulty         Difficulty         @default(Easy)
+  ageLimit           String?
+  groupSize          String?
+  language           String?
+  image              String?
+  gallery            String[]
+  description        String
+  overview           String?
+  highlights         String[]
+  timeline           TimelineItem[]
+  inclusions         Inclusion[]
+  exclusions         String[]
+  whatToBring        String[]
+  meetingPoint       String?
+  coordinates        Coordinates?
+  schedule           ExperienceSchedule
+  slots              ExperienceSlot[]
+  tiers              ExperienceTier[]
+  guide              GuideInfo?
+  cancellationPolicy String?
+  rating             Float              @default(0)
+  reviewsCount       Int                @default(0)
+  featured           Boolean            @default(false)
+  acceptingBookings  Boolean            @default(true)
+  status             ListingStatus      @default(pending_approval)
+  rejectionReason    String?
+  approvedAt         DateTime?
+  approvedByAdminId  String?            @db.ObjectId
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  bookings ExperienceBooking[]
+
+  @@index([status, category, numericPrice])
+  @@index([vendorId, status])
+  @@map("experiences")
+}
+
+/// Vendor-/admin-created closures: a block of room units for a date range
+/// (property) or a closed day/slot (experience, e.g. paragliding in bad weather).
+/// Dates are inclusive on both ends ("YYYY-MM-DD").
+model InventoryBlock {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  targetType    BlockTargetType
+  targetId      String          @db.ObjectId
+  subId         String? // roomId or slotId; null = whole listing
+  fromDate      String
+  toDate        String
+  units         Int? // property rooms only; null = all units of the room
+  reason        String?
+  createdById   String          @db.ObjectId
+  createdByRole ActorRole
+  createdAt     DateTime        @default(now())
+
+  @@index([targetType, targetId, fromDate, toDate])
+  @@map("inventory_blocks")
+}
+
+model AdCampaign {
+  id                String      @id @default(auto()) @map("_id") @db.ObjectId
+  adName            String
+  adType            AdType
+  placement         AdPlacement
+  target            AdTarget
+  creative          AdCreative
+  targeting         AdTargeting
+  budget            AdBudget
+  spentSoFar        Float       @default(0)
+  impressions       Int         @default(0)
+  clicks            Int         @default(0)
+  conversions       Int         @default(0)
+  priority          Int         @default(5)
+  isActive          Boolean     @default(true)
+  createdById       String      @db.ObjectId
+  createdByRole     ActorRole
+  approvedByAdmin   Boolean     @default(false)
+  approvedByAdminId String?     @db.ObjectId
+  startsAt          DateTime?
+  expiresAt         DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([isActive, approvedByAdmin, placement])
+  @@index([createdById])
+  @@map("ad_campaigns")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  BOOKINGS, PAYMENTS, PAYOUTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+model StayBooking {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  bookingReference String   @unique
+  userId           String   @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id])
+  propertyId       String   @db.ObjectId
+  property         Property @relation(fields: [propertyId], references: [id])
+  vendorId         String   @db.ObjectId
+
+  roomId       String
+  roomName     String
+  roomQuantity Int    @default(1)
+  checkInDate  String // YYYY-MM-DD (check-in day)
+  checkOutDate String // YYYY-MM-DD (exclusive)
+  nights       Int
+  adults       Int
+  children     Int    @default(0)
+  totalGuests  Int
+
+  pricing               StayPricing
+  grandTotalInr         Int // denormalised copy for $sum aggregation
+  taxableAmountInr      Int // denormalised: TDS / commission base
+  commissionRatePercent Float       @default(0)
+  commissionAmountInr   Int         @default(0)
+  vendorShareInr        Int         @default(0)
+  payoutId              String?     @db.ObjectId
+
+  paymentStatus   PaymentStatus        @default(unpaid)
+  bookingStatus   StayBookingStatus    @default(pending)
+  holdExpiresAt   DateTime?
+  specialRequests String?
+  guestName       String?
+  guestPhone      String?
+  billingState    String?
+  couponCode      String?
+  invoiceNumber   String?
+  cancellation    BookingCancellation?
+  confirmedAt     DateTime?
+  checkedInAt     DateTime?
+  checkedOutAt    DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([propertyId, roomId, checkInDate, checkOutDate])
+  @@index([userId, createdAt])
+  @@index([vendorId, bookingStatus])
+  @@index([bookingStatus, holdExpiresAt])
+  @@index([vendorId, paymentStatus, bookingStatus, payoutId])
+  @@map("stay_bookings")
+}
+
+model PackageBooking {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  bookingReference String  @unique
+  userId           String  @db.ObjectId
+  user             User    @relation(fields: [userId], references: [id])
+  packageId        String  @db.ObjectId
+  package          Package @relation(fields: [packageId], references: [id])
+  vendorId         String  @db.ObjectId
+  hostPropertyId   String  @db.ObjectId
+
+  tierId         String
+  tierName       String
+  startDate      String // YYYY-MM-DD
+  endDate        String // YYYY-MM-DD (last day of the package, inclusive)
+  adults         Int
+  children       Int    @default(0)
+  totalTravelers Int
+
+  pricing               PackagePricing
+  grandTotalInr         Int
+  taxableAmountInr      Int
+  commissionRatePercent Float          @default(0)
+  commissionAmountInr   Int            @default(0)
+  vendorShareInr        Int            @default(0)
+  payoutId              String?        @db.ObjectId
+
+  freeActivityPasses FreeActivityPass[]
+  paymentStatus      PaymentStatus        @default(unpaid)
+  bookingStatus      PackageBookingStatus @default(pending)
+  holdExpiresAt      DateTime?
+  specialRequests    String?
+  guestName          String?
+  guestPhone         String?
+  billingState       String?
+  couponCode         String?
+  invoiceNumber      String?
+  cancellation       BookingCancellation?
+  confirmedAt        DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([packageId, startDate])
+  @@index([userId, createdAt])
+  @@index([vendorId, bookingStatus])
+  @@index([bookingStatus, holdExpiresAt])
+  @@index([vendorId, paymentStatus, bookingStatus, payoutId])
+  @@map("package_bookings")
+}
+
+model ExperienceBooking {
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  bookingReference String     @unique
+  userId           String     @db.ObjectId
+  user             User       @relation(fields: [userId], references: [id])
+  experienceId     String     @db.ObjectId
+  experience       Experience @relation(fields: [experienceId], references: [id])
+  vendorId         String     @db.ObjectId
+
+  tierId            String
+  tierName          String
+  slotId            String
+  slotTime          String
+  activityDate      String // YYYY-MM-DD
+  adults            Int
+  children          Int    @default(0)
+  totalParticipants Int
+
+  pricing               ExperiencePricing
+  grandTotalInr         Int
+  taxableAmountInr      Int
+  commissionRatePercent Float             @default(0)
+  commissionAmountInr   Int               @default(0)
+  vendorShareInr        Int               @default(0)
+  payoutId              String?           @db.ObjectId
+
+  paymentStatus   PaymentStatus           @default(unpaid)
+  bookingStatus   ExperienceBookingStatus @default(pending)
+  holdExpiresAt   DateTime?
+  specialRequests String?
+  guestName       String?
+  guestPhone      String?
+  billingState    String?
+  couponCode      String?
+  invoiceNumber   String?
+  cancellation    BookingCancellation?
+  confirmedAt     DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([experienceId, slotId, activityDate])
+  @@index([userId, createdAt])
+  @@index([vendorId, bookingStatus])
+  @@index([bookingStatus, holdExpiresAt])
+  @@index([vendorId, paymentStatus, bookingStatus, payoutId])
+  @@map("experience_bookings")
+}
+
+model Payment {
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNumber     String? // unique via partial index (db:indexes)
+  bookingType       BookingType
+  bookingId         String               @db.ObjectId
+  userId            String               @db.ObjectId
+  vendorId          String               @db.ObjectId
+  gateway           PaymentGatewayName
+  gatewayOrderId    String               @unique
+  gatewayPaymentId  String? // unique via partial index (db:indexes)
+  gatewaySignature  String?
+  amountInr         Int
+  currency          String               @default("INR")
+  method            String?
+  gstDetails        GstDetails?
+  status            GatewayPaymentStatus @default(initiated)
+  refundedAmountInr Int                  @default(0)
+  refunds           RefundRecord[]
+  refundsList       Refund[]
+  pdfInvoiceUrl     String?
+  failureReason     String?
+  capturedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([bookingType, bookingId])
+  @@index([userId, createdAt])
+  @@index([vendorId, status])
+  @@map("payments")
+}
+
+model VendorPayout {
+  id                            String          @id @default(auto()) @map("_id") @db.ObjectId
+  payoutReference               String          @unique
+  vendorId                      String          @db.ObjectId
+  periodFrom                    DateTime
+  periodTo                      DateTime
+  lines                         PayoutLine[]
+  grossBookingsAmountInr        Int
+  vendorShareTotalInr           Int
+  platformCommissionDeductedInr Int
+  tdsRatePercent                Float
+  tdsDeductedInr                Int
+  netPayableAmountInr           Int
+  bank                          BankSnapshot
+  transferMethod                TransferMethod?
+  utrNumber                     String?
+  status                        PayoutStatus    @default(requested)
+  notes                         String?
+  failureReason                 String?
+  auditedByAdminId              String?         @db.ObjectId
+  auditedAt                     DateTime?
+  approvedBySuperAdminId        String?         @db.ObjectId
+  releasedAt                    DateTime?
+  completedAt                   DateTime?
+  createdAt                     DateTime        @default(now())
+  updatedAt                     DateTime        @updatedAt
+
+  @@index([vendorId, status])
+  @@index([status, createdAt])
+  @@map("vendor_payouts")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  ENGAGEMENT
+// ═════════════════════════════════════════════════════════════════════════════
+
+model Review {
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  targetType          ReviewTargetType
+  targetId            String           @db.ObjectId
+  userId              String           @db.ObjectId
+  user                User             @relation(fields: [userId], references: [id])
+  bookingId           String           @unique @db.ObjectId
+  author              String
+  location            String?
+  avatar              String?
+  rating              Int
+  roomStayed          String?
+  tierTravelled       String?
+  slotBooked          String?
+  comment             String
+  helpfulCount        Int              @default(0)
+  helpfulVotedUserIds String[]
+  subScores           ReviewSubScores?
+  isVerifiedStay      Boolean          @default(true)
+  status              ReviewStatus     @default(pending_moderation)
+  moderatedByRole     ActorRole?
+  moderatedById       String?          @db.ObjectId
+  moderationNote      String?
+  vendorReply         String?
+  vendorRepliedAt     DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([targetType, targetId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("reviews")
+}
+
+model Wishlist {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @unique @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id])
+  savedProperties  String[] @db.ObjectId
+  savedPackages    String[] @db.ObjectId
+  savedExperiences String[] @db.ObjectId
+  updatedAt        DateTime @updatedAt
+
+  @@map("wishlists")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  PLATFORM / SECURITY
+// ═════════════════════════════════════════════════════════════════════════════
+
+model AuditLog {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  actorId       String?   @db.ObjectId
+  actorRole     ActorRole
+  action        String
+  targetEntity  String
+  targetId      String?
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([targetEntity, targetId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+/// Hashed opaque refresh tokens with rotation + reuse detection (familyId).
+/// TTL index on expiresAt is created by `npm run db:indexes`.
+model RefreshToken {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  actorId        String    @db.ObjectId
+  actorRole      ActorRole
+  tokenHash      String    @unique
+  familyId       String
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  replacedByHash String?
+  userAgent      String?
+  ip             String?
+  createdAt      DateTime  @default(now())
+
+  @@index([actorId, actorRole])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// Phone-login OTPs, password-reset tokens and e-mail verification tokens (hashed).
+/// TTL index on expiresAt is created by `npm run db:indexes`.
+model OneTimeCode {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  purpose    OtpPurpose
+  actorRole  ActorRole
+  identifier String // E.164 phone or lower-cased e-mail
+  codeHash   String
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([identifier, purpose, createdAt])
+  @@index([codeHash])
+  @@map("one_time_codes")
+}
+
+/// Atomic sequence generator (booking references, invoice numbers, user codes...).
+model Counter {
+  id  String @id @default(auto()) @map("_id") @db.ObjectId
+  key String @unique
+  seq Int
+
+  @@map("counters")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  SERVICEABLE AREAS, COUPONS, SUPPORT & NOTIFICATIONS
+// ═════════════════════════════════════════════════════════════════════════════
+
+model ServiceableArea {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  code        ServiceableLocation @unique
+  slug        String              @unique // e.g. "loc-venna-lake"
+  name        String              // "Venna Lake", "Main Market, Mahabaleshwar", etc.
+  city        String              // "Mahabaleshwar" or "Panchgani"
+  description String?
+  order       Int                 @default(0)
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([city, isActive])
+  @@index([order])
+  @@map("serviceable_areas")
+}
+
+model Coupon {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  code         String    @unique
+  description  String?
+  discountType String    // percent | flat
+  value        Float
+  maxDiscount  Int?
+  minAmount    Int       @default(0)
+  appliesTo    String[]  // ['stay','package','experience'] (empty = all)
+  usageLimit   Int?
+  perUserLimit Int       @default(1)
+  usedCount    Int       @default(0)
+  validFrom    DateTime?
+  validTill    DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  couponId  String   @db.ObjectId
+  userId    String   @db.ObjectId
+  bookingId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@map("coupon_redemptions")
+}
+
+model SupportTicket {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  ticketCode   String       @unique
+  userId       String       @db.ObjectId
+  user         User         @relation(fields: [userId], references: [id])
+  bookingRef   String?
+  subject      String
+  category     String       @default("general")
+  status       TicketStatus @default(open)
+  priority     String       @default("normal")
+  assignedToId String?      @db.ObjectId
+  messages     Json         // [{senderRole, senderId, senderName, body, at}]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId, status])
+  @@index([assignedToId, status])
+  @@map("support_tickets")
+}
+
+model Notification {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  recipientId   String    @db.ObjectId
+  recipientRole String
+  type          String
+  title         String
+  body          String
+  data          Json?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([recipientId, recipientRole, readAt])
+  @@map("notifications")
+}
+
+model WebhookEvent {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId   String   @unique
+  type      String
+  createdAt DateTime @default(now())
+
+  @@map("webhook_events")
+}
+
+model Refund {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId       String   @db.ObjectId
+  payment         Payment  @relation(fields: [paymentId], references: [id])
+  amountInr       Int
+  reason          String?
+  gatewayRefundId String?
+  status          String   @default("processed") // processed | failed | pending
+  initiatedByRole String?
+  initiatedById   String?
+  createdAt       DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("refund_entities")
+}
+

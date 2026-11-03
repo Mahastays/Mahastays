@@ -1,0 +1,5922 @@
+{
+  "info": {
+    "name": "Mahastays API",
+    "description": "Generated from the source by `npm run docs:generate` (184 endpoints). Log in first — the access token is saved automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "masterPin",
+      "value": "246810"
+    },
+    {
+      "key": "propertyId",
+      "value": ""
+    },
+    {
+      "key": "packageId",
+      "value": ""
+    },
+    {
+      "key": "experienceId",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "adId",
+      "value": ""
+    },
+    {
+      "key": "payoutId",
+      "value": ""
+    },
+    {
+      "key": "id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "**Access:** public — liveness probe"
+          }
+        },
+        {
+          "name": "GET /health/ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health",
+                "ready"
+              ]
+            },
+            "description": "**Access:** public — readiness probe (checks MongoDB / Redis)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public pricing config",
+      "item": [
+        {
+          "name": "GET /config/public",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/public",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "public"
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "POST /auth/user/signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user",
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Asha Patil\",\n  \"email\": \"asha@example.com\",\n  \"password\": \"Secret123\",\n  \"phone\": {\n    \"countryCode\": \"+91\",\n    \"nationalNumber\": \"9876543210\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/user/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"traveler@mahastays.local\",\n  \"password\": \"Demo@12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/user/otp/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user/otp/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user",
+                "otp",
+                "request"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": {\n    \"countryCode\": \"+91\",\n    \"nationalNumber\": \"9876543210\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /auth/user/otp/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user",
+                "otp",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": {\n    \"countryCode\": \"+91\",\n    \"nationalNumber\": \"9876543210\"\n  },\n  \"code\": \"123456\",\n  \"fullName\": \"Asha Patil\",\n  \"email\": \"asha@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/user/google",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/user/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user",
+                "google"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<google-id-token>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/vendor/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/vendor/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "vendor",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessType\": \"private_limited\",\n  \"category\": \"property_host\",\n  \"businessName\": \"HillView Hospitality Pvt Ltd\",\n  \"displayName\": \"Vikramaditya & Team\",\n  \"displayRole\": \"Resort General Manager\",\n  \"email\": \"newhost@example.com\",\n  \"phone\": \"+919822000000\",\n  \"password\": \"Strong#123\",\n  \"contact\": {\n    \"primaryContactPerson\": \"Vikramaditya\",\n    \"registeredOfficeAddress\": {\n      \"addressLine1\": \"Plot 12, Venna Lake Road\",\n      \"city\": \"Mahabaleshwar\",\n      \"district\": \"Satara\",\n      \"state\": \"Maharashtra\",\n      \"pincode\": \"412806\"\n    }\n  },\n  \"compliance\": {\n    \"panNumber\": \"ABCDE1234F\",\n    \"gstin\": \"27ABCDE1234F1Z5\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/vendor/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/vendor/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "vendor",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"host@hillview.local\",\n  \"password\": \"Demo@12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/admin/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ops.lead@mahastays.local\",\n  \"password\": \"Demo@12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/admin/login/2fa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/login/2fa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "login",
+                "2fa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeToken\": \"<from /auth/admin/login>\",\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/admin/2fa/setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/2fa/setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "2fa",
+                "setup"
+              ]
+            },
+            "description": "**Access:** super_admin | admin"
+          }
+        },
+        {
+          "name": "POST /auth/admin/2fa/enable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/2fa/enable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "2fa",
+                "enable"
+              ]
+            },
+            "description": "**Access:** super_admin | admin"
+          }
+        },
+        {
+          "name": "POST /auth/admin/2fa/disable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/2fa/disable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "2fa",
+                "disable"
+              ]
+            },
+            "description": "**Access:** super_admin | admin"
+          }
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "**Access:** public"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /auth/logout-all",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout-all"
+              ]
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        },
+        {
+          "name": "POST /auth/change-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Demo@12345\",\n  \"newPassword\": \"NewSecret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** any signed-in user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/password/forgot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/password/forgot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "password",
+                "forgot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"user\",\n  \"email\": \"traveler@mahastays.local\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /auth/password/reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/password/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "password",
+                "reset"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<token from the e-mail link>\",\n  \"newPassword\": \"NewSecret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /auth/email/verify/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/email/verify/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "email",
+                "verify",
+                "request"
+              ]
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        },
+        {
+          "name": "POST /auth/email/verify/confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/email/verify/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "email",
+                "verify",
+                "confirm"
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer profile",
+      "item": [
+        {
+          "name": "GET /users/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "PUT /users/me",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Asha Patil\",\n  \"preferences\": {\n    \"preferredLanguage\": \"en\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "DELETE /users/me",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor portal",
+      "item": [
+        {
+          "name": "GET /vendor/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "me"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/me",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "me"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/me/kyc",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/me/kyc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "me",
+                "kyc"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"panNumber\": \"ABCDE1234F\",\n  \"gstin\": \"27ABCDE1234F1Z5\",\n  \"identityProofUrl\": \"s3://bucket/kyc/identity.pdf\",\n  \"businessProofUrl\": \"s3://bucket/kyc/business.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/me/banking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/me/banking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "me",
+                "banking"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountHolderName\": \"HillView Hospitality Pvt Ltd\",\n  \"accountNumber\": \"123456789012\",\n  \"bankName\": \"HDFC Bank\",\n  \"ifscCode\": \"HDFC0001234\",\n  \"branchName\": \"Mahabaleshwar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "dashboard"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/wallet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "wallet"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/payouts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/payouts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "payouts"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/payouts/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/payouts/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "payouts",
+                "request"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/payouts/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/payouts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "payouts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "reviews"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/reviews/:id/reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/reviews/:id/reply",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "reviews",
+                ":id",
+                "reply"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reply\": \"Thank you for staying with us!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/vouchers/redeem",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/vouchers/redeem",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "vouchers",
+                "redeem"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucherCode\": \"VOUCH-ACT-ABC123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/properties",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HillView Luxury Resort & Spa\",\n  \"propertyType\": \"resort\",\n  \"tagline\": \"5-Acre Lakeside Resort with Private Pool Villas, Spa & Nightly Bonfire\",\n  \"badge\": \"Venna Lake Premier\",\n  \"tags\": [\n    \"Resort\",\n    \"Venna Lake\",\n    \"Pool\",\n    \"Spa\",\n    \"Pet Friendly\"\n  ],\n  \"description\": \"Lakeside luxury resort on Venna Lake Road with private pool villas, a full-service spa and valley-view dining.\",\n  \"longDescription\": \"Set across five green acres a short walk from Venna Lake, HillView blends hill-station calm with resort comfort. Wake up to mist over the water, spend the day by the infinity pool or at the spa, and end with a bonfire and live music under the stars.\",\n  \"location\": \"Venna Lake Road, Mahabaleshwar\",\n  \"locationId\": \"loc-venna-lake\",\n  \"city\": \"Mahabaleshwar\",\n  \"country\": \"India\",\n  \"address\": {\n    \"fullAddress\": \"Plot 12, Venna Lake Road, Mahabaleshwar, Maharashtra 412806\",\n    \"lat\": 17.9258,\n    \"lng\": 73.665,\n    \"mapLink\": \"https://maps.google.com/?q=17.9258,73.6650\"\n  },\n  \"images\": [\n    {\n      \"url\": \"https://picsum.photos/seed/hillview-cover/1600/1000\",\n      \"alt\": \"HillView resort facing Venna Lake\",\n      \"isCover\": true\n    },\n    {\n      \"url\": \"https://picsum.photos/seed/hillview-pool/1600/1000\",\n      \"alt\": \"Infinity pool\"\n    },\n    {\n      \"url\": \"https://picsum.photos/seed/hillview-villa/1600/1000\",\n      \"alt\": \"Private pool villa\"\n    }\n  ],\n  \"gallery\": [\n    \"https://picsum.photos/seed/hillview-g1/1600/1000\",\n    \"https://picsum.photos/seed/hillview-g2/1600/1000\",\n    \"https://picsum.photos/seed/hillview-g3/1600/1000\",\n    \"https://picsum.photos/seed/hillview-g4/1600/1000\"\n  ],\n  \"host\": {\n    \"name\": \"Vikramaditya & Team\",\n    \"role\": \"Resort General Manager\",\n    \"experience\": \"Host since 2018 · 128+ Verified Reviews\",\n    \"avatar\": \"https://i.pravatar.cc/150?img=12\"\n  },\n  \"highlights\": [\n    {\n      \"title\": \"Venna Lake Panorama\",\n      \"desc\": \"Front-row unobstructed views of the glistening lake from your balcony.\",\n      \"icon\": \"mountain\"\n    },\n    {\n      \"title\": \"Private Pool Villas\",\n      \"desc\": \"Secluded villas with their own plunge pools and sit-outs.\",\n      \"icon\": \"pool\"\n    },\n    {\n      \"title\": \"Nightly Bonfire & Music\",\n      \"desc\": \"Acoustic evenings around the bonfire, free for all guests.\",\n      \"icon\": \"activity\"\n    },\n    {\n      \"title\": \"Signature Spa\",\n      \"desc\": \"Ayurvedic massages and couple therapies, bookable on arrival.\",\n      \"icon\": \"sparkles\"\n    }\n  ],\n  \"amenities\": [\n    {\n      \"name\": \"Swimming Pool\",\n      \"icon\": \"pool\"\n    },\n    {\n      \"name\": \"High-Speed Wi-Fi\",\n      \"icon\": \"wifi\"\n    },\n    {\n      \"name\": \"Free Parking\",\n      \"icon\": \"car\"\n    },\n    {\n      \"name\": \"Nightly Bonfire\",\n      \"icon\": \"sparkles\"\n    },\n    {\n      \"name\": \"Breakfast Included\",\n      \"icon\": \"coffee\"\n    },\n    {\n      \"name\": \"Welcome Drinks\",\n      \"icon\": \"gift\"\n    },\n    {\n      \"name\": \"Spa & Wellness\",\n      \"icon\": \"spa\"\n    },\n    {\n      \"name\": \"Room Service\",\n      \"icon\": \"service\"\n    },\n    {\n      \"name\": \"Air Conditioning\",\n      \"icon\": \"wind\"\n    },\n    {\n      \"name\": \"24x7 Security\",\n      \"icon\": \"shield\"\n    }\n  ],\n  \"policies\": {\n    \"checkInTime\": \"14:00\",\n    \"checkOutTime\": \"11:00\",\n    \"cancellationPolicy\": \"Free cancellation up to 48 hrs before check-in. 50% charge after that.\",\n    \"petsAllowed\": true,\n    \"smokingAllowed\": false,\n    \"coupleFriendly\": true,\n    \"maxGuestsPerRoom\": 6\n  },\n  \"rooms\": [\n    {\n      \"roomId\": \"r501\",\n      \"name\": \"Deluxe Lake View Room\",\n      \"badge\": \"Lake View\",\n      \"tagline\": \"Serene panoramic sunrises over Venna Lake with private open-air balcony.\",\n      \"roomSize\": 320,\n      \"bedType\": \"King\",\n      \"maxGuests\": 3,\n      \"capacity\": {\n        \"adults\": 2,\n        \"children\": 1\n      },\n      \"basePrice\": 5500,\n      \"originalPrice\": 7500,\n      \"weekendPrice\": 7500,\n      \"holidayPrice\": 9000,\n      \"count\": 10,\n      \"images\": [\n        \"https://picsum.photos/seed/hv-room-1/1600/1000\",\n        \"https://picsum.photos/seed/hv-room-2/1600/1000\"\n      ],\n      \"amenities\": [\n        \"Air Conditioning\",\n        \"HD Smart TV\",\n        \"Private Balcony\"\n      ]\n    },\n    {\n      \"roomId\": \"r502\",\n      \"name\": \"Premium Valley Suite\",\n      \"badge\": \"Best Value\",\n      \"tagline\": \"Spacious suite with a separate lounge and sweeping valley views.\",\n      \"roomSize\": 480,\n      \"bedType\": \"King\",\n      \"maxGuests\": 4,\n      \"capacity\": {\n        \"adults\": 3,\n        \"children\": 1\n      },\n      \"basePrice\": 8200,\n      \"originalPrice\": 10500,\n      \"weekendPrice\": 9800,\n      \"holidayPrice\": 12000,\n      \"count\": 6,\n      \"images\": [\n        \"https://picsum.photos/seed/hv-suite-1/1600/1000\"\n      ],\n      \"amenities\": [\n        \"Air Conditioning\",\n        \"Lounge Area\",\n        \"Bathtub\",\n        \"Mini Bar\"\n      ]\n    },\n    {\n      \"roomId\": \"r503\",\n      \"name\": \"Private Pool Villa 2BHK\",\n      \"badge\": \"Most Popular\",\n      \"tagline\": \"Two-bedroom villa with a private plunge pool and garden deck.\",\n      \"roomSize\": 900,\n      \"bedType\": \"King + Twin\",\n      \"maxGuests\": 6,\n      \"capacity\": {\n        \"adults\": 4,\n        \"children\": 2\n      },\n      \"basePrice\": 14500,\n      \"originalPrice\": 18000,\n      \"weekendPrice\": 17500,\n      \"holidayPrice\": 21000,\n      \"count\": 4,\n      \"images\": [\n        \"https://picsum.photos/seed/hv-villa-1/1600/1000\",\n        \"https://picsum.photos/seed/hv-villa-2/1600/1000\"\n      ],\n      \"amenities\": [\n        \"Private Pool\",\n        \"Jacuzzi\",\n        \"Kitchenette\",\n        \"Air Conditioning\"\n      ]\n    }\n  ],\n  \"attractions\": [\n    {\n      \"name\": \"Venna Lake & Boating Pier\",\n      \"distance\": \"0.3 km\",\n      \"time\": \"2 mins walk\"\n    },\n    {\n      \"name\": \"Mapro Garden\",\n      \"distance\": \"3.5 km\",\n      \"time\": \"10 mins drive\"\n    },\n    {\n      \"name\": \"Arthur Seat Point\",\n      \"distance\": \"12 km\",\n      \"time\": \"30 mins drive\"\n    },\n    {\n      \"name\": \"Panchgani Table Land\",\n      \"distance\": \"19 km\",\n      \"time\": \"35 mins drive\"\n    }\n  ],\n  \"bgColor\": \"bg-[#173e45]\",\n  \"gradientOverlay\": \"from-black/10 via-[#173e45]/45 to-[#173e45]\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/properties/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/properties/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PATCH /vendor/properties/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "DELETE /vendor/properties/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/properties/:id/calendar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id/calendar?from=2026-12-01&to=2026-12-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id",
+                "calendar"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/properties/:id/blocks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id/blocks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id",
+                "blocks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/properties/:id/blocks",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id/blocks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id",
+                "blocks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"r501\",\n  \"fromDate\": \"2026-12-24\",\n  \"toDate\": \"2026-12-26\",\n  \"units\": 3,\n  \"reason\": \"Maintenance\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "DELETE /vendor/properties/:id/blocks/:blockId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/properties/:id/blocks/:blockId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "properties",
+                ":id",
+                "blocks",
+                ":blockId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                },
+                {
+                  "key": "blockId",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/packages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"packageType\": \"couple\",\n  \"category\": \"Honeymoon\",\n  \"title\": \"Romantic Anniversary Getaway 💑\",\n  \"badge\": \"Honeymoon Special\",\n  \"durationDays\": 3,\n  \"durationNights\": 2,\n  \"location\": \"Plot 12, Venna Lake Road, Mahabaleshwar (HillView Resort)\",\n  \"locationId\": \"loc-venna-lake\",\n  \"city\": \"Mahabaleshwar\",\n  \"shortDesc\": \"3D/2N lakeside celebration with flower-bed welcome, candlelight dinner and spa credit.\",\n  \"description\": \"A complete anniversary celebration at HillView.\",\n  \"overview\": \"Arrive to a flower-petal welcome, dine by candlelight on the lake deck, and spend two relaxed days with spa time, boating and a private photoshoot.\",\n  \"thumbnail\": \"https://picsum.photos/seed/anniversary-thumb/1200/800\",\n  \"images\": [\n    \"https://picsum.photos/seed/anniversary-1/1600/1000\",\n    \"https://picsum.photos/seed/anniversary-2/1600/1000\"\n  ],\n  \"freeActivities\": [\n    {\n      \"experienceId\": \"{{experienceId}}\",\n      \"time\": \"3:00 PM – 6:00 PM\"\n    },\n    {\n      \"experienceId\": \"{{experienceId}}\",\n      \"time\": \"5:30 PM – 6:30 PM\"\n    }\n  ],\n  \"highlights\": [\n    \"Flower-bed welcome\",\n    \"Candlelight dinner\",\n    \"Complimentary lake boating\",\n    \"Couple photoshoot\"\n  ],\n  \"inclusions\": [\n    {\n      \"title\": \"2 Nights Deluxe Lake View\",\n      \"desc\": \"Breakfast included.\",\n      \"icon\": \"home\"\n    },\n    {\n      \"title\": \"Candlelight Dinner\",\n      \"desc\": \"On the lake deck with wine.\",\n      \"icon\": \"wine\"\n    },\n    {\n      \"title\": \"Anniversary Cake & Decor\",\n      \"icon\": \"gift\"\n    },\n    {\n      \"title\": \"Couple Photoshoot\",\n      \"icon\": \"camera\"\n    }\n  ],\n  \"rawInclusions\": {\n    \"couple\": {\n      \"roomDecoration\": true,\n      \"cakeIncluded\": true,\n      \"flowerBed\": true,\n      \"candleLightDinner\": true,\n      \"amenitiesIncluded\": [\n        \"Spa credit ₹1,500\"\n      ],\n      \"photoshoot\": true,\n      \"breakfastInBed\": true\n    },\n    \"freeActivitiesIncluded\": [\n      \"Evening Fun Games Arena\",\n      \"Venna Lake Sunset Boating\"\n    ]\n  },\n  \"exclusions\": [\n    \"Airfare / train fare\",\n    \"Personal expenses\",\n    \"Alcohol beyond the welcome wine\"\n  ],\n  \"itinerary\": [\n    {\n      \"day\": 1,\n      \"title\": \"Arrival, Flower Bed Welcome & Candlelight Dinner\",\n      \"activities\": [\n        \"Check-in from 2 PM\",\n        \"Flower-bed room welcome\",\n        \"Candlelight dinner\"\n      ],\n      \"meals\": \"Dinner & Wine Included\",\n      \"stay\": \"HillView Luxury Resort (Lake View Room)\"\n    },\n    {\n      \"day\": 2,\n      \"title\": \"Spa, Boating & Games\",\n      \"activities\": [\n        \"Breakfast in bed\",\n        \"Couple spa session\",\n        \"Venna Lake boating\",\n        \"Evening games arena\"\n      ],\n      \"meals\": \"Breakfast & Dinner\",\n      \"stay\": \"HillView Luxury Resort (Lake View Room)\"\n    },\n    {\n      \"day\": 3,\n      \"title\": \"Photoshoot & Departure\",\n      \"activities\": [\n        \"Sunrise photoshoot\",\n        \"Check-out by 11 AM\"\n      ],\n      \"meals\": \"Breakfast\"\n    }\n  ],\n  \"tiers\": [\n    {\n      \"tierId\": \"couple-standard\",\n      \"name\": \"Romantic Couple All-Inclusive\",\n      \"badge\": \"Most Popular\",\n      \"tagline\": \"3D/2N complete celebration for 2 adults\",\n      \"hotelType\": \"HillView Luxury Resort (Deluxe Lake View Room)\",\n      \"pricePerPerson\": 11500,\n      \"originalPrice\": 15500,\n      \"features\": [\n        \"2 nights stay\",\n        \"Candlelight dinner\",\n        \"Photoshoot\"\n      ]\n    },\n    {\n      \"tierId\": \"couple-villa\",\n      \"name\": \"Private Pool Villa Edition\",\n      \"badge\": \"Luxury\",\n      \"tagline\": \"Upgrade to a private pool villa\",\n      \"hotelType\": \"HillView Private Pool Villa\",\n      \"pricePerPerson\": 19500,\n      \"originalPrice\": 24000,\n      \"features\": [\n        \"Private plunge pool\",\n        \"Candlelight dinner by the pool\",\n        \"Spa for two\"\n      ]\n    }\n  ],\n  \"pricing\": {\n    \"weekendSurcharge\": 2500,\n    \"minGuests\": 2,\n    \"maxGuests\": 2\n  },\n  \"validFrom\": \"2026-01-01\",\n  \"validTill\": \"2027-12-31\",\n  \"cancellationPolicy\": \"Free cancellation up to 48 hours before check-in. 50% charge after that.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/packages/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/packages/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PATCH /vendor/packages/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "DELETE /vendor/packages/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "packages",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/experiences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/experiences",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sunrise Trek to Arthur Seat\",\n  \"country\": \"India\",\n  \"flag\": \"🇮🇳\",\n  \"city\": \"Old Mahabaleshwar\",\n  \"locationId\": \"loc-old-mahabaleshwar\",\n  \"duration\": \"2 Hours (6:00 AM – 8:00 AM)\",\n  \"category\": \"Trekking\",\n  \"difficulty\": \"Moderate\",\n  \"ageLimit\": \"8 – 60 years\",\n  \"groupSize\": \"Up to 20 per batch\",\n  \"language\": \"English, Hindi, Marathi\",\n  \"image\": \"https://picsum.photos/seed/arthur-seat/1600/900\",\n  \"gallery\": [\n    \"https://picsum.photos/seed/arthur-seat-1/1600/1000\",\n    \"https://picsum.photos/seed/arthur-seat-2/1600/1000\"\n  ],\n  \"description\": \"A guided sunrise trek to Arthur Seat with sweeping views over the Savitri valley.\",\n  \"overview\": \"Beat the crowds and watch the sun rise over the Sahyadris on a gentle two-hour guided trek, with chai at the top.\",\n  \"highlights\": [\n    \"Sunrise over the Savitri valley\",\n    \"Certified trek guide\",\n    \"Hot chai & snacks at the top\"\n  ],\n  \"timeline\": [\n    {\n      \"time\": \"05:45 AM\",\n      \"title\": \"Meeting & Safety Briefing\",\n      \"desc\": \"Meet at base camp, quick safety briefing and warm-up.\"\n    },\n    {\n      \"time\": \"06:00 AM\",\n      \"title\": \"Trek Begins\",\n      \"desc\": \"Guided ascent along the Arthur Seat trail.\"\n    },\n    {\n      \"time\": \"07:00 AM\",\n      \"title\": \"Sunrise Viewpoint\",\n      \"desc\": \"Photo stop with hot chai.\"\n    },\n    {\n      \"time\": \"08:00 AM\",\n      \"title\": \"Return to Base Camp\"\n    }\n  ],\n  \"inclusions\": [\n    {\n      \"title\": \"Expert Trek Guide\",\n      \"desc\": \"Certified, first-aid trained guide.\",\n      \"icon\": \"user\"\n    },\n    {\n      \"title\": \"Hot Chai & Snacks\",\n      \"icon\": \"coffee\"\n    },\n    {\n      \"title\": \"Safety Briefing & First-Aid\",\n      \"icon\": \"shield\"\n    }\n  ],\n  \"exclusions\": [\n    \"Personal expenses\",\n    \"Transport to base camp\"\n  ],\n  \"whatToBring\": [\n    \"Water bottle\",\n    \"Sturdy trekking shoes\",\n    \"Sun cap\"\n  ],\n  \"meetingPoint\": \"Old Mahabaleshwar Base Camp, near Arthur Seat Trail Head\",\n  \"coordinates\": {\n    \"lat\": 17.9622,\n    \"lng\": 73.6601\n  },\n  \"schedule\": {\n    \"mode\": \"fixed_slot\",\n    \"daysAvailable\": [\n      \"all\"\n    ]\n  },\n  \"slots\": [\n    {\n      \"slotId\": \"slot-sunrise\",\n      \"time\": \"6:00 AM – 8:00 AM\",\n      \"label\": \"Sunrise Batch (6 to 8 AM)\",\n      \"capacity\": 20,\n      \"price\": 350\n    },\n    {\n      \"slotId\": \"slot-morning\",\n      \"time\": \"9:00 AM – 11:00 AM\",\n      \"label\": \"Morning Batch (9 to 11 AM)\",\n      \"capacity\": 20,\n      \"price\": 350\n    }\n  ],\n  \"tiers\": [\n    {\n      \"tierId\": \"adult-trek\",\n      \"name\": \"Adult Ticket\",\n      \"tagline\": \"Per adult participant (Age 12-60)\",\n      \"pricePerPerson\": 350,\n      \"originalPrice\": 500,\n      \"features\": [\n        \"Guide\",\n        \"Chai & snacks\",\n        \"Insurance cover\"\n      ]\n    },\n    {\n      \"tierId\": \"child-trek\",\n      \"name\": \"Child Ticket (Age 8-11)\",\n      \"tagline\": \"Special reduced child pass\",\n      \"pricePerPerson\": 250,\n      \"originalPrice\": 350,\n      \"features\": [\n        \"Guide\",\n        \"Snacks\"\n      ]\n    }\n  ],\n  \"guide\": {\n    \"name\": \"Rajesh Gaikwad\",\n    \"role\": \"Lead Mountain Guide\",\n    \"avatar\": \"https://i.pravatar.cc/150?img=33\"\n  },\n  \"cancellationPolicy\": \"Free cancellation up to 48 hours before the activity. 50% charge after that.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/experiences/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PUT /vendor/experiences/:id/slots",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id",
+                "slots"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PUT /vendor/experiences/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PATCH /vendor/experiences/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "DELETE /vendor/experiences/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/experiences/:id/blocks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id/blocks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id",
+                "blocks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/experiences/:id/blocks",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id/blocks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id",
+                "blocks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"slot-sunrise\",\n  \"fromDate\": \"2026-12-20\",\n  \"toDate\": \"2026-12-20\",\n  \"reason\": \"Heavy rain forecast\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "DELETE /vendor/experiences/:id/blocks/:blockId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/experiences/:id/blocks/:blockId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "experiences",
+                ":id",
+                "blocks",
+                ":blockId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                },
+                {
+                  "key": "blockId",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "GET /vendor/bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/bookings/:type/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings/:type/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings",
+                ":type",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PATCH /vendor/bookings/stays/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings/stays/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings",
+                "stays",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"check_in\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PATCH /vendor/bookings/packages/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings/packages/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings",
+                "packages",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "PATCH /vendor/bookings/experiences/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings/experiences/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings",
+                "experiences",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/bookings/:type/:id/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/bookings/:type/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "bookings",
+                ":type",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "GET /vendor/ads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "ads"
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "POST /vendor/ads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "ads"
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PUT /vendor/ads/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/ads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "ads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor (KYC-approved)"
+          }
+        },
+        {
+          "name": "PATCH /vendor/ads/:id/active",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/ads/:id/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "ads",
+                ":id",
+                "active"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        },
+        {
+          "name": "DELETE /vendor/ads/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/ads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "ads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** vendor"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stays (public)",
+      "item": [
+        {
+          "name": "GET /properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties?destination=Mahabaleshwar&type=resort,villa&amenities=pool&checkIn=2026-12-18&checkOut=2026-12-21&guests=2&sort=price_asc&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties"
+              ],
+              "query": [
+                {
+                  "key": "destination",
+                  "value": "Mahabaleshwar"
+                },
+                {
+                  "key": "type",
+                  "value": "resort,villa"
+                },
+                {
+                  "key": "amenities",
+                  "value": "pool"
+                },
+                {
+                  "key": "checkIn",
+                  "value": "2026-12-18"
+                },
+                {
+                  "key": "checkOut",
+                  "value": "2026-12-21"
+                },
+                {
+                  "key": "guests",
+                  "value": "2"
+                },
+                {
+                  "key": "sort",
+                  "value": "price_asc"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /properties/nearby",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/nearby?lat=17.9258&lng=73.665&radiusKm=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "17.9258"
+                },
+                {
+                  "key": "lng",
+                  "value": "73.665"
+                },
+                {
+                  "key": "radiusKm",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /properties/:idOrSlug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/:idOrSlug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                ":idOrSlug"
+              ],
+              "variable": [
+                {
+                  "key": "idOrSlug",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Packages (public)",
+      "item": [
+        {
+          "name": "GET /packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packages?category=Honeymoon&sort=price_asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packages"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Honeymoon"
+                },
+                {
+                  "key": "sort",
+                  "value": "price_asc"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /packages/:idOrSlug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/packages/:idOrSlug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "packages",
+                ":idOrSlug"
+              ],
+              "variable": [
+                {
+                  "key": "idOrSlug",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Experiences (public)",
+      "item": [
+        {
+          "name": "GET /experiences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/experiences?category=Trekking&date=2026-12-19&participants=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experiences"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Trekking"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-12-19"
+                },
+                {
+                  "key": "participants",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /experiences/nearby",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/experiences/nearby",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experiences",
+                "nearby"
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /experiences/:idOrSlug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/experiences/:idOrSlug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experiences",
+                ":idOrSlug"
+              ],
+              "variable": [
+                {
+                  "key": "idOrSlug",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "GET /experiences/:idOrSlug/slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/experiences/:idOrSlug/slots?date=2026-12-19",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experiences",
+                ":idOrSlug",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-12-19"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "idOrSlug",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings & checkout",
+      "item": [
+        {
+          "name": "POST /bookings/stays/quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/stays/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "stays",
+                "quote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"roomId\": \"r501\",\n  \"checkInDate\": \"2026-12-18\",\n  \"checkOutDate\": \"2026-12-21\",\n  \"guests\": {\n    \"adults\": 2,\n    \"children\": 1\n  },\n  \"quantity\": 1,\n  \"specialRequests\": \"Late check-in please\",\n  \"billingState\": \"Maharashtra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public (personalised when signed in)"
+          }
+        },
+        {
+          "name": "POST /bookings/packages/quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/packages/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "packages",
+                "quote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"tierId\": \"couple-standard\",\n  \"startDate\": \"2026-12-18\",\n  \"travelers\": {\n    \"adults\": 2,\n    \"children\": 0\n  },\n  \"billingState\": \"Maharashtra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public (personalised when signed in)"
+          }
+        },
+        {
+          "name": "POST /bookings/experiences/quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/experiences/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "experiences",
+                "quote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"experienceId\": \"{{experienceId}}\",\n  \"tierId\": \"adult-trek\",\n  \"slotId\": \"slot-sunrise\",\n  \"activityDate\": \"2026-12-19\",\n  \"participants\": {\n    \"adults\": 2,\n    \"children\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public (personalised when signed in)"
+          }
+        },
+        {
+          "name": "POST /bookings/stays/reserve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/stays/reserve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "stays",
+                "reserve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"roomId\": \"r501\",\n  \"checkInDate\": \"2026-12-18\",\n  \"checkOutDate\": \"2026-12-21\",\n  \"guests\": {\n    \"adults\": 2,\n    \"children\": 1\n  },\n  \"quantity\": 1,\n  \"specialRequests\": \"Late check-in please\",\n  \"billingState\": \"Maharashtra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /bookings/packages/reserve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/packages/reserve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "packages",
+                "reserve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"tierId\": \"couple-standard\",\n  \"startDate\": \"2026-12-18\",\n  \"travelers\": {\n    \"adults\": 2,\n    \"children\": 0\n  },\n  \"billingState\": \"Maharashtra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /bookings/experiences/reserve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/experiences/reserve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "experiences",
+                "reserve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"experienceId\": \"{{experienceId}}\",\n  \"tierId\": \"adult-trek\",\n  \"slotId\": \"slot-sunrise\",\n  \"activityDate\": \"2026-12-19\",\n  \"participants\": {\n    \"adults\": 2,\n    \"children\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.data && body.data.accessToken) { pm.collectionVariables.set(\"accessToken\", body.data.accessToken); }",
+                  "if (body && body.data && body.data.checkout) { pm.collectionVariables.set(\"orderId\", body.data.checkout.orderId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /bookings/user/history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/user/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "user",
+                "history"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "GET /bookings/lookup/:reference",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/lookup/:reference",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "lookup",
+                ":reference"
+              ],
+              "variable": [
+                {
+                  "key": "reference",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "GET /bookings/:type/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/:type/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                ":type",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "GET /bookings/:type/:id/cancellation-preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/:type/:id/cancellation-preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                ":type",
+                ":id",
+                "cancellation-preview"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "POST /bookings/:type/:id/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/:type/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                ":type",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Change of plans\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments & invoices",
+      "item": [
+        {
+          "name": "POST /payments/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{orderId}}\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"<signature>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "POST /payments/verify-webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/verify-webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "verify-webhook"
+              ]
+            },
+            "description": "**Access:** public — authenticated by the gateway's HMAC signature (raw body)"
+          }
+        },
+        {
+          "name": "POST /payments/mock/capture",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/mock/capture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "mock",
+                "capture"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user — DEV ONLY (PAYMENT_GATEWAY=mock, disabled in production)"
+          }
+        },
+        {
+          "name": "GET /payments/my",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "my"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "GET /payments/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        },
+        {
+          "name": "GET /payments/:id/invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/:id/invoice",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                ":id",
+                "invoice"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "GET /reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews?targetType=property&targetId={{propertyId}}&sort=helpful",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "targetType",
+                  "value": "property"
+                },
+                {
+                  "key": "targetId",
+                  "value": "{{propertyId}}"
+                },
+                {
+                  "key": "sort",
+                  "value": "helpful"
+                }
+              ]
+            },
+            "description": "**Access:** public (personalised when signed in)"
+          }
+        },
+        {
+          "name": "GET /reviews/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews",
+                "mine"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "POST /reviews",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingType\": \"stay\",\n  \"bookingId\": \"{{bookingId}}\",\n  \"rating\": 5,\n  \"comment\": \"Lovely lake views and very helpful staff.\",\n  \"subScores\": {\n    \"cleanliness\": 5,\n    \"accuracy\": 5,\n    \"communication\": 5,\n    \"location\": 5,\n    \"checkIn\": 5,\n    \"value\": 4\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "POST /reviews/:id/helpful",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews/:id/helpful",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews",
+                ":id",
+                "helpful"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wishlist",
+      "item": [
+        {
+          "name": "GET /wishlist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wishlist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wishlist"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        },
+        {
+          "name": "POST /wishlist/toggle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wishlist/toggle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wishlist",
+                "toggle"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetType\": \"property\",\n  \"targetId\": \"{{propertyId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ads (public serving + tracking)",
+      "item": [
+        {
+          "name": "GET /ads/active",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ads/active?placement=homepage&page=/&device=desktop&city=Pune",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ads",
+                "active"
+              ],
+              "query": [
+                {
+                  "key": "placement",
+                  "value": "homepage"
+                },
+                {
+                  "key": "page",
+                  "value": "/"
+                },
+                {
+                  "key": "device",
+                  "value": "desktop"
+                },
+                {
+                  "key": "city",
+                  "value": "Pune"
+                }
+              ]
+            },
+            "description": "**Access:** public (personalised when signed in)"
+          }
+        },
+        {
+          "name": "POST /ads/track/impression",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ads/track/impression",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ads",
+                "track",
+                "impression"
+              ]
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /ads/track/click",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ads/track/click",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ads",
+                "track",
+                "click"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adId\": \"{{adId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** public"
+          }
+        },
+        {
+          "name": "POST /ads/track/conversion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ads/track/conversion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ads",
+                "track",
+                "conversion"
+              ]
+            },
+            "description": "**Access:** user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "POST /uploads/sign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/uploads/sign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads",
+                "sign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"listing_media\",\n  \"contentType\": \"image/jpeg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** any signed-in user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Sub-admin operations",
+      "item": [
+        {
+          "name": "GET /admin/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "dashboard"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/vendors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/vendors/pending",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors",
+                "pending"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/vendors/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "POST /admin/vendors/:id/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors/:id/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors",
+                ":id",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"approve\",\n  \"verifyBank\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin[canApproveVendors]"
+          }
+        },
+        {
+          "name": "POST /admin/vendors/:id/bank/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors/:id/bank/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors",
+                ":id",
+                "bank",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveVendors]"
+          }
+        },
+        {
+          "name": "PATCH /admin/vendors/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/vendors/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "vendors",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canBlockListings]"
+          }
+        },
+        {
+          "name": "GET /admin/users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canViewBookings]"
+          }
+        },
+        {
+          "name": "GET /admin/users/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canViewBookings]"
+          }
+        },
+        {
+          "name": "PATCH /admin/users/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canProcessOverridesAndDisputes]"
+          }
+        },
+        {
+          "name": "PATCH /admin/users/:id/membership",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/:id/membership",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":id",
+                "membership"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isClubMember\": true,\n  \"tier\": \"gold\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin[canProcessOverridesAndDisputes]"
+          }
+        },
+        {
+          "name": "POST /admin/users/:id/notify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/:id/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":id",
+                "notify"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canTriggerCustomerNotifications]"
+          }
+        },
+        {
+          "name": "GET /admin/properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/properties/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/properties/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "PATCH /admin/properties/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/properties/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canFlagFraudulentListings]"
+          }
+        },
+        {
+          "name": "PATCH /admin/properties/:id/featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/properties/:id/featured",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties",
+                ":id",
+                "featured"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveProperties]"
+          }
+        },
+        {
+          "name": "PATCH /admin/properties/:id/content",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/properties/:id/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties",
+                ":id",
+                "content"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canEditListingDescriptions]"
+          }
+        },
+        {
+          "name": "GET /admin/packages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "packages"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/packages/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "packages",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "PATCH /admin/packages/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/packages/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "packages",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canFlagFraudulentListings]"
+          }
+        },
+        {
+          "name": "PATCH /admin/packages/:id/featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/packages/:id/featured",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "packages",
+                ":id",
+                "featured"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApprovePackages]"
+          }
+        },
+        {
+          "name": "PATCH /admin/packages/:id/content",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/packages/:id/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "packages",
+                ":id",
+                "content"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canEditListingDescriptions]"
+          }
+        },
+        {
+          "name": "GET /admin/experiences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/experiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "experiences"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "GET /admin/experiences/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/experiences/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "experiences",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin"
+          }
+        },
+        {
+          "name": "PATCH /admin/experiences/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/experiences/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "experiences",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canFlagFraudulentListings]"
+          }
+        },
+        {
+          "name": "PATCH /admin/experiences/:id/featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/experiences/:id/featured",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "experiences",
+                ":id",
+                "featured"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveExperiences]"
+          }
+        },
+        {
+          "name": "PATCH /admin/experiences/:id/content",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/experiences/:id/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "experiences",
+                ":id",
+                "content"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canEditListingDescriptions]"
+          }
+        },
+        {
+          "name": "GET /admin/bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "bookings"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canViewBookings]"
+          }
+        },
+        {
+          "name": "GET /admin/bookings/:type/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/bookings/:type/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "bookings",
+                ":type",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canViewBookings]"
+          }
+        },
+        {
+          "name": "GET /admin/bookings/:type/:id/cancellation-preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/bookings/:type/:id/cancellation-preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "bookings",
+                ":type",
+                ":id",
+                "cancellation-preview"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canProcessOverridesAndDisputes] | sub_admin[canInitiateCustomerRefunds]"
+          }
+        },
+        {
+          "name": "POST /admin/bookings/:type/:id/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/bookings/:type/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "bookings",
+                ":type",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "stay"
+                },
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Duplicate booking\",\n  \"overrideRefundInr\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin[canProcessOverridesAndDisputes] | sub_admin[canInitiateCustomerRefunds]"
+          }
+        },
+        {
+          "name": "GET /admin/reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reviews"
+              ]
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canApproveReviews]"
+          }
+        },
+        {
+          "name": "PATCH /admin/reviews/:id/moderate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reviews/:id/moderate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reviews",
+                ":id",
+                "moderate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"approve\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin | sub_admin[canApproveReviews]"
+          }
+        },
+        {
+          "name": "DELETE /admin/reviews/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reviews/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reviews",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin"
+          }
+        },
+        {
+          "name": "GET /admin/ads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads"
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "POST /admin/ads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads"
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "PUT /admin/ads/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "PATCH /admin/ads/:id/approval",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads/:id/approval",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads",
+                ":id",
+                "approval"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "PATCH /admin/ads/:id/active",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads/:id/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads",
+                ":id",
+                "active"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "DELETE /admin/ads/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/ads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canApproveAdCampaigns]"
+          }
+        },
+        {
+          "name": "GET /admin/finance/settlements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/finance/settlements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finance",
+                "settlements"
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canExportFinancialReports]"
+          }
+        },
+        {
+          "name": "GET /admin/finance/settlements/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/finance/settlements/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finance",
+                "settlements",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canExportFinancialReports]"
+          }
+        },
+        {
+          "name": "POST /admin/finance/settlements/:id/audit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/finance/settlements/:id/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finance",
+                "settlements",
+                ":id",
+                "audit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Lines verified against bookings\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin[canExportFinancialReports]"
+          }
+        },
+        {
+          "name": "POST /admin/finance/settlements/:id/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/finance/settlements/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finance",
+                "settlements",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canExportFinancialReports]"
+          }
+        },
+        {
+          "name": "GET /admin/subadmins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subadmins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "subadmins"
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canManageSubAdmins]"
+          }
+        },
+        {
+          "name": "POST /admin/subadmins",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subadmins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "subadmins"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Support Exec\",\n  \"email\": \"new.support@mahastays.local\",\n  \"phone\": \"+919999900010\",\n  \"password\": \"Support#123\",\n  \"department\": \"customer_support\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin | admin[canManageSubAdmins]"
+          }
+        },
+        {
+          "name": "GET /admin/subadmins/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subadmins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "subadmins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canManageSubAdmins]"
+          }
+        },
+        {
+          "name": "PUT /admin/subadmins/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subadmins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "subadmins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canManageSubAdmins]"
+          }
+        },
+        {
+          "name": "POST /admin/subadmins/:id/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subadmins/:id/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "subadmins",
+                ":id",
+                "reset-password"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin | admin[canManageSubAdmins]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Super-admin",
+      "item": [
+        {
+          "name": "GET /superadmin/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "dashboard"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "GET /superadmin/config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "config"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "PUT /superadmin/config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "config"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gstRates\": {\n    \"staysStandardGstPercent\": 18\n  },\n  \"dynamicPricing\": {\n    \"enabled\": true,\n    \"holidayDates\": [\n      \"2026-12-25\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "PUT /superadmin/vendors/:id/commission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/vendors/:id/commission",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "vendors",
+                ":id",
+                "commission"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "GET /superadmin/finance/payouts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/finance/payouts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "finance",
+                "payouts"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "GET /superadmin/finance/payouts/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/finance/payouts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "finance",
+                "payouts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "POST /superadmin/finance/payouts/release",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/finance/payouts/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "finance",
+                "payouts",
+                "release"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payoutId\": \"{{payoutId}}\",\n  \"transferMethod\": \"NEFT\",\n  \"utrNumber\": \"UTR1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "POST /superadmin/finance/payouts/:id/complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/finance/payouts/:id/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "finance",
+                "payouts",
+                ":id",
+                "complete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "POST /superadmin/finance/payouts/:id/fail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/finance/payouts/:id/fail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "finance",
+                "payouts",
+                ":id",
+                "fail"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "GET /superadmin/audit-logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "audit-logs"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "POST /superadmin/master-pin/change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/master-pin/change",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "master-pin",
+                "change"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "GET /superadmin/subadmins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/subadmins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "subadmins"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "POST /superadmin/subadmins",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/subadmins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "subadmins"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "GET /superadmin/subadmins/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/subadmins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "subadmins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "PUT /superadmin/subadmins/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/subadmins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "subadmins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "POST /superadmin/subadmins/:id/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/subadmins/:id/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "subadmins",
+                ":id",
+                "reset-password"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "GET /superadmin/admins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins"
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "POST /superadmin/admins",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins"
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "GET /superadmin/admins/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin"
+          }
+        },
+        {
+          "name": "PUT /superadmin/admins/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "POST /superadmin/admins/:id/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins/:id/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins",
+                ":id",
+                "reset-password"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        },
+        {
+          "name": "POST /superadmin/admins/:id/reset-2fa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-master-pin",
+                "value": "{{masterPin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/superadmin/admins/:id/reset-2fa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "superadmin",
+                "admins",
+                ":id",
+                "reset-2fa"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "**Access:** super_admin  ·  + master PIN (x-master-pin)"
+          }
+        }
+      ]
+    }
+  ]
+}

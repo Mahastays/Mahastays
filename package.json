@@ -1,0 +1,70 @@
+{
+  "name": "mahastays-backend",
+  "version": "1.0.0",
+  "description": "Mahastays backend: Node.js + TypeScript + Express + Prisma (MongoDB). Stays, packages, experiences, bookings, payments, payouts, reviews, ads.",
+  "private": true,
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "db:push": "prisma db push",
+    "db:indexes": "tsx scripts/create-indexes.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "npm run db:push && npm run db:indexes && npm run db:seed",
+    "create-superadmin": "tsx prisma/create-superadmin.ts",
+    "docs:generate": "tsx scripts/generate-docs.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.8.0",
+    "jose": "^5.10.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^10.0.16",
+    "pdfkit": "^0.17.2",
+    "pino": "^10.0.0",
+    "pino-http": "^11.0.0",
+    "tinypool": "^2.2.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.0",
+    "@types/nodemailer": "^7.0.4",
+    "@types/pdfkit": "^0.17.3",
+    "@types/supertest": "^6.0.3",
+    "pino-pretty": "^13.0.0",
+    "prisma": "^6.19.3",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
+  }
+}
