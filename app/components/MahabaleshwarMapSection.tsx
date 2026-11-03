@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProperties } from "@/store/slices/propertyslice";
+import { fetchExperiences } from "@/store/slices/experienceslice";
 
 interface MapPlace {
   id: string;
@@ -24,106 +27,177 @@ interface MapPlace {
   isPopular?: boolean;
 }
 
-const MAHABALESHWAR_PLACES: MapPlace[] = [
-  {
-    id: "p5001",
-    name: "HillView Luxury Resort & Spa",
-    type: "Resort",
-    location: "Plot 12, Venna Lake Road, Mahabaleshwar",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945",
-    price: "₹5,500",
-    savedTag: "Venna Lake",
-    rating: 4.6,
-    href: "/explore/p5001",
-    specs: {
-      sqft: "5-Acre Resort",
-      beds: "Private Pool",
-      baths: "Lake View",
-    },
-    x: 50,
-    y: 56,
-    isPopular: true,
-  },
-  {
-    id: "p5002",
-    name: "Sunset Ridge Private Villa",
-    type: "Villa",
-    location: "Table Land Road, Panchgani",
-    image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811",
-    price: "₹22,000",
-    savedTag: "Infinity Pool",
-    rating: 4.8,
-    href: "/explore/p5002",
-    specs: {
-      sqft: "4,200 sq.ft.",
-      beds: "4BHK Villa",
-      baths: "Private BBQ",
-    },
-    x: 78,
-    y: 42,
-    isPopular: true,
-  },
-  {
-    id: "act1001",
-    name: "Sunrise Trek to Arthur Seat",
-    type: "Experience",
-    location: "Old Mahabaleshwar, Savitri Valley",
-    image: "https://images.unsplash.com/photo-1551632811-561732d1e306",
-    price: "₹350",
-    savedTag: "Morning Trek",
-    rating: 4.8,
-    href: "/experiences/act1001",
-    specs: {
-      sqft: "4km Trail",
-      beds: "2 Hours",
-      baths: "Summit Tea",
-    },
-    x: 22,
-    y: 40,
-  },
-  {
-    id: "act1006",
-    name: "Tandem Paragliding Flight",
-    type: "Adventure",
-    location: "Krishna Valley, Panchgani",
-    image: "https://images.unsplash.com/photo-1504276048855-f58379e20788",
-    price: "₹2,500",
-    savedTag: "Aerial Thrill",
-    rating: 4.9,
-    href: "/experiences/act1006",
-    specs: {
-      sqft: "450m Elevation",
-      beds: "GoPro 4K",
-      baths: "Certified Pilot",
-    },
-    x: 32,
-    y: 68,
-  },
-  {
-    id: "act1005",
-    name: "Boating & Shikara at Venna Lake",
-    type: "Experience",
-    location: "Venna Lake, Mahabaleshwar",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5",
-    price: "₹250",
-    savedTag: "Water Leisure",
-    rating: 4.4,
-    href: "/experiences/act1005",
-    specs: {
-      sqft: "Lakefront",
-      beds: "Row & Paddle",
-      baths: "Lifejackets",
-    },
-    x: 68,
-    y: 72,
-  },
-];
-
 export default function MahabaleshwarMapSection() {
-  const [activePlaceId, setActivePlaceId] = useState<string>("cliff-villa");
+  const dispatch = useAppDispatch();
+  const properties = useAppSelector((state) => state.properties.items);
+  const experiences = useAppSelector((state) => state.experiences.items);
+  const loading = useAppSelector((state) => state.properties.loading);
+
+  useEffect(() => {
+    dispatch(fetchProperties());
+    dispatch(fetchExperiences());
+  }, [dispatch]);
+
+  // Transform actual database properties and experiences into interactive map places
+  const places: MapPlace[] = useMemo(() => {
+    const list: MapPlace[] = [];
+
+    // Map landmark anchor locations across the Mahabaleshwar SVG canvas
+    const anchors = [
+      { x: 50, y: 56 }, // Venna Lake
+      { x: 78, y: 42 }, // Panchgani Valley / Table Land
+      { x: 22, y: 40 }, // Arthur's Seat
+      { x: 32, y: 68 }, // Kate's Point
+      { x: 68, y: 72 }, // Old Mahabaleshwar / Lingmala
+    ];
+
+    let anchorIdx = 0;
+
+    // 1. Map live Properties from Database
+    properties.forEach((prop) => {
+      let x = anchors[anchorIdx % anchors.length].x;
+      let y = anchors[anchorIdx % anchors.length].y;
+      anchorIdx++;
+
+      const locLower = (
+        prop.location ||
+        prop.serviceableLocation ||
+        prop.city ||
+        ""
+      ).toLowerCase();
+
+      if (locLower.includes("venna")) {
+        x = 50;
+        y = 56;
+      } else if (locLower.includes("panchgani") || locLower.includes("table")) {
+        x = 78;
+        y = 42;
+      } else if (locLower.includes("arthur") || locLower.includes("savitri")) {
+        x = 22;
+        y = 40;
+      } else if (locLower.includes("kate") || locLower.includes("krishna")) {
+        x = 32;
+        y = 68;
+      } else if (
+        locLower.includes("old") ||
+        locLower.includes("lingmala") ||
+        locLower.includes("market")
+      ) {
+        x = 68;
+        y = 72;
+      }
+
+      const imgUrl =
+        typeof prop.images?.[0] === "string"
+          ? prop.images[0]
+          : prop.images?.[0]?.url ||
+            prop.gallery?.[0] ||
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945";
+
+      const firstRoom = prop.rooms?.[0];
+      const sqft = firstRoom?.size
+        ? `${firstRoom.size}`
+        : prop.propertyType === "villa"
+        ? "4,200 sq.ft."
+        : "5-Acre Resort";
+      const beds =
+        firstRoom?.bed ||
+        (prop.rooms && prop.rooms.length > 0
+          ? `${prop.rooms.length} Bedroom`
+          : "Private Pool");
+      const baths =
+        prop.amenities?.[0]?.name ||
+        (prop.propertyType === "villa" ? "Private BBQ" : "Lake View");
+
+      list.push({
+        id: prop.id || prop._id,
+        name: prop.name,
+        type: prop.propertyType === "villa" ? "Villa" : "Resort",
+        location:
+          prop.address?.fullAddress ||
+          prop.location ||
+          "Mahabaleshwar, Maharashtra",
+        image: imgUrl,
+        price: `₹${(prop.numericPrice || prop.inrPrice || 5500).toLocaleString(
+          "en-IN"
+        )}`,
+        savedTag:
+          prop.badge ||
+          prop.tags?.[0] ||
+          (prop.propertyType === "villa" ? "Private Villa" : "Luxury Resort"),
+        rating: Number(prop.rating) || 4.8,
+        specs: { sqft, beds, baths },
+        href: `/stay/${prop.id || prop._id}`,
+        x,
+        y,
+        isPopular: true,
+      });
+    });
+
+    // 2. Map live Experiences from Database
+    experiences.forEach((exp) => {
+      let x = anchors[anchorIdx % anchors.length].x;
+      let y = anchors[anchorIdx % anchors.length].y;
+      anchorIdx++;
+
+      const titleLower = (exp.title || exp.name || "").toLowerCase();
+      if (titleLower.includes("arthur") || titleLower.includes("trek")) {
+        x = 22;
+        y = 40;
+      } else if (titleLower.includes("venna") || titleLower.includes("boat")) {
+        x = 68;
+        y = 72;
+      } else if (
+        titleLower.includes("paraglid") ||
+        titleLower.includes("panchgani")
+      ) {
+        x = 32;
+        y = 68;
+      }
+
+      const imgUrl =
+        exp.image ||
+        (Array.isArray(exp.gallery) && exp.gallery[0]) ||
+        "https://images.unsplash.com/photo-1551632811-561732d1e306";
+
+      list.push({
+        id: exp.id || exp._id,
+        name: exp.title || exp.name,
+        type: "Experience",
+        location:
+          exp.meetingPoint || `${exp.city || "Mahabaleshwar"}, Maharashtra`,
+        image: imgUrl,
+        price: `₹${(exp.numericPrice || 350).toLocaleString("en-IN")}`,
+        savedTag: exp.category || "Adventure",
+        rating: Number(exp.rating) || Number(exp.ratingScore) || 4.8,
+        specs: {
+          sqft: exp.duration || "2 Hours Trail",
+          beds: exp.groupSize || "Small Group",
+          baths: exp.difficulty || "Certified Guide",
+        },
+        href: `/experiences/${exp.id || exp._id}`,
+        x,
+        y,
+        isPopular: false,
+      });
+    });
+
+    return list;
+  }, [properties, experiences]);
+
+  const [activePlaceId, setActivePlaceId] = useState<string>("");
+
+  useEffect(() => {
+    if (
+      places.length > 0 &&
+      (!activePlaceId || !places.some((p) => p.id === activePlaceId))
+    ) {
+      setActivePlaceId(places[0].id);
+    }
+  }, [places, activePlaceId]);
+
   const activePlace =
-    MAHABALESHWAR_PLACES.find((p) => p.id === activePlaceId) ||
-    MAHABALESHWAR_PLACES[0];
+    places.find((p) => p.id === activePlaceId) || places[0];
 
   return (
     <section className="w-full  pt-10 sm:pt-14 pb-4 ">
@@ -311,7 +385,7 @@ export default function MahabaleshwarMapSection() {
           </div>
 
           {/* ─── Interactive Pins ────────────────────────────────────── */}
-          {MAHABALESHWAR_PLACES.map((place) => {
+          {places.map((place) => {
             const isSelected = place.id === activePlaceId;
             return (
               <div
@@ -468,10 +542,12 @@ export default function MahabaleshwarMapSection() {
           })()}
 
           {/* Quick Navigation Controls in Bottom Right of Map */}
-          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200 shadow-sm text-xs font-bold text-slate-700 font-poppins">
-            <span className="text-slate-400">Viewing:</span>
-            <span className="text-[#ea110d]">{activePlace.name.split(" ")[0]}</span>
-          </div>
+          {activePlace && (
+            <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200 shadow-sm text-xs font-bold text-slate-700 font-poppins">
+              <span className="text-slate-400">Viewing:</span>
+              <span className="text-[#ea110d]">{activePlace.name?.split(" ")[0] || activePlace.name}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -501,7 +577,7 @@ export default function MahabaleshwarMapSection() {
           {/* Stat 3 */}
           <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
             <span className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight font-poppins">
-              150+
+              {properties.length > 0 ? `${properties.length}+` : "150+"}
             </span>
             <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-slate-500 font-roboto">
               VERIFIED<br className="hidden md:inline" /> STAYS

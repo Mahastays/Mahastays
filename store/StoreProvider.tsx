@@ -4,11 +4,17 @@ import React, { useEffect } from "react";
 import { Provider } from "react-redux";
 import { store } from "./store";
 import { loadSavedAuth, fetchCurrentUser } from "./authSlice";
+import { fetchProperties } from "./slices/propertyslice";
+import { fetchPackages } from "./slices/packageslice";
+import { fetchExperiences } from "./slices/experienceslice";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     store.dispatch(loadSavedAuth());
+    store.dispatch(fetchProperties());
+    store.dispatch(fetchPackages());
+    store.dispatch(fetchExperiences());
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("mahastays_token");
       if (token) {

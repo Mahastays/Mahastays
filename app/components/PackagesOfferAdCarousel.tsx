@@ -79,8 +79,8 @@ export default function PackagesOfferAdCarousel({
                     { icon: "dining", label: "Meals Included" },
                     { icon: "compass", label: "Sightseeing" },
                   ],
-              filterDestination: a.target?.destination || "Mahabaleshwar",
-              filterCategory: a.target?.category || "Honeymoon",
+              filterDestination: a.target?.destination || undefined,
+              filterCategory: a.target?.category || undefined,
             }));
             setActiveSlides(dynamicSlides);
             setIsLoading(false);

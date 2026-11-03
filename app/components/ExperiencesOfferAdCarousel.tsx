@@ -74,8 +74,8 @@ export default function ExperiencesOfferAdCarousel({
                     { icon: "dining", label: "Refreshments Included" },
                     { icon: "compass", label: "Scenic Trail" },
                   ],
-              filterCategory: a.target?.category || "adventure",
-              filterDestination: a.target?.destination || "Panchgani",
+              filterCategory: a.target?.category || undefined,
+              filterDestination: a.target?.destination || undefined,
             }));
             setActiveSlides(dynamicSlides);
             setIsLoading(false);

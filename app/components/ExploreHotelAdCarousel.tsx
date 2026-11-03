@@ -73,8 +73,8 @@ export default function ExploreHotelAdCarousel({
                     { icon: "dining", label: "Fine Dining" },
                     { icon: "compass", label: "Curated Experiences" },
                   ],
-              filterDestination: a.target?.destination || "Mahabaleshwar",
-              filterAmenity: a.target?.amenity || "pool",
+              filterDestination: a.target?.destination || undefined,
+              filterAmenity: a.target?.amenity || undefined,
             }));
             setActiveSlides(dynamicSlides);
             setIsLoading(false);
