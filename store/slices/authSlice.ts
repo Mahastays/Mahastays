@@ -52,32 +52,18 @@ export const loginUser = createAsyncThunk(
     const password = credentials.password?.trim() || '';
 
     if (!trimmedEmail) {
-      return rejectWithValue('Please enter your email address');
+      return rejectWithValue('Please enter your registered email address');
     }
     if (!password) {
       return rejectWithValue('Please enter your password');
     }
 
-    // Determine target role from email or roleHint
-    const isVendorHint =
-      credentials.roleHint === 'vendor' ||
-      trimmedEmail === 'vendor@mahastays.com' ||
-      trimmedEmail === 'host@hillview.local' ||
-      trimmedEmail === 'guide@sahyadri.local' ||
-      (trimmedEmail.includes('vendor') && !trimmedEmail.includes('admin'));
+    const isExplicitVendor = credentials.roleHint === 'vendor';
+    const isExplicitAdmin = credentials.roleHint === 'admin';
 
-    const isAdminHint =
-      credentials.roleHint === 'admin' ||
-      trimmedEmail === 'admin@mahastays.com' ||
-      trimmedEmail === 'ops.lead@mahastays.local' ||
-      trimmedEmail === 'compliance.lead@mahastays.local' ||
-      trimmedEmail === 'superadmin@mahastays.local' ||
-      trimmedEmail.includes('admin');
-
-    // 1. Try Backend API
-    try {
-      if (isVendorHint) {
-        // Try vendor endpoint
+    // 1. Explicit Vendor Login
+    if (isExplicitVendor) {
+      try {
         const res = await api.post('/auth/vendor/login', { email: trimmedEmail, password });
         const token = res.data?.data?.accessToken || res.data?.accessToken;
         const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
@@ -103,12 +89,18 @@ export const loginUser = createAsyncThunk(
           }
           return { user: vendorUser, role: 'vendor' as const, token };
         }
-      } else {
-        // Try admin endpoint
+        return rejectWithValue('Invalid vendor credentials');
+      } catch (err: any) {
+        return rejectWithValue(getApiErrorMessage(err) || 'Invalid vendor email or password');
+      }
+    }
+
+    // 2. Explicit Admin Login
+    if (isExplicitAdmin) {
+      try {
         const res = await api.post('/auth/admin/login', { email: trimmedEmail, password });
         const resData = res.data?.data || res.data;
 
-        // Check if 2-step verification (email OTP) is required
         if (resData?.twoFactorRequired || resData?.requiresOtp) {
           return {
             requiresOtp: true,
@@ -127,11 +119,11 @@ export const loginUser = createAsyncThunk(
         if (rawUser) {
           const adminUser: CurrentUser = {
             id: rawUser.id || rawUser._id,
-            name: rawUser.fullName || rawUser.name || 'Operations Lead',
+            name: rawUser.fullName || rawUser.name || 'Platform Administrator',
             email: rawUser.email || trimmedEmail,
             role: 'admin',
             avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
-            title: rawUser.roleTitle || 'Operations Lead — Western Maharashtra',
+            title: rawUser.roleTitle || 'Executive Administrator',
             adminCode: rawUser.adminCode || 'ADM-100',
           };
           if (typeof window !== 'undefined') {
@@ -140,112 +132,81 @@ export const loginUser = createAsyncThunk(
           }
           return { user: adminUser, role: 'admin' as const, token, requiresOtp: false };
         }
+        return rejectWithValue('Invalid administrator credentials');
+      } catch (err: any) {
+        return rejectWithValue(getApiErrorMessage(err) || 'Invalid administrator email or password');
       }
-    } catch (apiErr: any) {
-      // If error is not a network failure, try alternate role if ambiguous
-      if (!isVendorHint && !isAdminHint) {
-        try {
-          const res = await api.post('/auth/vendor/login', { email: trimmedEmail, password });
-          const token = res.data?.data?.accessToken || res.data?.accessToken;
-          const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
-          if (rawUser) {
-            const vendorUser: CurrentUser = {
-              id: rawUser.id || rawUser._id,
-              name: rawUser.displayName || rawUser.businessName || rawUser.fullName || 'Vendor Partner',
-              email: rawUser.email || trimmedEmail,
-              role: 'vendor',
-              avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-              title: `${rawUser.displayRole || 'Host'} · ${rawUser.businessName || 'Mahastays Partner'}`,
-              businessName: rawUser.businessName || 'Hospitality Partner',
-              vendorId: rawUser.id || rawUser._id,
-              vendorCode: rawUser.vendorCode || 'VND-3001',
-            };
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
-              localStorage.setItem('mahastays_auth_view_mode', 'vendor');
-              if (token) {
-                localStorage.setItem('mahastays_admin_token', token);
-                localStorage.setItem('mahastays_token', token);
-              }
-            }
-            return { user: vendorUser, role: 'vendor' as const, token };
-          }
-        } catch {
-          // Both failed, proceed to fallback
+    }
+
+    // 3. Unified Auto-Detect (tries admin first, then vendor)
+    try {
+      const res = await api.post('/auth/admin/login', { email: trimmedEmail, password });
+      const resData = res.data?.data || res.data;
+
+      if (resData?.twoFactorRequired || resData?.requiresOtp) {
+        return {
+          requiresOtp: true,
+          challengeToken: resData.challengeToken,
+          email: resData.email || trimmedEmail,
+          message: resData.message || `A 6-digit verification code was sent to ${resData.email || trimmedEmail}`,
+        };
+      }
+
+      const token = resData?.accessToken || res.data?.accessToken;
+      const rawUser = resData?.user || resData?.profile || res.data?.user;
+      if (token && typeof window !== 'undefined') {
+        localStorage.setItem('mahastays_admin_token', token);
+        localStorage.setItem('mahastays_token', token);
+      }
+      if (rawUser) {
+        const adminUser: CurrentUser = {
+          id: rawUser.id || rawUser._id,
+          name: rawUser.fullName || rawUser.name || 'Platform Administrator',
+          email: rawUser.email || trimmedEmail,
+          role: 'admin',
+          avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+          title: rawUser.roleTitle || 'Executive Administrator',
+          adminCode: rawUser.adminCode || 'ADM-100',
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mahastays_auth_user', JSON.stringify(adminUser));
+          localStorage.setItem('mahastays_auth_view_mode', 'admin');
         }
+        return { user: adminUser, role: 'admin' as const, token, requiresOtp: false };
       }
-
-      const status = apiErr?.response?.status;
-      if (status === 401 || status === 403) {
-        return rejectWithValue(getApiErrorMessage(apiErr));
+    } catch (adminErr: any) {
+      try {
+        const res = await api.post('/auth/vendor/login', { email: trimmedEmail, password });
+        const token = res.data?.data?.accessToken || res.data?.accessToken;
+        const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
+        if (token && typeof window !== 'undefined') {
+          localStorage.setItem('mahastays_admin_token', token);
+          localStorage.setItem('mahastays_token', token);
+        }
+        if (rawUser) {
+          const vendorUser: CurrentUser = {
+            id: rawUser.id || rawUser._id,
+            name: rawUser.displayName || rawUser.businessName || rawUser.fullName || 'Vendor Partner',
+            email: rawUser.email || trimmedEmail,
+            role: 'vendor',
+            avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+            title: `${rawUser.displayRole || 'Host'} · ${rawUser.businessName || 'Mahastays Partner'}`,
+            businessName: rawUser.businessName || 'Hospitality Partner',
+            vendorId: rawUser.id || rawUser._id,
+            vendorCode: rawUser.vendorCode || 'VND-3001',
+          };
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
+            localStorage.setItem('mahastays_auth_view_mode', 'vendor');
+          }
+          return { user: vendorUser, role: 'vendor' as const, token };
+        }
+      } catch {
+        return rejectWithValue(getApiErrorMessage(adminErr) || 'Invalid email or password. Please verify your credentials.');
       }
     }
 
-    // 2. Demo / Offline Fallback Mode
-    const validPasswords = ['admin123', 'vendor123', 'demo@12345', 'admin', 'vendor'];
-    if (!validPasswords.includes(password.toLowerCase())) {
-      return rejectWithValue('Invalid credentials. Standard test passwords are: admin123 (Admin) or vendor123 (Vendor)');
-    }
-
-    const demoToken = 'mock_jwt_' + Date.now();
-
-    // Check Vendor accounts
-    if (isVendorHint || trimmedEmail === 'vendor@mahastays.com' || trimmedEmail === 'host@hillview.local') {
-      const vendorUser: CurrentUser = {
-        id: 'vnd_resort_01',
-        name: 'Vikramaditya Rao',
-        email: trimmedEmail,
-        role: 'vendor',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-        title: 'Resort General Manager · HillView Hospitality',
-        businessName: 'HillView Hospitality Pvt Ltd',
-        vendorId: 'vnd_resort_01',
-        vendorCode: 'VND-3001',
-      };
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
-        localStorage.setItem('mahastays_auth_view_mode', 'vendor');
-        localStorage.setItem('mahastays_admin_token', demoToken);
-      }
-      return { user: vendorUser, role: 'vendor' as const, token: demoToken };
-    }
-
-    if (trimmedEmail === 'guide@sahyadri.local') {
-      const vendorUser: CurrentUser = {
-        id: 'vnd_adv_02',
-        name: 'Rajesh Gaikwad',
-        email: 'guide@sahyadri.local',
-        role: 'vendor',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
-        title: 'Chief Mountaineer & Pilot · Sahyadri Adventure Co.',
-        businessName: 'Sahyadri Adventure Co.',
-        vendorId: 'vnd_adv_02',
-        vendorCode: 'VND-3002',
-      };
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
-        localStorage.setItem('mahastays_auth_view_mode', 'vendor');
-        localStorage.setItem('mahastays_admin_token', demoToken);
-      }
-      return { user: vendorUser, role: 'vendor' as const, token: demoToken };
-    }
-
-    // Default to Operations Lead Admin
-    const adminUser: CurrentUser = {
-      id: 'adm_ops_01',
-      name: trimmedEmail === 'admin@mahastays.com' ? 'Ariana Davis' : trimmedEmail.split('@')[0],
-      email: trimmedEmail,
-      role: 'admin',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
-      title: 'Operations Lead — Western Maharashtra',
-      adminCode: 'ADM-1001',
-    };
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('mahastays_auth_user', JSON.stringify(adminUser));
-      localStorage.setItem('mahastays_auth_view_mode', 'admin');
-      localStorage.setItem('mahastays_admin_token', demoToken);
-    }
-    return { user: adminUser, role: 'admin' as const, token: demoToken };
+    return rejectWithValue('Authentication failed. Please verify your credentials.');
   }
 );
 

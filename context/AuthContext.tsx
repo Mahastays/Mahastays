@@ -28,7 +28,8 @@ interface AuthContextType {
   error: string | null;
   login: (
     email: string,
-    password?: string
+    password?: string,
+    roleHint?: 'admin' | 'vendor'
   ) => Promise<{ success: boolean; requiresOtp?: boolean; challengeToken?: string; email?: string; error?: string }>;
   verifyOtp: (
     challengeToken: string,
@@ -51,10 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (
     email: string,
-    password?: string
+    password?: string,
+    roleHint?: 'admin' | 'vendor'
   ): Promise<{ success: boolean; requiresOtp?: boolean; challengeToken?: string; email?: string; error?: string }> => {
     try {
-      const result: any = await dispatch(loginUserThunk({ email, password })).unwrap();
+      const result: any = await dispatch(loginUserThunk({ email, password, roleHint })).unwrap();
       if (result?.requiresOtp) {
         return {
           success: false,
