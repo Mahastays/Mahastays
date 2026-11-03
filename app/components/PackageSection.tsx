@@ -98,32 +98,23 @@ export default function PackageSection() {
       </div>
 
       {/* Loading Skeleton */}
-      {loading && mappedPackages.length === 0 && (
+      {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[1, 2, 3, 4].map((idx) => (
             <PackageCardSkeleton key={idx} />
           ))}
         </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && mappedPackages.length === 0 && (
+      ) : !loading && error && mappedPackages.length === 0 ? (
         <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm">
           {error}. Please check backend connection.
         </div>
-      )}
-
-      {/* Package Cards Grid using Universal PackageCard */}
-      {filteredPackages.length > 0 && (
+      ) : filteredPackages.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {filteredPackages.map((pkg) => (
             <PackageCard key={pkg.id} pkg={pkg} />
           ))}
         </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && filteredPackages.length === 0 && mappedPackages.length > 0 && (
+      ) : !loading && !error && filteredPackages.length === 0 && mappedPackages.length > 0 ? (
         <div className="text-center py-12 text-slate-500 text-sm">
           No packages found in category &quot;{activeTab}&quot;. Showing all packages instead:
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
@@ -131,6 +122,10 @@ export default function PackageSection() {
               <PackageCard key={pkg.id} pkg={pkg} />
             ))}
           </div>
+        </div>
+      ) : (
+        <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 text-sm">
+          No packages currently available.
         </div>
       )}
     </section>

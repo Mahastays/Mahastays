@@ -66,6 +66,51 @@ interface AdOffer {
   link: string;
 }
 
+const DEFAULT_OFFERS: AdOffer[] = [
+  {
+    id: "default-offer-1",
+    name: "Evershine Grand Resort",
+    duration: "3D / 2N",
+    view: "Ocean View",
+    location: "Bali, Indonesia",
+    originalPrice: 18500,
+    discountedPrice: 12499,
+    discountPercent: 32,
+    badgeText: "Hot Deal",
+    badgeType: "hot",
+    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop&q=80",
+    link: "/explore",
+  },
+  {
+    id: "default-offer-2",
+    name: "The Cliff Luxury Villa",
+    duration: "4D / 3N",
+    view: "Mountain View",
+    location: "Manali, India",
+    originalPrice: 24000,
+    discountedPrice: 16999,
+    discountPercent: 29,
+    badgeText: "Best Seller",
+    badgeType: "seller",
+    image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop&q=80",
+    link: "/explore",
+  },
+  {
+    id: "default-offer-3",
+    name: "Azure Water Villa",
+    duration: "4D / 3N",
+    view: "Private Pool",
+    location: "Maldives",
+    originalPrice: 36000,
+    discountedPrice: 24990,
+    discountPercent: 31,
+    badgeText: "New Offer",
+    badgeType: "new",
+    image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&auto=format&fit=crop&q=80",
+    link: "/explore",
+  },
+];
+
 export default function Hero() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -73,6 +118,7 @@ export default function Hero() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [offers, setOffers] = useState<AdOffer[]>([]);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(true);
 
   // Sync favorites reactively
   useEffect(() => {
@@ -144,26 +190,28 @@ export default function Hero() {
     let isMounted = true;
     const fetchCardAds = async () => {
       try {
-        const res = await api.get("/ads/active?placement=homepage&adType=card");
+        const res = await api.get("/ads/active?placement=homepage&adType=card&page=/");
         const data = res.data?.data || res.data;
         if (Array.isArray(data) && data.length > 0 && isMounted) {
           const mapped: AdOffer[] = data.map((item: any, idx: number) => {
             const headline = item.creative?.headline || item.adName;
             const sub = item.creative?.subHeadline || "";
             const parts = sub.split(" · ");
-            const duration = parts[0] || "3D / 2N";
-            const view = parts[1] || "Scenic View";
-            const location = parts[3] || parts[parts.length - 1] || "Maharashtra, India";
+            const duration = parts[0] || item.creative?.duration || "3D / 2N";
+            const view = parts[1] || item.creative?.view || "Scenic View";
+            const location = parts[3] || parts[parts.length - 1] || item.creative?.location || "Maharashtra, India";
 
-            let origPrice = 18500;
-            let discPrice = 12499;
-            let discPct = 30;
+            let origPrice = item.creative?.originalPrice || item.originalPrice || 18500;
+            let discPrice = item.creative?.discountedPrice || item.discountedPrice || 12499;
+            let discPct = item.creative?.discountPercent || item.discountPercent || 30;
 
             if (parts[2]) {
               const numMatches = parts[2].match(/₹?([\d,]+)/g);
               if (numMatches && numMatches.length >= 2) {
                 origPrice = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
                 discPrice = parseInt(numMatches[1].replace(/[₹,]/g, ""), 10);
+              } else if (numMatches && numMatches.length === 1) {
+                discPrice = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
               }
               const pctMatch = parts[2].match(/(\d+)%/);
               if (pctMatch) {
@@ -171,7 +219,7 @@ export default function Hero() {
               }
             }
 
-            const badgeRaw = (item.creative?.badgeText || "Hot Deal").toLowerCase();
+            const badgeRaw = (item.creative?.badgeText || item.badgeText || "Hot Deal").toLowerCase();
             const badgeType: "hot" | "seller" | "new" | "limited" =
               badgeRaw.includes("seller")
                 ? "seller"
@@ -190,19 +238,24 @@ export default function Hero() {
               originalPrice: origPrice,
               discountedPrice: discPrice,
               discountPercent: discPct,
-              badgeText: item.creative?.badgeText || "Hot Deal",
+              badgeText: item.creative?.badgeText || item.badgeText || "Hot Deal",
               badgeType,
               image:
                 item.creative?.imageUrl ||
                 item.creative?.mediaUrl ||
+                item.image ||
                 "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop&q=80",
-              link: item.target?.ctaLink || "/explore",
+              link: item.target?.ctaLink || item.link || "/explore",
             };
           });
           setOffers(mapped);
+        } else if (isMounted) {
+          setOffers(DEFAULT_OFFERS);
         }
       } catch {
-        // Fallback to initial
+        if (isMounted) setOffers(DEFAULT_OFFERS);
+      } finally {
+        if (isMounted) setIsLoadingOffers(false);
       }
     };
     fetchCardAds();
@@ -485,18 +538,19 @@ export default function Hero() {
               ref={carouselRef}
               className="flex items-center gap-3 sm:gap-3.5 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth snap-x snap-mandatory"
             >
-              {offers.length === 0 ? (
+              {isLoadingOffers ? (
                 <div className="flex items-center gap-3">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-3 border border-slate-100 shadow-xs animate-pulse flex items-center gap-3"
+                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white/90 backdrop-blur-md rounded-2xl p-3 border border-white/40 shadow-xs animate-pulse flex items-center gap-3"
                     >
-                      <div className="w-28 h-full bg-slate-200 rounded-xl shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-slate-200 rounded w-3/4" />
-                        <div className="h-3 bg-slate-200 rounded w-1/2" />
-                        <div className="h-4 bg-slate-200 rounded w-1/3 mt-3" />
+                      <div className="w-28 sm:w-30 h-full bg-slate-200/90 rounded-xl shrink-0" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-slate-200/90 rounded w-4/5" />
+                        <div className="h-3 bg-slate-200/70 rounded w-1/2" />
+                        <div className="h-3.5 bg-slate-200/70 rounded w-2/3" />
+                        <div className="h-4 bg-slate-200/90 rounded w-1/3 mt-2" />
                       </div>
                     </div>
                   ))}
@@ -635,7 +689,8 @@ export default function Hero() {
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
 
             {/* Right Slide Button (Always on right edge) */}

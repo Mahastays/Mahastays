@@ -139,7 +139,7 @@ interface PropertyState {
 const initialState: PropertyState = {
   items: [],
   selectedProperty: null,
-  loading: false,
+  loading: true,
   detailLoading: false,
   error: null,
   filters: {},

@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { DetailPageSkeleton } from "../../components/Skeletons";
-import { getStayDetail, RoomType, StayDetail } from "../staysData";
+import { RoomType, StayDetail } from "../staysData";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchPropertyByCode } from "@/store/slices/propertyslice";
 import { useWishlistItem } from "@/lib/wishlist";
@@ -27,79 +27,123 @@ export default function StayBookingDetailsPage() {
     }
   }, [dispatch, stayId]);
 
-  const localStay = useMemo(() => getStayDetail(stayId), [stayId]);
-
-  // Merge store data seamlessly with local rich fallback
-  const stay: StayDetail = useMemo(() => {
+  // Construct stay purely from live backend database
+  const stay: StayDetail | null = useMemo(() => {
+    if (!selectedProperty) return null;
+    const p = selectedProperty as any;
     const isMatch = Boolean(
-      selectedProperty &&
-        (selectedProperty.id === stayId ||
-          selectedProperty._id === stayId ||
-          (selectedProperty as any).slug === stayId ||
-          (selectedProperty as any).code === stayId)
+      p.id === stayId ||
+      p._id === stayId ||
+      p.slug === stayId ||
+      p.code === stayId
     );
-    if (isMatch && selectedProperty) {
-      return {
-        ...localStay,
-        name: selectedProperty.name || localStay.name,
-        price: selectedProperty.price || localStay.price,
-        numericPrice: selectedProperty.numericPrice || localStay.numericPrice,
-        inrPrice: selectedProperty.inrPrice || localStay.inrPrice,
-        originalPrice: selectedProperty.originalPrice || localStay.originalPrice,
-        description: selectedProperty.description || localStay.description,
-        longDescription: selectedProperty.longDescription || localStay.longDescription,
-        location: selectedProperty.location || localStay.location,
-        city: selectedProperty.city || localStay.city,
-        country: selectedProperty.country || localStay.country,
-        images:
-          selectedProperty.images && selectedProperty.images.length > 0
-            ? selectedProperty.images.map((img) =>
-                typeof img === "string"
-                  ? { url: img, alt: "", isCover: false }
-                  : { url: img.url, alt: img.alt || "", isCover: !!img.isCover }
-              )
-            : localStay.images,
-        gallery:
-          selectedProperty.gallery && selectedProperty.gallery.length > 0
-            ? selectedProperty.gallery
-            : localStay.gallery,
-        rooms:
-          selectedProperty.rooms && selectedProperty.rooms.length > 0
-            ? (selectedProperty.rooms as unknown as RoomType[])
-            : localStay.rooms,
-        amenities:
-          selectedProperty.amenities && selectedProperty.amenities.length > 0
-            ? (selectedProperty.amenities as StayDetail["amenities"])
-            : localStay.amenities,
-        highlights:
-          selectedProperty.highlights && selectedProperty.highlights.length > 0
-            ? (selectedProperty.highlights as StayDetail["highlights"])
-            : localStay.highlights,
-        policies: (selectedProperty.policies as StayDetail["policies"]) || localStay.policies,
-        attractions:
-          selectedProperty.attractions && selectedProperty.attractions.length > 0
-            ? (selectedProperty.attractions as StayDetail["attractions"])
-            : localStay.attractions,
-        ratingBreakdown:
-          selectedProperty.ratingBreakdown && selectedProperty.ratingBreakdown.length > 0
-            ? (selectedProperty.ratingBreakdown as StayDetail["ratingBreakdown"])
-            : localStay.ratingBreakdown,
-        host: (selectedProperty.host as StayDetail["host"]) || localStay.host,
-        acceptingBookings: (selectedProperty as any)?.acceptingBookings !== undefined ? (selectedProperty as any).acceptingBookings : localStay.acceptingBookings !== false,
-      };
-    }
-    return localStay;
-  }, [localStay, selectedProperty, stayId]);
+    if (!isMatch) return null;
+
+    const rawImages = (p.images && p.images.length > 0)
+      ? p.images.map((img: any) =>
+          typeof img === "string"
+            ? { url: img, alt: p.name || "", isCover: false }
+            : { url: img.url, alt: img.alt || p.name || "", isCover: !!img.isCover }
+        )
+      : [{ url: "/hero-resort.jpg", alt: p.name || "", isCover: true }];
+
+    const rawRooms: RoomType[] = (p.rooms || []).map((r: any, idx: number) => ({
+      roomId: r.roomId || r.id || `r-${idx}`,
+      id: r.id || r.roomId || `r-${idx}`,
+      roomType: r.roomType || r.name || "Standard Room",
+      name: r.name || r.roomType || "Standard Room",
+      badge: r.badge,
+      tagline: r.tagline || "",
+      size: r.size || (r.roomSize ? `${r.roomSize} sq.ft.` : "350 sq.ft."),
+      roomSize: r.roomSize || 350,
+      bed: r.bed || r.bedType || "King",
+      bedType: r.bedType || r.bed || "King",
+      maxGuests: r.maxGuests || 2,
+      capacity: r.capacity || { adults: r.maxGuests || 2, children: 1 },
+      pricePerNight: r.pricePerNight || r.basePrice || p.numericPrice || 5000,
+      basePrice: r.basePrice || r.pricePerNight || p.numericPrice || 5000,
+      originalPrice: r.originalPrice || Math.round((r.basePrice || p.numericPrice || 5000) * 1.25),
+      weekendPrice: r.weekendPrice || r.basePrice || p.numericPrice || 5000,
+      holidayPrice: r.holidayPrice || r.basePrice || p.numericPrice || 5000,
+      count: r.count || 1,
+      image: r.image || r.images?.[0] || rawImages[0]?.url || "/hero-resort.jpg",
+      roomImages: r.roomImages || r.images || [r.image || rawImages[0]?.url || "/hero-resort.jpg"],
+      amenities: r.amenities || r.roomAmenities || ["Air Conditioning", "Wi-Fi"],
+      roomAmenities: r.roomAmenities || r.amenities || ["Air Conditioning", "Wi-Fi"],
+    }));
+
+    return {
+      _id: p._id || p.id,
+      id: p.id || p._id,
+      hostId: p.hostId || p.vendorId || "",
+      propertyType: p.propertyType || "resort",
+      type: p.type || "Resort",
+      name: p.name || "Luxury Stay",
+      price: p.price || `₹${(p.numericPrice || 5000).toLocaleString("en-IN")}`,
+      numericPrice: p.numericPrice || 5000,
+      inrPrice: p.inrPrice || p.numericPrice || 5000,
+      originalPrice: p.originalPrice || Math.round((p.numericPrice || 5000) * 1.2),
+      rating: p.rating || 4.8,
+      reviewsCount: p.reviewsCount || 0,
+      description: p.description || "",
+      longDescription: p.longDescription || p.description || "",
+      location: p.location || "Mahabaleshwar",
+      locationId: p.locationId || "",
+      city: p.city || "Mahabaleshwar",
+      country: p.country || "India",
+      tagline: p.tagline || "",
+      badge: p.badge || "Verified Stay",
+      tags: p.tags || ["Verified", "Luxury"],
+      address: p.address || { fullAddress: p.location || "Mahabaleshwar", lat: 17.92, lng: 73.65, mapLink: "" },
+      images: rawImages,
+      gallery: p.gallery || [],
+      videos: p.videos || [],
+      host: p.host || { name: p.hostName || "Verified Host", role: p.hostRole || "Property Manager", experience: p.hostExperience || "5+ Years", avatar: p.hostAvatar },
+      hostName: p.hostName || p.host?.name || "Verified Host",
+      hostRole: p.hostRole || p.host?.role || "Property Manager",
+      hostExperience: p.hostExperience || p.host?.experience || "5+ Years",
+      hostAvatar: p.hostAvatar || p.host?.avatar,
+      highlights: p.highlights || [],
+      amenities: p.amenities || [],
+      policies: p.policies || {
+        checkInTime: p.checkInTime || "14:00",
+        checkOutTime: p.checkOutTime || "11:00",
+        cancellationPolicy: p.cancellationPolicy || "Free cancellation up to 48 hours before check-in.",
+        petsAllowed: !!p.petsAllowed,
+        smokingAllowed: !!p.smokingAllowed,
+        coupleFriendly: p.coupleFriendly !== false,
+        maxGuestsPerRoom: p.maxGuestsPerRoom || 4,
+      },
+      checkInTime: p.checkInTime || p.policies?.checkInTime || "2:00 PM",
+      checkOutTime: p.checkOutTime || p.policies?.checkOutTime || "11:00 AM",
+      cancellationPolicy: p.cancellationPolicy || p.policies?.cancellationPolicy || "Free cancellation up to 48 hours before check-in.",
+      acceptingBookings: p.acceptingBookings !== false,
+      petsAllowed: !!(p.petsAllowed || p.policies?.petsAllowed),
+      smokingAllowed: !!(p.smokingAllowed || p.policies?.smokingAllowed),
+      coupleFriendly: p.coupleFriendly !== false && p.policies?.coupleFriendly !== false,
+      maxGuestsPerRoom: p.maxGuestsPerRoom || p.policies?.maxGuestsPerRoom || 4,
+      rooms: rawRooms,
+      mapCoordinates: p.mapCoordinates || { lat: 17.9237, lng: 73.6586 },
+      attractions: p.attractions || [],
+      ratingBreakdown: p.ratingBreakdown || [],
+      reviews: p.reviews || [],
+      curatedPackages: p.curatedPackages || [],
+      status: p.status || "active",
+      bgColor: p.bgColor,
+      gradientOverlay: p.gradientOverlay,
+      featured: p.featured,
+    };
+  }, [selectedProperty, stayId]);
 
   // Gallery images combined
   const allPhotos = useMemo(() => {
     const list: string[] = [];
-    if (stay.images) {
+    if (stay?.images) {
       stay.images.forEach((img) => {
         if (img.url && !list.includes(img.url)) list.push(img.url);
       });
     }
-    if (stay.gallery) {
+    if (stay?.gallery) {
       stay.gallery.forEach((url) => {
         if (url && !list.includes(url)) list.push(url);
       });
@@ -136,25 +180,23 @@ export default function StayBookingDetailsPage() {
   };
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>(() => {
-    return stay.rooms[0]?.roomId || stay.rooms[0]?.id || "r5002-1";
-  });
+  const [selectedRoomId, setSelectedRoomId] = useState<string>("");
   const [checkInDate, setCheckInDate] = useState("2026-10-15");
   const [checkOutDate, setCheckOutDate] = useState("2026-10-18");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(1);
   const [isGuestPickerOpen, setIsGuestPickerOpen] = useState(false);
   const { isSaved: isWishlist, toggle: toggleWishlistAction } = useWishlistItem({
-    id: stay.id,
+    id: stay?.id || stayId,
     type: "property",
-    title: stay.name,
-    location: stay.location,
-    price: stay.price,
-    numericPrice: stay.numericPrice || stay.inrPrice,
+    title: stay?.name || "",
+    location: stay?.location || "",
+    price: stay?.price || "",
+    numericPrice: stay?.numericPrice || stay?.inrPrice || 0,
     image: allPhotos[0] || "/hero-resort.jpg",
-    rating: stay.rating,
-    category: stay.type || "Villa",
-    url: `/explore/${stay.id}`,
+    rating: stay?.rating || 4.8,
+    category: stay?.type || "Villa",
+    url: `/explore/${stay?.id || stayId}`,
   });
   const [showShareToast, setShowShareToast] = useState(false);
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
@@ -163,16 +205,17 @@ export default function StayBookingDetailsPage() {
   const [writeReviewOpen, setWriteReviewOpen] = useState(false);
 
   // Selected Room
-  const selectedRoom: RoomType = useMemo(() => {
+  const selectedRoom: RoomType | undefined = useMemo(() => {
+    if (!stay?.rooms || stay.rooms.length === 0) return undefined;
     return (
       stay.rooms.find((r) => r.roomId === selectedRoomId || r.id === selectedRoomId) ||
       stay.rooms[0]
     );
-  }, [stay.rooms, selectedRoomId]);
+  }, [stay?.rooms, selectedRoomId]);
 
   // Keep selectedRoom valid if rooms change
   useEffect(() => {
-    if (stay.rooms && stay.rooms.length > 0) {
+    if (stay?.rooms && stay.rooms.length > 0) {
       const exists = stay.rooms.some(
         (r) => r.roomId === selectedRoomId || r.id === selectedRoomId
       );
@@ -180,11 +223,11 @@ export default function StayBookingDetailsPage() {
         setSelectedRoomId(stay.rooms[0].roomId || stay.rooms[0].id);
       }
     }
-  }, [stay.rooms, selectedRoomId]);
+  }, [stay?.rooms, selectedRoomId]);
 
   // Pricing calculations
-  const roomPricePerNight = selectedRoom?.pricePerNight || stay.numericPrice || 22000;
-  const originalRate = selectedRoom?.originalPrice || stay.originalPrice || 28000;
+  const roomPricePerNight = selectedRoom?.pricePerNight || stay?.numericPrice || 22000;
+  const originalRate = selectedRoom?.originalPrice || stay?.originalPrice || 28000;
   const savingsPerNight = Math.max(0, originalRate - roomPricePerNight);
 
   const nights = useMemo(() => {
@@ -224,7 +267,7 @@ export default function StayBookingDetailsPage() {
     setActivePhotoIndex((prev) => (prev + 1) % allPhotos.length);
   };
 
-  if (detailLoading && (!selectedProperty || (selectedProperty.id !== stayId && selectedProperty._id !== stayId))) {
+  if (detailLoading || !stay) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] font-roboto">
         <Navbar />

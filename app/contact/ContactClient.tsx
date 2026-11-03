@@ -75,12 +75,12 @@ export default function ContactPage() {
                   </p>
                 </div>
                 <a
-                  href="https://wa.me/919999900000"
+                  href="https://wa.me/919405419021"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-emerald-800 font-bold text-xs sm:text-sm hover:bg-emerald-50 transition shadow-md font-poppins"
                 >
-                  <span>Chat on WhatsApp (+91 99999 00000)</span>
+                  <span>Chat on WhatsApp (+91 94054 19021)</span>
                   <span>→</span>
                 </a>
               </div>
@@ -109,9 +109,9 @@ export default function ContactPage() {
                     </svg>
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-poppins">Direct Hotline</span>
-                    <a href="tel:+919999900000" className="text-sm font-bold text-slate-900 hover:text-[#ea110d] transition font-poppins">
-                      +91 99999 00000 / +91 22 2845 7000
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-poppins">Calling / Direct Hotline</span>
+                    <a href="tel:+917741002157" className="text-sm font-bold text-slate-900 hover:text-[#ea110d] transition font-poppins">
+                      +91 7741002157
                     </a>
                     <p className="text-xs text-slate-500 mt-0.5">Available 24 hours a day, 7 days a week.</p>
                   </div>

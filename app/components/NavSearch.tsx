@@ -5,10 +5,25 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Stay } from "./StayCard";
 import { PackageData } from "./PackageCard";
-import { EXPLORE_STAYS, POPULAR_STAYS } from "../data/sampleProperties";
-import { PACKAGES_CATALOG_DATA } from "../data/samplePackages";
-import { EXPERIENCES_CATALOG_DATA, ExperienceData } from "../data/sampleActivities";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProperties } from "@/store/slices/propertyslice";
+import { fetchPackages } from "@/store/slices/packageslice";
+import { fetchExperiences } from "@/store/slices/experienceslice";
+
+export interface ExperienceData {
+  id: string;
+  title: string;
+  rating: string;
+  description: string;
+  price: string;
+  numericPrice?: number;
+  image: string;
+  category: string;
+  city: string;
+  country: string;
+  duration: string;
+  flag: string;
+}
 
 export interface SearchLocation {
   name: string;
@@ -51,83 +66,81 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
 
-  // Redux data merged with sample data for instant & offline-resilient search
+  const dispatch = useAppDispatch();
+
+  // Redux data from live backend
   const reduxProperties = useAppSelector((state) => state.properties?.items || []);
   const reduxPackages = useAppSelector((state) => state.packages?.items || []);
   const reduxExperiences = useAppSelector((state) => state.experiences?.items || []);
 
-  // Merged stays catalog
+  // Fetch catalogs on interaction if not already loaded
+  useEffect(() => {
+    if (isOpen || isMobileModalOpen) {
+      if (reduxProperties.length === 0) dispatch(fetchProperties());
+      if (reduxPackages.length === 0) dispatch(fetchPackages());
+      if (reduxExperiences.length === 0) dispatch(fetchExperiences());
+    }
+  }, [isOpen, isMobileModalOpen, reduxProperties.length, reduxPackages.length, reduxExperiences.length, dispatch]);
+
+  // Live stays catalog from database
   const allStays: Stay[] = useMemo(() => {
-    const list: Stay[] = [...EXPLORE_STAYS, ...POPULAR_STAYS];
-    reduxProperties.forEach((p) => {
+    return reduxProperties.map((p) => {
       const id = p.id || p._id;
-      if (!list.some((s) => s.id === id)) {
-        list.push({
-          id,
-          name: p.name,
-          type: p.type || p.propertyType || "Stay",
-          location: p.location || p.city || "Mahabaleshwar",
-          city: p.city || "Mahabaleshwar",
-          price: p.price || `₹${(p.numericPrice || p.inrPrice || 5000).toLocaleString("en-IN")}`,
-          numericPrice: p.numericPrice || p.inrPrice || 5000,
-          inrPrice: p.inrPrice || p.numericPrice || 5000,
-          rating: p.rating || 4.8,
-          description: p.description || "",
-          image: p.images?.[0]?.url || p.gallery?.[0] || "/hero-resort.jpg",
-          tags: p.tags || ["Verified", "Luxury"],
-        });
-      }
+      return {
+        id,
+        name: p.name,
+        type: (p.type as any) || (p.propertyType === "villa" ? "Villa" : "Resort"),
+        location: p.location || p.city || "Mahabaleshwar",
+        city: p.city || "Mahabaleshwar",
+        price: p.price || `₹${(p.numericPrice || p.inrPrice || 5000).toLocaleString("en-IN")}`,
+        numericPrice: p.numericPrice || p.inrPrice || 5000,
+        inrPrice: p.inrPrice || p.numericPrice || 5000,
+        rating: p.rating || "4.8",
+        description: p.description || "",
+        image:
+          typeof p.images?.[0] === "string"
+            ? p.images[0]
+            : p.images?.[0]?.url || p.gallery?.[0] || "/hero-resort.jpg",
+        tags: p.tags || ["Verified", "Luxury"],
+      };
     });
-    return list;
   }, [reduxProperties]);
 
-  // Merged packages catalog
+  // Live packages catalog from database
   const allPackages: PackageData[] = useMemo(() => {
-    const list: PackageData[] = [...PACKAGES_CATALOG_DATA];
-    reduxPackages.forEach((pkg) => {
-      if (!list.some((p) => p.id === pkg.id)) {
-        list.push({
-          id: pkg.id,
-          title: pkg.title || pkg.name,
-          badge: pkg.badge || "Curated Package",
-          rating: pkg.rating || "4.9/5 ★",
-          location: pkg.location || "Mahabaleshwar",
-          shortDesc: pkg.shortDesc || "",
-          price: pkg.price || `From ₹${(pkg.numericPrice || 12000).toLocaleString("en-IN")}`,
-          numericPrice: pkg.numericPrice || 12000,
-          images: pkg.images?.length ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
-          category: pkg.category || "Holiday",
-          city: pkg.city || "Mahabaleshwar",
-          country: pkg.country || "India",
-          durationDays: pkg.durationDays || 3,
-        });
-      }
-    });
-    return list;
+    return reduxPackages.map((pkg) => ({
+      id: pkg.id,
+      title: pkg.title || pkg.name,
+      badge: pkg.badge || "Verified Package",
+      rating: pkg.rating || (pkg.ratingScore ? `${pkg.ratingScore}/5 ★` : "4.9/5 ★"),
+      location: pkg.location || "Mahabaleshwar",
+      shortDesc: pkg.shortDesc || "",
+      price: pkg.price || `From ₹${(pkg.numericPrice || 12000).toLocaleString("en-IN")}`,
+      numericPrice: pkg.numericPrice || 12000,
+      images: pkg.images?.length ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
+      category: pkg.category || "Holiday",
+      city: pkg.city || "Mahabaleshwar",
+      country: pkg.country || "India",
+      durationDays: pkg.durationDays || 3,
+    }));
   }, [reduxPackages]);
 
-  // Merged experiences catalog
+  // Live experiences catalog from database
   const allExperiences: ExperienceData[] = useMemo(() => {
-    const list: ExperienceData[] = [...EXPERIENCES_CATALOG_DATA];
-    reduxExperiences.forEach((exp) => {
-      if (!list.some((e) => e.id === exp.id)) {
-        list.push({
-          id: exp.id,
-          title: exp.title || exp.name,
-          rating: exp.rating || "4.8/5 ★",
-          description: exp.description || "",
-          price: exp.price || `₹${(exp.numericPrice || 499).toLocaleString("en-IN")}`,
-          numericPrice: exp.numericPrice || 499,
-          image: exp.image || "/hero-resort.jpg",
-          category: exp.category || "Adventure",
-          city: exp.city || "Mahabaleshwar",
-          country: exp.country || "India",
-          duration: exp.duration || "2 Hours",
-          flag: exp.flag || "🇮🇳",
-        });
-      }
-    });
-    return list;
+    return reduxExperiences.map((exp) => ({
+      id: exp.id,
+      title: exp.title || exp.name,
+      rating: exp.rating || (exp.ratingScore ? `${exp.ratingScore}/5 ★` : "4.8/5 ★"),
+      description: exp.description || "",
+      price: exp.price || `₹${(exp.numericPrice || 499).toLocaleString("en-IN")}`,
+      numericPrice: exp.numericPrice || 499,
+      image: exp.image || exp.gallery?.[0] || "/hero-resort.jpg",
+      category: exp.category || "Adventure",
+      city: exp.city || "Mahabaleshwar",
+      country: exp.country || "India",
+      duration: exp.duration || "2 Hours",
+      flag: exp.flag || "🇮🇳",
+    }));
   }, [reduxExperiences]);
 
   // Close on outside click

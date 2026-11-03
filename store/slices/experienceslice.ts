@@ -104,7 +104,7 @@ interface ExperienceState {
 const initialState: ExperienceState = {
   items: [],
   selectedExperience: null,
-  loading: false,
+  loading: true,
   detailLoading: false,
   error: null,
   filters: {},

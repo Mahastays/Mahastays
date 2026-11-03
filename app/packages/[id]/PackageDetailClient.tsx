@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { DetailPageSkeleton } from "../../components/Skeletons";
-import { getPackageDetail, PackageDetail, PackageTier } from "../packagesData";
+import { PackageDetail, PackageTier } from "../packagesData";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchPackageByCode } from "@/store/slices/packageslice";
 import { useWishlistItem } from "@/lib/wishlist";
@@ -27,66 +27,104 @@ export default function PackageDetailsPage() {
     }
   }, [dispatch, packageId]);
 
-  const localPkg = useMemo(() => getPackageDetail(packageId), [packageId]);
-
-  // Merge store data seamlessly with local rich fallback
-  const pkg: PackageDetail = useMemo(() => {
+  // Construct package purely from live backend database
+  const pkg: PackageDetail | null = useMemo(() => {
+    if (!selectedPackage) return null;
+    const p = selectedPackage as any;
     const isMatch = Boolean(
-      selectedPackage &&
-        (selectedPackage.id === packageId ||
-          (selectedPackage as any).code === packageId ||
-          (selectedPackage as any).slug === packageId)
+      p.id === packageId ||
+      p._id === packageId ||
+      p.slug === packageId ||
+      p.code === packageId
     );
-    if (isMatch && selectedPackage) {
-      return {
-        ...localPkg,
-        title: selectedPackage.title || localPkg.title,
-        price: selectedPackage.price || localPkg.price,
-        numericPrice: selectedPackage.numericPrice || localPkg.numericPrice,
-        
-        originalPrice: selectedPackage.originalPrice || localPkg.originalPrice,
-        overview: selectedPackage.overview || localPkg.overview,
-        fullDesc: (selectedPackage as any).fullDesc || selectedPackage.overview || localPkg.fullDesc,
-        city: selectedPackage.city || localPkg.city,
-        images:
-          selectedPackage.images && selectedPackage.images.length > 0
-            ? (selectedPackage.images as any).map((img: any) => typeof img === "string" ? img : img.url || "/hero-resort.jpg")
-            : localPkg.images,
-        gallery: (selectedPackage as any).gallery || localPkg.gallery,
-        tiers:
-          selectedPackage.tiers && selectedPackage.tiers.length > 0
-            ? (selectedPackage.tiers as unknown as PackageTier[])
-            : localPkg.tiers,
-        itinerary:
-          selectedPackage.itinerary && selectedPackage.itinerary.length > 0
-            ? (selectedPackage.itinerary as PackageDetail["itinerary"])
-            : localPkg.itinerary,
-        inclusions:
-          selectedPackage.inclusions && selectedPackage.inclusions.length > 0
-            ? (selectedPackage.inclusions as PackageDetail["inclusions"])
-            : localPkg.inclusions,
-        highlights:
-          selectedPackage.highlights && selectedPackage.highlights.length > 0
-            ? (selectedPackage.highlights as PackageDetail["highlights"])
-            : localPkg.highlights,
-        ratingBreakdown: (selectedPackage as any).ratingBreakdown || (localPkg as any).ratingBreakdown,
-        hostProperty: (selectedPackage.hostProperty as PackageDetail["hostProperty"]) || localPkg.hostProperty,
-        acceptingBookings: (selectedPackage as any)?.acceptingBookings !== undefined ? (selectedPackage as any).acceptingBookings : (localPkg as any).acceptingBookings !== false,
-      };
-    }
-    return localPkg;
-  }, [localPkg, selectedPackage, packageId]);
+    if (!isMatch) return null;
+
+    const rawImages = (p.images && p.images.length > 0)
+      ? p.images.map((img: any) => typeof img === "string" ? img : img.url || "/hero-resort.jpg")
+      : [p.thumbnail || "/hero-resort.jpg"];
+
+    const rawTiers: PackageTier[] = (p.tiers && p.tiers.length > 0)
+      ? p.tiers.map((t: any, idx: number) => ({
+          id: t.id || t.tierId || `tier-${idx + 1}`,
+          name: t.name || `Tier ${idx + 1}`,
+          badge: t.badge,
+          tagline: t.tagline || "",
+          hotelType: t.hotelType || "Luxury Room",
+          pricePerPerson: t.pricePerPerson || p.numericPrice || 12000,
+          originalPrice: t.originalPrice || Math.round((t.pricePerPerson || p.numericPrice || 12000) * 1.25),
+          features: t.features || ["Accommodation Included", "Breakfast & Dinner", "Sightseeing"],
+        }))
+      : [
+          {
+            id: "tier-1",
+            name: "Standard Experience",
+            tagline: "Curated package with all core amenities",
+            hotelType: "Luxury Suite",
+            pricePerPerson: p.numericPrice || 12000,
+            originalPrice: Math.round((p.numericPrice || 12000) * 1.25),
+            features: ["Deluxe Room Stay", "Breakfast & Dinner", "Sightseeing Excursions"],
+          },
+        ];
+
+    return {
+      _id: p._id || p.id,
+      id: p.id || p._id,
+      hostId: p.hostId || p.vendorId || "",
+      propertyId: p.propertyId || "",
+      packageType: p.packageType || "couple",
+      category: p.category || "Holiday",
+      title: p.title || p.name || "Curated Package",
+      name: p.name || p.title || "Curated Package",
+      badge: p.badge || "Verified Package",
+      rating: p.rating || (p.ratingScore ? `${p.ratingScore}/5 ★` : "4.9/5 ★"),
+      ratingScore: p.ratingScore || 4.9,
+      reviewsCount: p.reviewsCount || 0,
+      duration: p.duration || `${p.durationDays || 3} Days / ${p.durationNights || 2} Nights`,
+      durationDays: p.durationDays || 3,
+      durationNights: p.durationNights || 2,
+      location: p.location || "Mahabaleshwar, Maharashtra",
+      locationId: p.locationId || "",
+      city: p.city || "Mahabaleshwar",
+      country: p.country || "India",
+      price: p.price || `From ₹${(p.numericPrice || 12000).toLocaleString("en-IN")}`,
+      numericPrice: p.numericPrice || 12000,
+      originalPrice: p.originalPrice || Math.round((p.numericPrice || 12000) * 1.25),
+      shortDesc: p.shortDesc || "",
+      description: p.description || p.shortDesc || "",
+      overview: p.overview || p.shortDesc || "",
+      fullDesc: p.fullDesc || p.overview || p.shortDesc || "",
+      thumbnail: p.thumbnail || rawImages[0] || "/hero-resort.jpg",
+      images: rawImages,
+      gallery: p.gallery || rawImages,
+      hostProperty: p.hostProperty || { propertyId: p.propertyId || "", propertyName: "Mahastays Partner Estate", propertyType: "Resort", location: p.location || "Mahabaleshwar" },
+      freeActivities: p.freeActivities || [],
+      highlights: p.highlights || [],
+      inclusions: p.inclusions || [],
+      rawInclusions: p.rawInclusions,
+      exclusions: p.exclusions || [],
+      itinerary: p.itinerary || [],
+      tiers: rawTiers,
+      pricing: p.pricing || { basePrice: p.numericPrice || 12000, pricePerPerson: p.numericPrice || 12000, weekendSurcharge: 0, minGuests: 1, maxGuests: 10 },
+      durationDetails: p.durationDetails,
+      reviews: p.reviews || [],
+      cancellationPolicy: p.cancellationPolicy || "Free cancellation up to 48 hours before check-in.",
+      status: p.status || "active",
+      totalBookings: p.totalBookings || 0,
+      featured: p.featured,
+      acceptingBookings: p.acceptingBookings !== false,
+    };
+  }, [selectedPackage, packageId]);
 
   // Combined gallery
   const allPhotos = useMemo(() => {
     const list: string[] = [];
-    if (pkg.images) {
+    if (pkg?.images) {
       pkg.images.forEach((img: any) => {
-        const u = typeof img === "string" ? img : img.url;
+        const u = typeof img === "string" ? img : img?.url;
         if (u && !list.includes(u)) list.push(u);
       });
     }
-    if (pkg.gallery) {
+    if (pkg?.gallery) {
       pkg.gallery.forEach((url) => {
         if (url && !list.includes(url)) list.push(url);
       });
@@ -123,24 +161,22 @@ export default function PackageDetailsPage() {
   };
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
-  const [selectedTierId, setSelectedTierId] = useState<string>(() => {
-    return pkg.tiers[0]?.id || "tier-1";
-  });
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
   const [startDate, setStartDate] = useState("2026-10-15");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [isGuestPickerOpen, setIsGuestPickerOpen] = useState(false);
   const { isSaved: isWishlist, toggle: toggleWishlistAction } = useWishlistItem({
-    id: pkg.id,
+    id: pkg?.id || packageId,
     type: "package",
-    title: pkg.title,
-    location: pkg.location || `${pkg.city || "Mahabaleshwar"}, Maharashtra`,
-    price: pkg.price,
-    numericPrice: pkg.numericPrice,
+    title: pkg?.title || "",
+    location: pkg?.location || `${pkg?.city || "Mahabaleshwar"}, Maharashtra`,
+    price: pkg?.price || "",
+    numericPrice: pkg?.numericPrice || 0,
     image: allPhotos[0] || "/hero-resort.jpg",
-    rating: pkg.rating,
-    category: pkg.category || "Curated Package",
-    url: `/packages/${pkg.id}`,
+    rating: pkg?.rating || "4.9/5 ★",
+    category: pkg?.category || "Curated Package",
+    url: `/packages/${pkg?.id || packageId}`,
   });
   const [showShareToast, setShowShareToast] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -149,22 +185,23 @@ export default function PackageDetailsPage() {
   const [expandedDay, setExpandedDay] = useState<number | null>(1);
 
   // Selected Tier
-  const selectedTier: PackageTier = useMemo(() => {
+  const selectedTier: PackageTier | undefined = useMemo(() => {
+    if (!pkg?.tiers || pkg.tiers.length === 0) return undefined;
     return pkg.tiers.find((t) => t.id === selectedTierId) || pkg.tiers[0];
-  }, [pkg.tiers, selectedTierId]);
+  }, [pkg?.tiers, selectedTierId]);
 
   useEffect(() => {
-    if (pkg.tiers && pkg.tiers.length > 0) {
+    if (pkg?.tiers && pkg.tiers.length > 0) {
       const exists = pkg.tiers.some((t) => t.id === selectedTierId);
       if (!exists) {
         setSelectedTierId(pkg.tiers[0].id);
       }
     }
-  }, [pkg.tiers, selectedTierId]);
+  }, [pkg?.tiers, selectedTierId]);
 
   // Calculations
-  const pricePerPerson = selectedTier?.pricePerPerson || pkg.numericPrice || 14999;
-  const originalPricePerPerson = selectedTier?.originalPrice || pkg.originalPrice || 19999;
+  const pricePerPerson = selectedTier?.pricePerPerson || pkg?.numericPrice || 14999;
+  const originalPricePerPerson = selectedTier?.originalPrice || pkg?.originalPrice || 19999;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const totalGuests = adults + children;
@@ -197,7 +234,7 @@ export default function PackageDetailsPage() {
     setActivePhotoIndex((prev) => (prev + 1) % allPhotos.length);
   };
 
-  if (detailLoading && (!selectedPackage || (selectedPackage.id !== packageId && (selectedPackage as any).code !== packageId))) {
+  if (detailLoading || !pkg) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] font-roboto">
         <Navbar />

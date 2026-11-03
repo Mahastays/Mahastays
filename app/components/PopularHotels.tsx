@@ -74,7 +74,7 @@ export default function PopularHotels() {
       </div>
 
       {/* Loading Skeleton */}
-      {loading && stays.length === 0 && (
+      {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((idx) => (
             <div key={idx} className="w-full">
@@ -82,23 +82,21 @@ export default function PopularHotels() {
             </div>
           ))}
         </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && stays.length === 0 && (
+      ) : !loading && error && stays.length === 0 ? (
         <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm">
           {error}. Please make sure the backend server is running.
         </div>
-      )}
-
-      {/* Real Cards Grid from Redux Store */}
-      {stays.length > 0 && (
+      ) : stays.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stays.map((stay) => (
+          {stays.slice(0, 3).map((stay) => (
             <div key={stay.id} className="w-full">
               <StayCard stay={stay} />
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 text-sm">
+          No stays currently available.
         </div>
       )}
     </section>

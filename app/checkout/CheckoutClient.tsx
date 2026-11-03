@@ -7,6 +7,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { toast } from "../../components/ui/Toast";
+import BookingInvoiceModal from "../components/booking/BookingInvoiceModal";
+import BookingConfirmationView, { BookingConfirmationData } from "../components/booking/BookingConfirmationView";
+import { FileText, Download } from "lucide-react";
 
 interface CheckoutFormData {
   fullName: string;
@@ -76,6 +79,7 @@ function CheckoutContent() {
   // Platform Global Booking Status State
   const [platformBookingsEnabled, setPlatformBookingsEnabled] = useState(true);
   const [platformBookingsMessage, setPlatformBookingsMessage] = useState("");
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   // Check public platform configuration for global booking killswitch
   useEffect(() => {
@@ -387,7 +391,7 @@ function CheckoutContent() {
         key: rzpKey,
         amount: amountPaise,
         currency: gatewayOrder?.currency || "INR",
-        name: "Mahastays Tourism",
+        name: "Mahastays",
         description: `${bookingType.toUpperCase()} Booking - ${title.slice(0, 30)}`,
         image: imageUrl || "/maha photos/luxury-pool.jpg",
         handler: async function (response: any) {
@@ -469,7 +473,7 @@ function CheckoutContent() {
       try {
         const scriptLoaded = await loadRazorpayScript();
         if (scriptLoaded) {
-          const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TsvM6ELYin3phv";
+          const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ;
           const fallbackRef = `MHA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
           const fallbackInv = `INV-2026-27-${String(Math.floor(1 + Math.random() * 9999)).padStart(5, "0")}`;
 
@@ -477,7 +481,7 @@ function CheckoutContent() {
             key: rzpKey,
             amount: Math.round(finalGrandTotal * 100),
             currency: "INR",
-            name: "Mahastays Tourism",
+            name: "Mahastays",
             description: `${bookingType.toUpperCase()} Booking - ${title.slice(0, 30)}`,
             image: imageUrl || "/maha photos/luxury-pool.jpg",
             handler: function (response: any) {
@@ -528,103 +532,53 @@ function CheckoutContent() {
   };
 
   if (bookingResult) {
+    const confirmationData: BookingConfirmationData = {
+      bookingReference: bookingResult.bookingReference,
+      invoiceNumber: bookingResult.invoiceNumber,
+      bookingType,
+      title,
+      image:
+        bookingResult.booking?.image ||
+        imageUrl ||
+        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80",
+      rating: 4.9,
+      reviewsCount: 128,
+      location: "Panchgani-Mahabaleshwar Road, Satara District, Maharashtra",
+      checkInDate: startDate,
+      checkInTime: "02:00 PM",
+      checkOutDate: endDate || startDate,
+      checkOutTime: "11:00 AM",
+      nights,
+      guestsText: `${adults} Adult${adults > 1 ? "s" : ""}${
+        children > 0 ? `, ${children} Child${children > 1 ? "ren" : ""}` : ""
+      }`,
+      roomOrTierText: tierOrRoomName,
+      amountPaid: finalGrandTotal,
+      paymentMethod:
+        formData.paymentMethod === "pay_at_property"
+          ? "Pay at Property"
+          : formData.paymentMethod === "upi"
+          ? "Razorpay UPI"
+          : "Razorpay Online",
+      guestName: formData.fullName,
+      guestEmail: formData.email,
+      pricing: {
+        grandTotal: finalGrandTotal,
+        grandTotalInr: finalGrandTotal,
+        basePrice: baseCost,
+        baseCost,
+        cleaningFee: fee,
+        memberDiscount,
+        taxableAmount: baseCost - memberDiscount + fee,
+        taxesGst: taxes,
+      },
+    };
+
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
         <Navbar />
-        <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-12 flex-1 flex flex-col justify-center">
-          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-[0_12px_40px_rgba(0,0,0,0.06)] text-center">
-            {/* Green Animated Success Badge */}
-            <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-600 mx-auto flex items-center justify-center text-3xl font-extrabold shadow-sm mb-5">
-              ✓
-            </div>
-
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#ea110d] font-poppins">
-              BOOKING CONFIRMED &amp; GUARANTEED
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins mt-1">
-              Thank You, {formData.fullName}!
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-md mx-auto font-roboto">
-              Your stay reservation has been officially saved into the Mahastays system and verified by our team.
-            </p>
-
-            {/* Reference Box */}
-            <div className="my-6 p-4 rounded-2xl bg-rose-50/60 border border-rose-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block font-poppins">
-                  Booking Reference Number
-                </span>
-                <span className="text-base sm:text-lg font-extrabold text-[#ea110d] font-poppins tracking-wide">
-                  {bookingResult.bookingReference}
-                </span>
-              </div>
-              <div className="text-left sm:text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block font-poppins">
-                  GST Tax Invoice #
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-poppins">
-                  {bookingResult.invoiceNumber}
-                </span>
-              </div>
-            </div>
-
-            {/* Summary Details */}
-            <div className="rounded-2xl border border-slate-100 divide-y divide-slate-100 text-left text-xs bg-slate-50/50 p-4 mb-6 space-y-2">
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500 font-medium">Selected Property / Tour</span>
-                <span className="font-bold text-slate-900 font-poppins">{title}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500 font-medium">Room / Package Tier</span>
-                <span className="font-bold text-slate-900">{tierOrRoomName}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500 font-medium">Dates &amp; Schedule</span>
-                <span className="font-bold text-slate-900">
-                  {startDate} {endDate ? `to ${endDate} (${nights} nights)` : `• ${slotTime}`}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500 font-medium">Travelers</span>
-                <span className="font-bold text-slate-900">
-                  {adults} Adults, {children} Child{children !== 1 ? "ren" : ""}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500 font-medium">Payment Status</span>
-                <span className="font-bold text-emerald-700 uppercase">
-                  {formData.paymentMethod === "pay_at_property" ? "Pay at Property (₹0 Paid)" : "Paid via " + formData.paymentMethod.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 pt-2 font-bold text-sm text-slate-900">
-                <span>Grand Total Amount</span>
-                <span className="text-[#ea110d] font-poppins font-extrabold">₹{finalGrandTotal.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-bold font-poppins hover:bg-black transition-all cursor-pointer"
-              >
-                Print / Save Invoice
-              </button>
-              <Link
-                href={`/explore/${itemId}`}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-bold font-poppins hover:border-slate-800 transition-all text-center"
-              >
-                Return to Property
-              </Link>
-              <Link
-                href="/"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins hover:bg-[#d00f0c] transition-all text-center"
-              >
-                Explore More Stays
-              </Link>
-            </div>
-          </div>
+        <main className="flex-1 w-full pb-16">
+          <BookingConfirmationView data={confirmationData} />
         </main>
         <Footer />
       </div>

@@ -73,12 +73,11 @@ p, span, label, input, textarea, select, .font-roboto {
 .fan-pos-left-1,
 .fan-pos-right-1,
 .fan-pos-left-2,
-.fan-pos-right-2,
-.fan-pos-hidden {
+.fan-pos-right-2 {
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  contain: layout style paint;
+  contain: layout paint;
 }
 
 .fan-pos-active {

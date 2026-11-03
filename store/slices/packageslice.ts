@@ -110,7 +110,7 @@ interface PackageState {
 const initialState: PackageState = {
   items: [],
   selectedPackage: null,
-  loading: false,
+  loading: true,
   detailLoading: false,
   error: null,
   filters: {},

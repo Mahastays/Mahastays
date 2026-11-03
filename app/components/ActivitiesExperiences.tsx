@@ -89,23 +89,17 @@ export default function ActivitiesExperiences() {
       </div>
 
       {/* Loading Skeleton */}
-      {loading && total === 0 && (
+      {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {[1, 2, 3].map((idx) => (
             <ExperienceCardSkeleton key={idx} />
           ))}
         </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && total === 0 && (
+      ) : !loading && error && total === 0 ? (
         <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm max-w-md mx-auto">
           {error}. Please check backend connection.
         </div>
-      )}
-
-      {/* 3D Fan-out / Infinite Cover Flow Carousel */}
-      {total > 0 && (
+      ) : total > 0 ? (
         <div
           className="relative w-full h-[500px] sm:h-[520px] perspective-1300 flex items-center justify-center touch-pan-y"
           onMouseEnter={() => setIsHovered(true)}
@@ -134,6 +128,11 @@ export default function ActivitiesExperiences() {
                 diff += total;
               }
 
+              // GPU & Render optimization: unmount cards beyond the 5-card fan view
+              if (Math.abs(diff) > 2 && total > 5) {
+                return null;
+              }
+
               const isActive = diff === 0;
 
               let positionClass = "fan-pos-hidden";
@@ -147,7 +146,7 @@ export default function ActivitiesExperiences() {
                 <div
                   key={item.id}
                   onClick={() => setActiveIndex(index)}
-                  className={`absolute w-[290px] sm:w-[310px] h-[440px] sm:h-[460px] rounded-[28px] overflow-hidden cursor-pointer select-none bg-[#0B0A06] group ${positionClass} ${
+                  className={`absolute w-[290px] sm:w-[310px] h-[440px] sm:h-[460px] rounded-[28px] overflow-hidden cursor-pointer select-none bg-[#0B0A06] group transform-gpu ${positionClass} ${
                     isActive ? "shadow-[0_20px_45px_rgba(0,0,0,0.36)]" : "shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
                   } transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
                   id={`fan-card-${item.id}`}
@@ -232,7 +231,7 @@ export default function ActivitiesExperiences() {
             </svg>
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Pagination Dots */}
       {total > 0 && (

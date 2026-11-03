@@ -10,19 +10,24 @@ import { logoutUser, fetchCurrentUser, updateUserProfile } from "@/store/authSli
 import api from "@/lib/api";
 import { toast } from "../../components/ui/Toast";
 import { useFavoritesList } from "@/lib/wishlist";
+import { FileText, Download } from "lucide-react";
+import BookingInvoiceModal, { BookingInvoiceData } from "../components/booking/BookingInvoiceModal";
 
 interface BookingItem {
   id: string;
   bookingType: "stay" | "package" | "experience";
   bookingReference: string;
+  invoiceNumber?: string;
   title: string;
   dates: string;
   guests: string;
+  roomOrTierName?: string;
   amount: number;
   status: string;
   paymentStatus: string;
   image?: string;
   createdAt?: string;
+  pricing?: any;
 }
 
 // Client-side image compression helper
@@ -73,6 +78,7 @@ function ProfileContent() {
   const [loadingBookings, setLoadingBookings] = useState<boolean>(true);
   const [bookingFilter, setBookingFilter] = useState<string>("all");
   const [copiedCode, setCopiedCode] = useState(false);
+  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<BookingInvoiceData | null>(null);
 
   // Favorites Hook & Filter
   const { favorites, isLoading: loadingFavorites, remove: removeFavItem } = useFavoritesList();
@@ -126,41 +132,66 @@ function ProfileContent() {
       .then((res) => {
         const raw = res.data?.data?.items || res.data?.data || [];
         const formatted: BookingItem[] = raw.map((b: any) => {
-          const type = b.bookingType || (b.stay ? "stay" : b.package ? "package" : "experience");
+          const type = b.bookingType || b.type || (b.stay ? "stay" : b.package ? "package" : "experience");
           let title = "Mahastays Reservation";
           let dates = "Upcoming";
           let guests = "1 Guest";
           let image = "/hero-resort.jpg";
 
           if (type === "stay") {
-            title = b.property?.name || b.propertyName || "Luxury Resort & Spa";
-            dates = `${b.checkInDate || "Check-in"} - ${b.checkOutDate || "Check-out"}`;
-            guests = `${b.adults || 2} Adults, ${b.roomsCount || 1} Room`;
-            image = b.property?.images?.[0]?.url || image;
+            title = b.property?.name || b.title || b.propertyName || "Luxury Resort & Spa";
+            dates = `${b.checkInDate || b.schedule?.checkInDate || "Check-in"} – ${b.checkOutDate || b.schedule?.checkOutDate || "Check-out"}`;
+            guests = `${b.adults || b.guests?.adults || 2} Adults, ${b.roomQuantity || b.roomsCount || b.room?.quantity || 1} Room`;
+            image = b.property?.images?.[0]?.url || b.image || image;
           } else if (type === "package") {
-            title = b.package?.title || b.packageTitle || "Curated Getaway Package";
-            dates = `${b.startDate || "Start Date"}`;
-            guests = `${b.totalGuests || b.adults || 2} Travelers`;
-            image = b.package?.thumbnail || b.package?.images?.[0] || image;
+            title = b.package?.title || b.title || b.packageTitle || "Curated Getaway Package";
+            dates = `${b.startDate || "Start Date"}${b.endDate ? ` – ${b.endDate}` : ""}`;
+            guests = `${b.totalTravelers || b.travelers?.totalTravelers || b.totalGuests || b.adults || 2} Travelers`;
+            image = b.package?.thumbnail || b.package?.images?.[0] || b.image || image;
           } else {
-            title = b.experience?.title || b.experienceTitle || "Guided Experience";
-            dates = `${b.activityDate || "Scheduled Date"}`;
-            guests = `${b.participantsCount || b.adults || 1} Participants`;
-            image = b.experience?.image || image;
+            title = b.experience?.title || b.title || b.experienceTitle || "Guided Experience";
+            dates = `${b.activityDate || "Scheduled Date"}${b.slotTime || b.selectedSlot?.time ? ` (${b.slotTime || b.selectedSlot?.time})` : ""}`;
+            guests = `${b.totalParticipants || b.participants?.totalParticipants || b.participantsCount || b.adults || 1} Participants`;
+            image = b.experience?.image || b.image || image;
           }
+
+          const roomOrTierName =
+            b.roomName ||
+            b.room?.roomName ||
+            b.tierName ||
+            b.tier?.tierName ||
+            b.selectedTier?.name ||
+            undefined;
+
+          const rawAmount =
+            b.grandTotalInr ??
+            b.pricing?.grandTotalInr ??
+            b.pricing?.grandTotal ??
+            b.totalAmountInr ??
+            b.amountInr ??
+            b.amount ??
+            b.payment?.amountInr ??
+            (b.pricing?.roomPricePerNight && (b.nights || b.schedule?.nights)
+              ? b.pricing.roomPricePerNight * (b.nights || b.schedule?.nights)
+              : 0);
+
+          const amount = Number(rawAmount) || 0;
 
           return {
             id: b.id,
             bookingType: type,
             bookingReference: b.bookingReference || `MS-${b.id?.slice(-6)?.toUpperCase()}`,
+            invoiceNumber: b.invoiceNumber,
             title,
             dates,
             guests,
-            amount: b.grandTotalInr || b.pricing?.grandTotal || b.amountInr || 0,
+            roomOrTierName,
+            amount,
             status: b.bookingStatus || "confirmed",
             paymentStatus: b.paymentStatus || "captured",
             image,
             createdAt: b.createdAt,
+            pricing: b.pricing,
           };
         });
         setBookings(formatted);
@@ -770,14 +801,23 @@ function ProfileContent() {
                     </svg>
                     <span>Concierge Helpline</span>
                   </span>
-                  <a
-                    href="https://wa.me/919999900000"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-extrabold text-[#ea110d] hover:underline font-poppins"
-                  >
-                    +91 99999 00000
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="https://wa.me/919405419021"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-extrabold text-emerald-600 hover:underline font-poppins"
+                    >
+                      WA: +91 94054 19021
+                    </a>
+                    <span className="text-slate-300">·</span>
+                    <a
+                      href="tel:+917741002157"
+                      className="text-xs font-extrabold text-[#ea110d] hover:underline font-poppins"
+                    >
+                      Call: +91 7741002157
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1056,12 +1096,53 @@ function ProfileContent() {
                         </span>
                       </div>
 
-                      <Link
-                        href={`/checkout/success?ref=${b.bookingReference}`}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-[#ea110d] text-white transition shadow-xs cursor-pointer"
-                      >
-                        View Voucher →
-                      </Link>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedInvoiceBooking({
+                              id: b.id,
+                              bookingReference: b.bookingReference,
+                              bookingType: b.bookingType,
+                              invoiceNumber: b.invoiceNumber,
+                              title: b.title,
+                              dates: b.dates,
+                              guests: b.guests,
+                              roomOrTierName: b.roomOrTierName,
+                              amount: b.amount,
+                              paymentStatus: b.paymentStatus,
+                              bookingStatus: b.status,
+                              createdAt: b.createdAt,
+                              pricing: b.pricing,
+                              guestName: user?.fullName,
+                              guestEmail: user?.email,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:border-slate-800 hover:text-slate-900 transition shadow-2xs cursor-pointer"
+                          title="View Official GST Tax Invoice"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
+                          <span>Tax Invoice</span>
+                        </button>
+
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bookings/invoice/ref/${b.bookingReference}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#ea110d] bg-rose-50 border border-rose-200 hover:bg-rose-100 transition shadow-2xs cursor-pointer"
+                          title="Download PDF Invoice"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>PDF</span>
+                        </a>
+
+                        <Link
+                          href={`/checkout/success?ref=${b.bookingReference}`}
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-[#ea110d] text-white transition shadow-xs cursor-pointer"
+                        >
+                          Voucher →
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1406,6 +1487,13 @@ function ProfileContent() {
           </div>
         )}
       </main>
+
+      {/* Official Booking Invoice Modal */}
+      <BookingInvoiceModal
+        isOpen={Boolean(selectedInvoiceBooking)}
+        onClose={() => setSelectedInvoiceBooking(null)}
+        booking={selectedInvoiceBooking}
+      />
 
       <Footer />
     </div>

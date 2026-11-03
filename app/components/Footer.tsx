@@ -105,9 +105,25 @@ export default function Footer() {
             />
           </div>
 
-          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xs mb-5">
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xs mb-3">
             Mahastays curates the world&apos;s most breathtaking resorts, jungle villas, and cliffside sanctuaries. Tailored luxury, unforgettable moments.
           </p>
+
+          {/* Direct Concierge Contact Numbers */}
+          <div className="space-y-1.5 mb-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Call Concierge:</span>
+              <a href="tel:+917741002157" className="font-bold text-white hover:text-[#ea110d] transition-colors">
+                +91 7741002157
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">WhatsApp Desk:</span>
+              <a href="https://wa.me/919405419021" target="_blank" rel="noopener noreferrer" className="font-bold text-emerald-400 hover:underline">
+                +91 94054 19021
+              </a>
+            </div>
+          </div>
 
           <div className="flex items-center gap-2.5">
             <a href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-primary hover:text-white hover:border-primary hover:-translate-y-0.5 transition-all" aria-label="Instagram">

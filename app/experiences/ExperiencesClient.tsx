@@ -64,6 +64,7 @@ export default function ExperiencesPage() {
   // ─── Pagination State ────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+  const [hasAds, setHasAds] = useState<boolean>(false);
 
   useEffect(() => {
     if (isMobileFilterOpen) {
@@ -576,10 +577,10 @@ export default function ExperiencesPage() {
       <Navbar />
 
       {/* ─── Above The Hero: Escape to Extraordinary Ad Banner Carousel (Matching Reference) ── */}
-      <ExperiencesOfferAdCarousel onSelectSlide={handleExperienceOfferSelect} />
+      <ExperiencesOfferAdCarousel onSelectSlide={handleExperienceOfferSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-8 sm:py-12 w-full" id="experiences-catalog">
+      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-8 sm:py-12" : "pt-24 sm:pt-28 pb-12"}`} id="experiences-catalog">
         {/* Main 2-Column Layout */}
         <div className="flex flex-col lg:flex-row items-start gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT MATCHING UI AS IN EXPLORE) ── */}
@@ -632,7 +633,11 @@ export default function ExperiencesPage() {
               </button>
 
               <div className="text-xs text-slate-500 font-medium">
-                Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> experiences
+                {loading ? (
+                  <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded" />
+                ) : (
+                  <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> experiences</>
+                )}
               </div>
             </div>
             {/* Top Row: Title, Result Count, Search & Sort */}
@@ -642,7 +647,14 @@ export default function ExperiencesPage() {
                   All Curated Experiences &amp; Guided Adventures
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                  Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked outdoor adventures &amp; excursions
+                  {loading ? (
+                    <span className="inline-flex items-center gap-1.5 text-slate-400">
+                      <span className="w-5 h-3.5 bg-slate-200 animate-pulse rounded inline-block" />
+                      <span>Loading handpicked outdoor adventures &amp; excursions...</span>
+                    </span>
+                  ) : (
+                    <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked outdoor adventures &amp; excursions</>
+                  )}
                 </p>
               </div>
 
@@ -764,7 +776,7 @@ export default function ExperiencesPage() {
             )}
 
             {/* ─── Experiences Grid (Universal Single Cards, Balanced Layout) ─ */}
-            {loading && experiencesData.length === 0 ? (
+            {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 sm:gap-7 w-full">
                 {[1, 2, 3, 4, 5, 6].map((idx) => (
                   <ExperienceCardSkeleton key={idx} />

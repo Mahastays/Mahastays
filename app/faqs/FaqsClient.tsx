@@ -147,21 +147,21 @@ export default function FaqsPage() {
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             Our guest support team is online 24/7. Drop us a message and we&apos;ll help you immediately.
           </p>
-          <div className="pt-2 flex items-center justify-center gap-3">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="https://wa.me/919999900000"
+              href="https://wa.me/919405419021"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-poppins shadow-xs transition"
             >
-              WhatsApp Us (+91 99999 00000)
+              WhatsApp Us (+91 94054 19021)
             </a>
-            <Link
-              href="/contact"
+            <a
+              href="tel:+917741002157"
               className="px-6 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs font-poppins transition"
             >
-              Contact Page
-            </Link>
+              Call: +91 7741002157
+            </a>
           </div>
         </div>
       </main>

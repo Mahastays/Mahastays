@@ -22,154 +22,87 @@ export interface ExperienceOfferSlide {
   filterDestination?: string;
 }
 
-export const EXPERIENCES_OFFER_SLIDES: ExperienceOfferSlide[] = [
-  {
-    id: "act1006-paragliding",
-    badge: "Curated Experience",
-    title: "Tandem Paragliding Over Krishna Valley",
-    titlePrefix: "Soar Over",
-    titleHighlight: "Krishna Valley",
-    subtitle: "Tandem paragliding at 450m elevation with certified master pilots and 4K GoPro footage.",
-    ctaText: "Explore Experiences",
-    image: "https://images.unsplash.com/photo-1504276048855-f58379e20788",
-    activityName: "Tandem Paragliding — Panchgani",
-    location: "Table Land, Panchgani",
-    features: [
-      { icon: "bed", label: "450m Elevation" },
-      { icon: "dining", label: "Refreshments Included" },
-      { icon: "compass", label: "4K GoPro Footage" },
-    ],
-    price: "₹2,500",
-    priceUnit: "/ flight",
-    thumbnail: "https://images.unsplash.com/photo-1504276048855-f58379e20788",
-    filterCategory: "adventure",
-    filterDestination: "Panchgani",
-  },
-  {
-    id: "act1001-trek",
-    badge: "Curated Experience",
-    title: "Sunrise Mountain Trek to Arthur's Seat",
-    titlePrefix: "Watch Sunrise from",
-    titleHighlight: "Arthur's Seat",
-    subtitle: "Guided 4km morning trail overlooking Savitri valley with hot summit chai and local snacks.",
-    ctaText: "Explore Experiences",
-    image: "https://images.unsplash.com/photo-1551632811-561732d1e306",
-    activityName: "Sunrise Trek to Arthur Seat",
-    location: "Old Mahabaleshwar",
-    features: [
-      { icon: "bed", label: "4km Guided Trail" },
-      { icon: "dining", label: "Summit Chai & Snacks" },
-      { icon: "compass", label: "Valley Views" },
-    ],
-    price: "₹350",
-    priceUnit: "/ person",
-    thumbnail: "https://images.unsplash.com/photo-1551632811-561732d1e306",
-    filterCategory: "adventure",
-    filterDestination: "Mahabaleshwar",
-  },
-  {
-    id: "act1005-boating",
-    badge: "Curated Experience",
-    title: "Serene Boat Cruise at Venna Lake",
-    titlePrefix: "Paddle Across",
-    titleHighlight: "Venna Lake",
-    subtitle: "Private row & paddle boat rides surrounded by misty strawberry hills and calm waters.",
-    ctaText: "Explore Experiences",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5",
-    activityName: "Boating at Venna Lake",
-    location: "Venna Lake, Mahabaleshwar",
-    features: [
-      { icon: "bed", label: "Private Row Boat" },
-      { icon: "dining", label: "Strawberry Treat" },
-      { icon: "compass", label: "Sunset Waters" },
-    ],
-    price: "₹250",
-    priceUnit: "/ person",
-    thumbnail: "https://images.unsplash.com/photo-1544551763-46a013bb70d5",
-    filterCategory: "leisure",
-    filterDestination: "Mahabaleshwar",
-  },
-  {
-    id: "act1007-karting",
-    badge: "Curated Experience",
-    title: "High-Speed Go-Karting Championship",
-    titlePrefix: "Race Around the",
-    titleHighlight: "800m Asphalt Track",
-    subtitle: "Banked high-speed curves with 200cc Honda engines, computerized lap times & full gear.",
-    ctaText: "Explore Experiences",
-    image: "https://images.unsplash.com/photo-1567789884554-0b844b597180",
-    activityName: "Go-Karting Track — Panchgani",
-    location: "Panchgani Highway",
-    features: [
-      { icon: "bed", label: "800m Asphalt Track" },
-      { icon: "dining", label: "Trackside Cafe" },
-      { icon: "compass", label: "200cc Honda Karts" },
-    ],
-    price: "₹600",
-    priceUnit: "/ driver",
-    thumbnail: "https://images.unsplash.com/photo-1567789884554-0b844b597180",
-    filterCategory: "entertainment",
-    filterDestination: "Panchgani",
-  },
-];
+export const EXPERIENCES_OFFER_SLIDES: ExperienceOfferSlide[] = [];
 
 interface ExperiencesOfferAdCarouselProps {
   slides?: ExperienceOfferSlide[];
   onSelectSlide?: (slide: ExperienceOfferSlide) => void;
+  onAdsLoaded?: (hasAds: boolean) => void;
 }
 
 export default function ExperiencesOfferAdCarousel({
-  slides = EXPERIENCES_OFFER_SLIDES,
+  slides,
   onSelectSlide,
+  onAdsLoaded,
 }: ExperiencesOfferAdCarouselProps) {
-  const [activeSlides, setActiveSlides] = useState<ExperienceOfferSlide[]>(slides);
+  const [activeSlides, setActiveSlides] = useState<ExperienceOfferSlide[]>(slides || []);
+  const [isLoading, setIsLoading] = useState(!slides);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (slides && slides.length > 0) {
+      setActiveSlides(slides);
+      setIsLoading(false);
+      onAdsLoaded?.(true);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchExperiencesAds = async () => {
       try {
-        const stored = localStorage.getItem("mahastays_db_ads");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const expAds = parsed.filter(
-            (a: any) =>
-              (a.placement === "experiences" ||
-                a.target?.targetType === "activity" ||
-                a.target?.ctaLink?.includes("/experiences")) &&
-              a.isActive &&
-              a.approvedByAdmin
-          );
-          if (expAds.length > 0) {
-            const dynamicSlides: ExperienceOfferSlide[] = expAds.map((a: any) => ({
-              id: a.id,
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+        const res = await fetch(`${apiBase}/ads/active?placement=experiences`);
+        if (res.ok) {
+          const json = await res.json();
+          const items = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+          if (items.length > 0 && isMounted) {
+            const dynamicSlides: ExperienceOfferSlide[] = items.map((a: any) => ({
+              id: a.id || a._id,
               badge: a.creative?.badgeText || "Curated Experience",
-              title: a.creative?.headline || a.adName,
+              title: a.creative?.headline || a.adName || "Featured Adventure",
               subtitle: a.creative?.subHeadline || "",
               ctaText: a.creative?.buttonText || "Explore Experiences",
               image: a.creative?.imageUrl || "https://images.unsplash.com/photo-1504276048855-f58379e20788",
-              price: a.creative?.price ? `₹${a.creative.price}` : "₹2,500",
-              priceUnit: a.creative?.priceUnit || "/ flight",
+              price: a.creative?.price ? `₹${a.creative.price}` : "₹1,500",
+              priceUnit: a.creative?.priceUnit || "/ person",
               features: Array.isArray(a.creative?.features) && a.creative.features.length > 0
                 ? a.creative.features.map((f: any, i: number) => ({
                     icon: (["bed", "dining", "compass"][i % 3] as any),
-                    label: typeof f === "string" ? f : f.label,
+                    label: typeof f === "string" ? f : f.label || "Adventure Highlight",
                   }))
                 : [
-                    { icon: "bed", label: "450m Elevation" },
+                    { icon: "bed", label: "Certified Guide" },
                     { icon: "dining", label: "Refreshments Included" },
-                    { icon: "compass", label: "4K GoPro Footage" },
+                    { icon: "compass", label: "Scenic Trail" },
                   ],
-              filterCategory: "adventure",
-              filterDestination: "Panchgani",
+              filterCategory: a.target?.category || "adventure",
+              filterDestination: a.target?.destination || "Panchgani",
             }));
-            setActiveSlides([...dynamicSlides, ...slides]);
+            setActiveSlides(dynamicSlides);
+            setIsLoading(false);
+            onAdsLoaded?.(true);
             return;
           }
         }
-      } catch {}
-    }
-    setActiveSlides(slides);
-  }, [slides]);
+      } catch (err) {
+        console.error("Failed to fetch experiences ads:", err);
+      }
+      if (isMounted) {
+        setIsLoading(false);
+        onAdsLoaded?.(false);
+      }
+    };
 
+    fetchExperiencesAds();
+    return () => {
+      isMounted = false;
+    };
+  }, [slides, onAdsLoaded]);
+
+  if (isLoading || activeSlides.length === 0) {
+    return null;
+  }
+
+  // Convert ExperienceOfferSlide to AdBlendSlide format
   const mappedSlides: AdBlendSlide[] = activeSlides.map((slide) => {
     let featureItems: AdFeatureItem[] = [];
     if (Array.isArray(slide.features)) {
@@ -183,11 +116,6 @@ export default function ExperiencesOfferAdCarousel({
       }));
     }
 
-    const titleText =
-      slide.title ||
-      `${slide.titlePrefix ? slide.titlePrefix + " " : ""}${slide.titleHighlight || ""}`.trim();
-
-    // Clean price string
     let cleanPrice = slide.price;
     let cleanUnit = slide.priceUnit || "/ person";
     if (slide.price.includes("/")) {
@@ -201,14 +129,13 @@ export default function ExperiencesOfferAdCarousel({
     return {
       id: slide.id,
       badge: slide.badge && slide.badge !== "Sponsored" ? slide.badge : "Curated Experience",
-      title: titleText,
+      title: (slide.title || "Curated Experience").replace(/\n/g, " "),
       subtitle: slide.subtitle,
       features: featureItems,
       ctaText: slide.ctaText,
       price: cleanPrice,
       priceUnit: cleanUnit,
       image: slide.image,
-      filterCategory: slide.filterCategory,
       filterDestination: slide.filterDestination,
       rawSlide: slide,
     };
@@ -218,7 +145,7 @@ export default function ExperiencesOfferAdCarousel({
     if (onSelectSlide && blendSlide.rawSlide) {
       onSelectSlide(blendSlide.rawSlide);
     } else {
-      const catalogEl = document.getElementById("experiences-catalog");
+      const catalogEl = document.getElementById("catalog-section");
       if (catalogEl) {
         catalogEl.scrollIntoView({ behavior: "smooth" });
       }
@@ -229,7 +156,7 @@ export default function ExperiencesOfferAdCarousel({
     <AdBlendBanner
       slides={mappedSlides}
       onSelectSlide={handleSelect}
-      ctaDefaultTargetId="experiences-catalog"
+      ctaDefaultTargetId="catalog-section"
       id="experiences-offer-ad-carousel"
     />
   );

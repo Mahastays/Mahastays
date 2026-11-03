@@ -166,6 +166,7 @@ export default function ExplorePage() {
   // ─── Pagination State ────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+  const [hasAds, setHasAds] = useState<boolean>(false);
 
   useEffect(() => {
     if (isMobileFilterOpen) {
@@ -584,10 +585,10 @@ export default function ExplorePage() {
       <Navbar />
 
       {/* ─── Above The Hero: Hotel Showcase Ad Carousel (Matching Image Reference) ── */}
-      <ExploreHotelAdCarousel onSelectSlide={handleHotelAdSelect} />
+      <ExploreHotelAdCarousel onSelectSlide={handleHotelAdSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-8 sm:py-12 w-full" id="catalog-section">
+      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-8 sm:py-12" : "pt-24 sm:pt-28 pb-12"}`} id="catalog-section">
         {/* Main 2-Column Layout */}
         <div className="flex flex-col lg:flex-row items-start gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT LAYOUT FROM IMAGE 1) ── */}
@@ -640,7 +641,11 @@ export default function ExplorePage() {
               </button>
 
               <div className="text-xs text-slate-500 font-medium">
-                Showing <span className="text-primary font-bold">{filteredStays.length}</span> stays
+                {loading ? (
+                  <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded" />
+                ) : (
+                  <>Showing <span className="text-primary font-bold">{filteredStays.length}</span> stays</>
+                )}
               </div>
             </div>
             {/* Top Row: Title, Result Count, Search & Sort */}
@@ -650,7 +655,14 @@ export default function ExplorePage() {
                   All Luxury Stays &amp; Escapes
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                  Showing <span className="text-primary font-bold">{filteredStays.length}</span> handpicked stays for your next experience
+                  {loading ? (
+                    <span className="inline-flex items-center gap-1.5 text-slate-400">
+                      <span className="w-5 h-3.5 bg-slate-200 animate-pulse rounded inline-block" />
+                      <span>Loading handpicked stays...</span>
+                    </span>
+                  ) : (
+                    <>Showing <span className="text-primary font-bold">{filteredStays.length}</span> handpicked stays for your next experience</>
+                  )}
                 </p>
               </div>
 
@@ -772,7 +784,7 @@ export default function ExplorePage() {
             )}
 
             {/* ─── Stays Grid (Using Universal StayCard, 3 Columns on Large) ─ */}
-            {loading && staysData.length === 0 ? (
+            {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 pt-2">
                 {[1, 2, 3, 4, 5, 6].map((idx) => (
                   <StayCardSkeleton key={idx} />

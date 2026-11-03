@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { DetailPageSkeleton } from "../../components/Skeletons";
-import { getExperienceDetail, ExperienceTier, ExperienceSlot, ExperienceDetail } from "../experiencesData";
+import { ExperienceTier, ExperienceSlot, ExperienceDetail } from "../experiencesData";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchExperienceByCode } from "@/store/slices/experienceslice";
 import { useWishlistItem } from "@/lib/wishlist";
@@ -25,64 +25,117 @@ export default function ExperienceDetailsPage() {
     }
   }, [dispatch, experienceId]);
 
-  const localExp = useMemo(() => getExperienceDetail(experienceId), [experienceId]);
-
-  // Merge store data seamlessly with local rich fallback
-  const exp: ExperienceDetail = useMemo(() => {
+  // Construct experience purely from live backend database
+  const exp: ExperienceDetail | null = useMemo(() => {
+    if (!selectedExperience) return null;
+    const e = selectedExperience as any;
     const isMatch = Boolean(
-      selectedExperience &&
-        (selectedExperience.id === experienceId ||
-          (selectedExperience as any).code === experienceId ||
-          (selectedExperience as any).slug === experienceId)
+      e.id === experienceId ||
+      e._id === experienceId ||
+      e.slug === experienceId ||
+      e.code === experienceId
     );
-    if (isMatch && selectedExperience) {
-      return {
-        ...localExp,
-        title: selectedExperience.title || localExp.title,
-        price: selectedExperience.price || localExp.price,
-        numericPrice: selectedExperience.numericPrice || localExp.numericPrice,
-        originalPrice: selectedExperience.originalPrice || localExp.originalPrice,
-        overview: selectedExperience.overview || localExp.overview,
-        description: selectedExperience.description || localExp.description,
-        city: selectedExperience.city || localExp.city,
-        image: selectedExperience.image || localExp.image,
-        gallery:
-          selectedExperience.gallery && selectedExperience.gallery.length > 0
-            ? selectedExperience.gallery
-            : localExp.gallery,
-        tiers:
-          selectedExperience.tiers && selectedExperience.tiers.length > 0
-            ? (selectedExperience.tiers as unknown as ExperienceTier[])
-            : localExp.tiers,
-        slots:
-          selectedExperience.slots && selectedExperience.slots.length > 0
-            ? (selectedExperience.slots as unknown as ExperienceSlot[])
-            : localExp.slots,
-        timeline:
-          selectedExperience.timeline && selectedExperience.timeline.length > 0
-            ? (selectedExperience.timeline as ExperienceDetail["timeline"])
-            : localExp.timeline,
-        inclusions:
-          selectedExperience.inclusions && selectedExperience.inclusions.length > 0
-            ? (selectedExperience.inclusions as ExperienceDetail["inclusions"])
-            : localExp.inclusions,
-        highlights:
-          selectedExperience.highlights && selectedExperience.highlights.length > 0
-            ? (selectedExperience.highlights as ExperienceDetail["highlights"])
-            : localExp.highlights,
-        policies: (selectedExperience as any).policies || (localExp as any).policies,
-        guide: (selectedExperience.guide as ExperienceDetail["guide"]) || localExp.guide,
-        acceptingBookings: (selectedExperience as any)?.acceptingBookings !== undefined ? (selectedExperience as any).acceptingBookings : (localExp as any).acceptingBookings !== false,
-      };
-    }
-    return localExp;
-  }, [localExp, selectedExperience, experienceId]);
+    if (!isMatch) return null;
+
+    const rawTiers: ExperienceTier[] = (e.tiers && e.tiers.length > 0)
+      ? e.tiers.map((t: any, idx: number) => ({
+          id: t.id || t.tierId || `tier-${idx + 1}`,
+          name: t.name || `Tier ${idx + 1}`,
+          badge: t.badge,
+          tagline: t.tagline || "",
+          pricePerPerson: t.pricePerPerson || e.numericPrice || 499,
+          originalPrice: t.originalPrice || Math.round((t.pricePerPerson || e.numericPrice || 499) * 1.3),
+          features: t.features || ["Certified Guide", "Refreshments Included"],
+        }))
+      : [
+          {
+            id: "tier-1",
+            name: "Standard Experience",
+            tagline: "Guided excursion with certified expert",
+            pricePerPerson: e.numericPrice || 499,
+            originalPrice: Math.round((e.numericPrice || 499) * 1.3),
+            features: ["Certified Guide", "Safety Equipment", "Refreshments"],
+          },
+        ];
+
+    const rawSlots: ExperienceSlot[] = (e.slots && e.slots.length > 0)
+      ? e.slots.map((s: any, idx: number) => ({
+          id: s.id || s.slotId || `slot-${idx + 1}`,
+          time: s.time || "09:00 AM - 11:00 AM",
+          label: s.label || s.time || "Morning Batch",
+          availableSpots: s.availableSpots || s.capacity || 15,
+          price: s.price ?? e.numericPrice ?? 499,
+        }))
+      : [
+          {
+            id: "slot-1",
+            time: "07:00 AM - 09:00 AM",
+            label: "Morning Batch",
+            availableSpots: 15,
+            price: e.numericPrice || 499,
+          },
+          {
+            id: "slot-2",
+            time: "04:30 PM - 06:30 PM",
+            label: "Sunset Batch",
+            availableSpots: 15,
+            price: e.numericPrice || 499,
+          },
+        ];
+
+    return {
+      _id: e._id || e.id,
+      id: e.id || e._id,
+      vendorId: e.vendorId || "",
+      title: e.title || e.name || "Curated Experience",
+      name: e.name || e.title || "Curated Experience",
+      country: e.country || "India",
+      flag: e.flag || "🇮🇳",
+      city: e.city || "Mahabaleshwar",
+      locationId: e.locationId || "",
+      duration: e.duration || "2 Hours",
+      category: e.category || "Adventure",
+      rating: e.rating || (e.ratingScore ? `${e.ratingScore}/5 ★` : "4.8/5 ★"),
+      ratingScore: e.ratingScore || 4.8,
+      reviewsCount: e.reviewsCount || 0,
+      price: e.price || `₹${(e.numericPrice || 499).toLocaleString("en-IN")} / person`,
+      numericPrice: e.numericPrice || 499,
+      originalPrice: e.originalPrice || Math.round((e.numericPrice || 499) * 1.3),
+      difficulty: (e.difficulty as any) || "Moderate",
+      ageLimit: e.ageLimit || "10 - 65 yrs",
+      groupSize: e.groupSize || "Small group",
+      language: e.language || "English, Hindi, Marathi",
+      image: e.image || e.gallery?.[0] || "/hero-resort.jpg",
+      gallery: e.gallery || (e.image ? [e.image] : ["/hero-resort.jpg"]),
+      description: e.description || "",
+      overview: e.overview || e.description || "",
+      highlights: e.highlights || [],
+      timeline: e.timeline || [],
+      inclusions: e.inclusions || [],
+      exclusions: e.exclusions || [],
+      whatToBring: e.whatToBring || [],
+      meetingPoint: e.meetingPoint || "Directly at activity location, Mahabaleshwar",
+      coordinates: e.coordinates || { lat: 17.9237, lng: 73.6586 },
+      schedule: e.schedule,
+      slots: rawSlots,
+      tiers: rawTiers,
+      guide: e.guide || { name: e.guideName || "Certified Local Guide", role: e.guideRole || "Expedition Specialist", avatar: e.guideAvatar },
+      guideName: e.guideName || e.guide?.name || "Certified Local Guide",
+      guideRole: e.guideRole || e.guide?.role || "Expedition Specialist",
+      guideAvatar: e.guideAvatar || e.guide?.avatar,
+      reviews: e.reviews || [],
+      cancellationPolicy: e.cancellationPolicy || "Free cancellation up to 24 hours before activity start.",
+      status: e.status || "active",
+      featured: e.featured,
+      acceptingBookings: e.acceptingBookings !== false,
+    };
+  }, [selectedExperience, experienceId]);
 
   // Combined gallery
   const allPhotos = useMemo(() => {
     const list: string[] = [];
-    if (exp.image) list.push(exp.image);
-    if (exp.gallery) {
+    if (exp?.image) list.push(exp.image);
+    if (exp?.gallery) {
       exp.gallery.forEach((url) => {
         if (url && !list.includes(url)) list.push(url);
       });
@@ -119,27 +172,23 @@ export default function ExperienceDetailsPage() {
   };
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
-  const [selectedTierId, setSelectedTierId] = useState<string>(() => {
-    return exp.tiers[0]?.id || "tier-trek-1";
-  });
-  const [selectedSlotId, setSelectedSlotId] = useState<string>(() => {
-    return exp.slots[0]?.id || "slot-1";
-  });
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [bookingDate, setBookingDate] = useState("2026-10-15");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [isGuestPickerOpen, setIsGuestPickerOpen] = useState(false);
   const { isSaved: isWishlist, toggle: toggleWishlistAction } = useWishlistItem({
-    id: exp.id,
+    id: exp?.id || experienceId,
     type: "experience",
-    title: exp.title,
-    location: `${exp.city || "Mahabaleshwar"}, ${exp.country || "India"}`,
-    price: exp.price,
-    numericPrice: exp.numericPrice,
-    image: exp.image || "/hero-resort.jpg",
-    rating: exp.rating,
-    category: exp.category || "Experience",
-    url: `/experiences/${exp.id}`,
+    title: exp?.title || "",
+    location: `${exp?.city || "Mahabaleshwar"}, ${exp?.country || "India"}`,
+    price: exp?.price || "",
+    numericPrice: exp?.numericPrice || 0,
+    image: allPhotos[0] || "/hero-resort.jpg",
+    rating: exp?.rating || "4.8/5 ★",
+    category: exp?.category || "Experience",
+    url: `/experiences/${exp?.id || experienceId}`,
   });
   const [showShareToast, setShowShareToast] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -147,35 +196,37 @@ export default function ExperienceDetailsPage() {
   const [writeReviewOpen, setWriteReviewOpen] = useState(false);
 
   // Selected Tier & Slot
-  const selectedTier: ExperienceTier = useMemo(() => {
+  const selectedTier: ExperienceTier | undefined = useMemo(() => {
+    if (!exp?.tiers || exp.tiers.length === 0) return undefined;
     return exp.tiers.find((t) => t.id === selectedTierId) || exp.tiers[0];
-  }, [exp.tiers, selectedTierId]);
+  }, [exp?.tiers, selectedTierId]);
 
-  const selectedSlot: ExperienceSlot = useMemo(() => {
+  const selectedSlot: ExperienceSlot | undefined = useMemo(() => {
+    if (!exp?.slots || exp.slots.length === 0) return undefined;
     return exp.slots.find((s) => s.id === selectedSlotId) || exp.slots[0];
-  }, [exp.slots, selectedSlotId]);
+  }, [exp?.slots, selectedSlotId]);
 
   useEffect(() => {
-    if (exp.tiers && exp.tiers.length > 0) {
+    if (exp?.tiers && exp.tiers.length > 0) {
       const exists = exp.tiers.some((t) => t.id === selectedTierId);
       if (!exists) {
         setSelectedTierId(exp.tiers[0].id);
       }
     }
-  }, [exp.tiers, selectedTierId]);
+  }, [exp?.tiers, selectedTierId]);
 
   useEffect(() => {
-    if (exp.slots && exp.slots.length > 0) {
+    if (exp?.slots && exp.slots.length > 0) {
       const exists = exp.slots.some((s) => s.id === selectedSlotId);
       if (!exists) {
         setSelectedSlotId(exp.slots[0].id);
       }
     }
-  }, [exp.slots, selectedSlotId]);
+  }, [exp?.slots, selectedSlotId]);
 
   // Price calculations
-  const pricePerPerson = selectedTier?.pricePerPerson || exp.numericPrice || 2400;
-  const originalPricePerPerson = selectedTier?.originalPrice || exp.originalPrice || 3500;
+  const pricePerPerson = selectedTier?.pricePerPerson || exp?.numericPrice || 2400;
+  const originalPricePerPerson = selectedTier?.originalPrice || exp?.originalPrice || 3500;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const totalParticipants = adults + children;
@@ -208,7 +259,7 @@ export default function ExperienceDetailsPage() {
     setActivePhotoIndex((prev) => (prev + 1) % allPhotos.length);
   };
 
-  if (detailLoading && (!selectedExperience || (selectedExperience.id !== experienceId && (selectedExperience as any).code !== experienceId))) {
+  if (detailLoading || !exp) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] font-roboto">
         <Navbar />

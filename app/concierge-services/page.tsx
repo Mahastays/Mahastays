@@ -84,12 +84,12 @@ export default function ConciergeServicesPage() {
                 </div>
                 <div className="pt-5 border-t border-slate-100 mt-5">
                   <a
-                    href="https://wa.me/919999900000"
+                    href="https://wa.me/919405419021"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-[#ea110d] hover:underline inline-flex items-center gap-1 font-poppins"
                   >
-                    <span>Request Service via WhatsApp</span>
+                    <span>Request Service via WhatsApp (+91 94054 19021)</span>
                     <span>→</span>
                   </a>
                 </div>
@@ -108,19 +108,19 @@ export default function ConciergeServicesPage() {
           </p>
           <div className="mt-5 flex items-center justify-center gap-3">
             <a
-              href="https://wa.me/919999900000"
+              href="https://wa.me/919405419021"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-poppins transition shadow-md"
             >
-              WhatsApp Concierge: +91 99999 00000
+              WhatsApp Concierge: +91 94054 19021
             </a>
-            <Link
-              href="/contact"
+            <a
+              href="tel:+917741002157"
               className="px-6 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs font-poppins transition"
             >
-              Submit Web Request
-            </Link>
+              Call: +91 7741002157
+            </a>
           </div>
         </div>
       </main>
