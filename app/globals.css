@@ -1,0 +1,318 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ea110d;
+  --color-primary-hover: #c90e0b;
+  --color-primary-light: #fff1f0;
+  --color-black-theme: #000000;
+  --color-black-pure: #000000;
+  --color-footer-bg: #000000;
+  
+  --color-card-bali: #173e45;
+  --color-card-santorini: #212e42;
+  --color-card-dubai: #2b221d;
+  --color-card-maldives: #123440;
+
+  --font-poppins: "Poppins", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+  --font-sans: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ─── Global Font Rules (Poppins for Display & Headers, Roboto for Body & Inputs) ─── */
+html, body {
+  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6, 
+.font-poppins, 
+.font-heading, 
+.font-display {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+}
+
+p, span, label, input, textarea, select, .font-roboto {
+  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Explicit Utility Classes */
+.font-poppins {
+  font-family: "Poppins", sans-serif !important;
+}
+
+.font-roboto {
+  font-family: "Roboto", sans-serif !important;
+}
+
+/* Hide scrollbars across all browsers while allowing horizontal/vertical scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ─── 3D Carousel Perspective & Utility Classes ─────────── */
+.perspective-1300 {
+  perspective: 1200px;
+  -webkit-perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Fan Carousel 3D Card Position Variants (High-Performance GPU Accelerated) */
+.fan-pos-active,
+.fan-pos-left-1,
+.fan-pos-right-1,
+.fan-pos-left-2,
+.fan-pos-right-2,
+.fan-pos-hidden {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+.fan-pos-active {
+  transform: translate3d(0, 0, 50px) scale(1.06);
+  z-index: 10;
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.fan-pos-left-1 {
+  transform: translate3d(-190px, 14px, 0) rotate(-4deg) scale(0.95);
+  z-index: 8;
+  opacity: 0.94;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.fan-pos-right-1 {
+  transform: translate3d(190px, 14px, 0) rotate(4deg) scale(0.95);
+  z-index: 8;
+  opacity: 0.94;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.fan-pos-left-2 {
+  transform: translate3d(-350px, 30px, -45px) rotate(-7deg) scale(0.86);
+  z-index: 6;
+  opacity: 0.8;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.fan-pos-right-2 {
+  transform: translate3d(350px, 30px, -45px) rotate(7deg) scale(0.86);
+  z-index: 6;
+  opacity: 0.8;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.fan-pos-hidden {
+  transform: translate3d(0, 30px, -90px) scale(0.75);
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (max-width: 960px) {
+  .fan-pos-left-1 {
+    transform: translate3d(-140px, 12px, 0) rotate(-3deg) scale(0.92);
+  }
+  .fan-pos-right-1 {
+    transform: translate3d(140px, 12px, 0) rotate(3deg) scale(0.92);
+  }
+  .fan-pos-left-2 {
+    transform: translate3d(-250px, 24px, -35px) rotate(-5deg) scale(0.82);
+  }
+  .fan-pos-right-2 {
+    transform: translate3d(250px, 24px, -35px) rotate(5deg) scale(0.82);
+  }
+}
+
+@media (max-width: 640px) {
+  .fan-pos-left-1 {
+    transform: translate3d(-90px, 8px, -20px) scale(0.88);
+    opacity: 0.35;
+  }
+  .fan-pos-right-1 {
+    transform: translate3d(90px, 8px, -20px) scale(0.88);
+    opacity: 0.35;
+  }
+  .fan-pos-left-2,
+  .fan-pos-right-2,
+  .fan-pos-hidden {
+    display: none;
+  }
+}
+
+/* Watermark Text Gradient */
+.watermark-gradient {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.005) 0%,
+    rgba(255, 255, 255, 0.025) 30%,
+    rgba(255, 255, 255, 0.075) 65%,
+    rgba(255, 255, 255, 0.13) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Premium Custom Scrollbar & Native Smooth Scroll ───────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #ea110d;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Custom scrollbar utility for inner scrollable panels (e.g. sidebar) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Non-blocking horizontal clipping to maintain high-FPS hardware scrolling */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* GPU acceleration helper for animated cards & carousels */
+.gpu-layer {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Defer decode & layout costs of offscreen images during scroll */
+img {
+  content-visibility: auto;
+}
+
+/* ─── Premium Shimmer Skeleton Animation ─── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 0%,
+    #f8fafc 50%,
+    #e2e8f0 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+.dark-shimmer {
+  background: linear-gradient(
+    90deg,
+    #1e293b 0%,
+    #334155 50%,
+    #1e293b 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* ─── Lenis Smooth Scrolling Styles ─────────────────────── */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
