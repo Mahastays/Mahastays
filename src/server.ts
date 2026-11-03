@@ -9,11 +9,13 @@ import { startJobs, stopJobs } from './jobs';
 import { prisma } from './lib/prisma';
 import { closeRedis } from './lib/redis';
 
+const app = createApp();
+export default app;
+
 async function main(): Promise<void> {
   await prisma.$connect(); // fail fast if MongoDB is unreachable / not a replica set
   logger.info('database connected');
 
-  const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`Mahastays API listening on :${env.PORT} (env=${env.NODE_ENV}, payments=${env.PAYMENT_GATEWAY}, storage=${env.STORAGE_PROVIDER})`);
     logger.info(`Razorpay Payment Webhook active: ${env.API_PUBLIC_URL}/api/v1/payments/verify-webhook (also ${env.API_PUBLIC_URL}/webhook/razorpay)`);
@@ -44,7 +46,9 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((err) => {
-  logger.fatal({ err }, 'failed to start');
-  process.exit(1);
-});
+if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  main().catch((err) => {
+    logger.fatal({ err }, 'failed to start');
+    process.exit(1);
+  });
+}

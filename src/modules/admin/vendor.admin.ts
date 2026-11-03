@@ -12,13 +12,29 @@ import { ok, created } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { todayIST } from '../../utils/dates';
 import { pageMeta, paginationSchema, skipTake } from '../../utils/pagination';
-import { bodyOf, objectId, optionalTrimmed } from '../../utils/zod';
+import { bodyOf, optionalTrimmed } from '../../utils/zod';
 import { hashPassword } from '../../utils/crypto';
 import { generateActorCode } from '../../utils/codes';
 import { getPlatformConfig } from '../../services/platformConfig.service';
 import { presentVendor } from '../vendors/vendor.presenter';
 
 export const adminVendorRouter = Router();
+
+async function resolveVendor(idOrCode: string) {
+  const isHex24 = /^[a-f\d]{24}$/i.test(idOrCode);
+  if (isHex24) {
+    const v = await prisma.vendor.findUnique({ where: { id: idOrCode } });
+    if (v) return v;
+  }
+  return await prisma.vendor.findFirst({
+    where: {
+      OR: [
+        { vendorCode: idOrCode },
+        { vendorCode: { equals: idOrCode, mode: 'insensitive' } },
+      ],
+    },
+  });
+}
 
 const read = requireStaff({ admin: true, sub_admin: true });
 const approve = requireStaff({ admin: 'canApproveVendors' });
@@ -136,7 +152,7 @@ adminVendorRouter.get('/pending', read, async (req, res) => {
 
 adminVendorRouter.get('/:id', read, async (req, res) => {
   const staff = getStaff(req);
-  const v = await prisma.vendor.findUnique({ where: { id: objectId.parse(req.params.id) } });
+  const v = await resolveVendor(String(req.params.id));
   if (!v) throw ApiError.notFound('Vendor');
   // Bank numbers: admins need them to verify the account; support staff only with an explicit permission. Every reveal is audited.
   const canSeeBank = staff.role !== 'sub_admin' || !!staff.subAdminPermissions?.canViewVendorBankDetails;
@@ -160,10 +176,10 @@ const verifySchema = z
 
 adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
   const staff = getStaff(req);
-  const id = objectId.parse(req.params.id);
   const input = verifySchema.parse(bodyOf(req));
-  const v = await prisma.vendor.findUnique({ where: { id } });
+  const v = await resolveVendor(String(req.params.id));
   if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
   const c = v.compliance;
 
   let updated;
@@ -201,10 +217,10 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
 
 adminVendorRouter.post('/:id/bank/verify', approve, async (req, res) => {
   const staff = getStaff(req);
-  const id = objectId.parse(req.params.id);
   const { verified } = z.object({ verified: z.boolean() }).parse(bodyOf(req));
-  const v = await prisma.vendor.findUnique({ where: { id } });
+  const v = await resolveVendor(String(req.params.id));
   if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
   if (!v.banking) throw ApiError.conflict('The vendor has not added a bank account', 'NO_BANK_ACCOUNT');
   const updated = await prisma.vendor.update({ where: { id }, data: { banking: { set: { ...v.banking, isAccountVerified: verified } } } });
   await audit({ actor: { id: staff.id, role: staff.role }, action: verified ? 'VERIFY_VENDOR_BANK' : 'UNVERIFY_VENDOR_BANK', targetEntity: 'Vendor', targetId: id, req });
@@ -218,10 +234,10 @@ const statusSchema = z
 /** Hold / blacklist cascades: live listings go offline immediately, blacklisted vendors are signed out everywhere. */
 adminVendorRouter.patch('/:id/status', restrict, async (req, res) => {
   const staff = getStaff(req);
-  const id = objectId.parse(req.params.id);
   const { status, reason } = statusSchema.parse(bodyOf(req));
-  const v = await prisma.vendor.findUnique({ where: { id } });
+  const v = await resolveVendor(String(req.params.id));
   if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
   if (status === 'active' && v.compliance.verificationStatus !== 'approved') {
     throw ApiError.conflict('Approve the vendor KYC before activating the account', 'KYC_NOT_APPROVED');
   }
@@ -268,10 +284,10 @@ const updateVendorCommissionSchema = z
 /** Update custom commissions for a specific vendor across Stays, Packages & Experiences */
 adminVendorRouter.put('/:id/commission', requireStaff({ admin: true }), async (req, res) => {
   const staff = getStaff(req);
-  const id = objectId.parse(req.params.id);
   const input = updateVendorCommissionSchema.parse(bodyOf(req));
-  const vendor = await prisma.vendor.findUnique({ where: { id } });
+  const vendor = await resolveVendor(String(req.params.id));
   if (!vendor) throw ApiError.notFound('Vendor');
+  const id = vendor.id;
 
   const merged = { ...vendor.commissionTerms, ...input };
   const updated = await prisma.vendor.update({
@@ -318,10 +334,10 @@ const updateVendorByAdminSchema = z.object({
 /** Update vendor details including email, password, profile, address & compliance by Admin */
 const handleUpdateVendor = async (req: any, res: any) => {
   const staff = getStaff(req);
-  const id = objectId.parse(req.params.id);
   const input = updateVendorByAdminSchema.parse(bodyOf(req));
-  const existing = await prisma.vendor.findUnique({ where: { id } });
+  const existing = await resolveVendor(String(req.params.id));
   if (!existing) throw ApiError.notFound('Vendor');
+  const id = existing.id;
 
   const updateData: Prisma.VendorUpdateInput = {};
 
