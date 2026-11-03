@@ -291,3 +291,126 @@ adminVendorRouter.put('/:id/commission', requireStaff({ admin: true }), async (r
 
   ok(res, presentVendor(updated, { bank: 'masked' }));
 });
+
+const updateVendorByAdminSchema = z.object({
+  email: z.string().trim().email().optional(),
+  password: z.string().min(6).max(128).optional(),
+  businessName: z.string().trim().min(2).max(150).optional(),
+  displayName: z.string().trim().min(2).max(100).optional(),
+  displayRole: z.string().trim().max(100).optional(),
+  phone: z.string().trim().optional(),
+  category: z.enum(['property_host', 'activity_operator', 'integrated_resort']).optional(),
+  businessType: z.enum(['individual', 'proprietorship', 'private_limited', 'partnership']).optional(),
+  experienceSummary: z.string().trim().max(500).optional(),
+  avatarUrl: z.string().trim().optional(),
+  status: z.enum(['active', 'pending_approval', 'on_hold', 'blacklisted']).optional(),
+  panNumber: z.string().trim().optional(),
+  gstin: z.string().trim().optional(),
+  tourismLicenseNumber: z.string().trim().optional(),
+  primaryContactPerson: z.string().trim().optional(),
+  addressLine1: z.string().trim().optional(),
+  addressLine2: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  pincode: z.string().trim().optional(),
+});
+
+/** Update vendor details including email, password, profile, address & compliance by Admin */
+const handleUpdateVendor = async (req: any, res: any) => {
+  const staff = getStaff(req);
+  const id = objectId.parse(req.params.id);
+  const input = updateVendorByAdminSchema.parse(bodyOf(req));
+  const existing = await prisma.vendor.findUnique({ where: { id } });
+  if (!existing) throw ApiError.notFound('Vendor');
+
+  const updateData: Prisma.VendorUpdateInput = {};
+
+  if (input.email && input.email.toLowerCase() !== existing.email.toLowerCase()) {
+    const newEmail = input.email.toLowerCase();
+    const clash = await prisma.vendor.findUnique({ where: { email: newEmail } });
+    if (clash && clash.id !== id) {
+      throw ApiError.conflict('A vendor account with this email already exists', 'EMAIL_TAKEN');
+    }
+    updateData.email = newEmail;
+  }
+
+  if (input.password && input.password.trim().length > 0) {
+    updateData.passwordHash = await hashPassword(input.password);
+    await revokeAllRefreshTokens(id, 'vendor');
+  }
+
+  if (input.businessName) updateData.businessName = input.businessName;
+  if (input.displayName) updateData.displayName = input.displayName;
+  if (input.displayRole) updateData.displayRole = input.displayRole;
+  if (input.phone) updateData.phone = input.phone;
+  if (input.category) updateData.category = input.category;
+  if (input.businessType) updateData.businessType = input.businessType;
+  if (input.experienceSummary !== undefined) updateData.experienceSummary = input.experienceSummary;
+  if (input.avatarUrl) updateData.avatarUrl = input.avatarUrl;
+  if (input.status) updateData.status = input.status;
+
+  if (input.panNumber || input.gstin !== undefined || input.tourismLicenseNumber !== undefined) {
+    updateData.compliance = {
+      set: {
+        ...existing.compliance,
+        ...(input.panNumber ? { panNumber: input.panNumber } : {}),
+        ...(input.gstin !== undefined ? { gstin: input.gstin } : {}),
+        ...(input.tourismLicenseNumber !== undefined ? { tourismLicenseNumber: input.tourismLicenseNumber } : {}),
+      },
+    };
+  }
+
+  if (
+    input.primaryContactPerson ||
+    input.addressLine1 ||
+    input.addressLine2 !== undefined ||
+    input.city ||
+    input.state ||
+    input.pincode
+  ) {
+    updateData.contact = {
+      set: {
+        ...existing.contact,
+        primaryContactPerson: input.primaryContactPerson || existing.contact?.primaryContactPerson || input.displayName || existing.displayName,
+        registeredOfficeAddress: {
+          ...existing.contact?.registeredOfficeAddress,
+          ...(input.addressLine1 ? { addressLine1: input.addressLine1 } : {}),
+          ...(input.addressLine2 !== undefined ? { addressLine2: input.addressLine2 } : {}),
+          ...(input.city ? { city: input.city } : {}),
+          ...(input.state ? { state: input.state } : {}),
+          ...(input.pincode ? { pincode: input.pincode } : {}),
+          country: 'India',
+        },
+      },
+    };
+  }
+
+  const updated = await prisma.vendor.update({
+    where: { id },
+    data: updateData,
+  });
+
+  await audit({
+    actor: { id: staff.id, role: staff.role },
+    action: 'UPDATE_VENDOR_PROFILE',
+    targetEntity: 'Vendor',
+    targetId: id,
+    previousState: {
+      email: existing.email,
+      businessName: existing.businessName,
+      phone: existing.phone,
+    },
+    newState: {
+      email: updated.email,
+      businessName: updated.businessName,
+      phone: updated.phone,
+      passwordChanged: Boolean(input.password),
+    },
+    req,
+  });
+
+  ok(res, presentVendor(updated, { bank: 'masked' }));
+};
+
+adminVendorRouter.patch('/:id', read, handleUpdateVendor);
+adminVendorRouter.put('/:id', read, handleUpdateVendor);

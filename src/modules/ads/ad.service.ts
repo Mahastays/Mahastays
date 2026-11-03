@@ -142,13 +142,36 @@ export async function listAds(scope: { vendorId?: string }, q: PaginationInput &
 /* ───────────────────────────── serving ───────────────────────────── */
 
 const lower = (xs: string[]) => xs.map((x) => x.toLowerCase());
-/** An empty rule list means "no restriction"; otherwise the request context must match at least one value. */
+/** An empty rule list or 'all' means "no restriction"; otherwise the request context must match if specified. */
 const matches = (rule: string[], context?: string | string[]) => {
-  if (rule.length === 0) return true;
-  if (context === undefined) return false;
+  if (!rule || rule.length === 0) return true;
+  if (rule.some((r) => r.toLowerCase() === 'all')) return true;
+  if (context === undefined || context === null || context === '' || (Array.isArray(context) && context.length === 0)) return true;
   const have = lower(Array.isArray(context) ? context : [context]);
-  return lower(rule).some((r) => have.includes(r));
+  return lower(rule).some((r) => have.includes(r) || r === 'all');
 };
+
+/** Helper matching the exact page-wise categorization used in the Admin AdsView */
+export function getAdSection(ad: AdCampaign): 'home' | 'stays' | 'packages' | 'experiences' {
+  const pl = String(ad.placement || '').toLowerCase();
+  const adType = String(ad.adType || '').toLowerCase();
+  const targetType = String(ad.target?.targetType || '').toLowerCase();
+  const cta = String(ad.target?.ctaLink || '').toLowerCase();
+
+  if (pl === 'homepage' || adType === 'card' || pl === 'home') {
+    return 'home';
+  }
+  if (pl === 'packages' || pl === 'packages_hub' || targetType === 'package' || cta.includes('/packages')) {
+    return 'packages';
+  }
+  if (pl === 'experiences' || pl === 'experience' || pl === 'experiences_hub' || targetType === 'activity' || cta.includes('/experiences')) {
+    return 'experiences';
+  }
+  if (pl === 'stays' || pl === 'search_results' || pl === 'listing_detail' || pl === 'property_page' || targetType === 'property' || cta.includes('/explore') || cta.includes('/properties')) {
+    return 'stays';
+  }
+  return 'home';
+}
 
 export async function activeAds(q: ActiveAdsQuery, viewer?: { id: string; role: string }) {
   const now = new Date();
@@ -156,9 +179,7 @@ export async function activeAds(q: ActiveAdsQuery, viewer?: { id: string; role: 
     where: {
       isActive: true,
       approvedByAdmin: true,
-      ...(q.placement ? { placement: { in: [q.placement, 'all'] } } : {}),
       ...(q.adType ? { adType: q.adType } : {}),
-      AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
     },
     orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     take: 100,
@@ -170,17 +191,44 @@ export async function activeAds(q: ActiveAdsQuery, viewer?: { id: string; role: 
     age = ageFromDob(u?.dateOfBirth);
   }
 
+  const effectiveRole = viewer?.role ?? 'guest';
+  const rolesToCheck = effectiveRole === 'guest' ? ['guest', 'user', 'all'] : [effectiveRole, 'all'];
+
   return candidates
+    .filter((ad) => {
+      if (!q.placement || q.placement === 'all') return true;
+      const section = getAdSection(ad);
+
+      if (q.placement === 'stays' || q.placement === 'search_results' || q.placement === 'property_page') {
+        return section === 'stays';
+      }
+      if (q.placement === 'packages') {
+        return section === 'packages';
+      }
+      if (q.placement === 'experiences') {
+        return section === 'experiences';
+      }
+      if (q.placement === 'homepage' || q.placement === 'home') {
+        return section === 'home';
+      }
+      return false;
+    })
+    .filter((ad) => {
+      if (ad.startsAt && new Date(ad.startsAt).getTime() > now.getTime()) return false;
+      if (ad.expiresAt && new Date(ad.expiresAt).getTime() <= now.getTime()) return false;
+      return true;
+    })
     .filter((ad) => ad.spentSoFar < ad.budget.totalBudget) // budget exhausted → stop serving
     .filter((ad) => {
       const t = ad.targeting;
-      if (t.showOnPages.length && (!q.page || !t.showOnPages.includes(q.page))) return false;
-      if (!matches(t.device, q.device)) return false;
-      if (!matches(t.locations, q.city)) return false;
-      if (!matches(t.occasions, q.occasion)) return false;
-      if (!matches(t.interests, q.interests)) return false;
-      if (!matches(t.userRoles, viewer?.role ?? 'guest')) return false;
-      if (t.userAgeRange && (age === null || age < t.userAgeRange.min || age > t.userAgeRange.max)) return false;
+      if (!t) return true;
+      if (t.showOnPages && t.showOnPages.length && q.page && !t.showOnPages.includes(q.page) && !t.showOnPages.includes('all')) return false;
+      if (t.device && !matches(t.device, q.device)) return false;
+      if (t.locations && !matches(t.locations, q.city)) return false;
+      if (t.occasions && !matches(t.occasions, q.occasion)) return false;
+      if (t.interests && !matches(t.interests, q.interests)) return false;
+      if (t.userRoles && t.userRoles.length > 0 && !t.userRoles.some((r) => rolesToCheck.includes(r.toLowerCase()))) return false;
+      if (t.userAgeRange && age !== null && (age < t.userAgeRange.min || age > t.userAgeRange.max)) return false;
       return true;
     })
     .slice(0, q.limit)

@@ -6,7 +6,7 @@ import { created, ok } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { generateActorCode, generateBookingReference, generateInvoiceNumber } from '../../utils/codes';
 import { bodyOf, objectId } from '../../utils/zod';
-import { streamInvoicePdf } from '../payments/invoice.service';
+import { streamInvoicePdf, streamBookingRefInvoicePdf } from '../payments/invoice.service';
 import { cancelBooking, previewCancellation } from './booking.cancel.service';
 import {
   presentExperienceBooking,
@@ -548,6 +548,11 @@ bookingRouter.get('/reference/:ref', optionalAuth, async (req, res) => {
   throw ApiError.notFound('Booking');
 });
 
+/* Download Invoice PDF by booking reference */
+bookingRouter.get('/invoice/ref/:ref', optionalAuth, async (req, res) => {
+  await streamBookingRefInvoicePdf(res, String(req.params.ref));
+});
+
 /* Customer's own bookings (declared before the generic /:type/:id routes) */
 bookingRouter.get('/user/history', requireRole('user'), async (req, res) => {
   const { items, meta } = await listUserBookings(req.auth!.id, historyQuery.parse(req.query));
@@ -575,12 +580,15 @@ bookingRouter.post('/:type/:id/cancel', requireRole('user'), async (req, res) =>
   ok(res, await cancelBooking(bookingKindParam.parse(req.params.type), objectId.parse(req.params.id), { role: 'user', id: req.auth!.id }, { reason }, req));
 });
 
-bookingRouter.get('/:type/:id/invoice', requireRole('user'), async (req, res) => {
+bookingRouter.get('/:type/:id/invoice', optionalAuth, async (req, res) => {
   const type = bookingKindParam.parse(req.params.type);
   const id = objectId.parse(req.params.id);
-  const payment = await prisma.payment.findFirst({ where: { bookingType: type, bookingId: id, userId: req.auth!.id } });
-  if (!payment) throw ApiError.notFound('Invoice');
-  await streamInvoicePdf(res, payment);
+  const payment = await prisma.payment.findFirst({ where: { bookingType: type, bookingId: id } });
+  if (payment) {
+    await streamInvoicePdf(res, payment);
+  } else {
+    await streamBookingRefInvoicePdf(res, id);
+  }
 });
 
 

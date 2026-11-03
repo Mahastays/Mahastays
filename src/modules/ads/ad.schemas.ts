@@ -58,7 +58,7 @@ export type CreateAdInput = z.infer<typeof createAdSchema>;
 export type UpdateAdInput = z.infer<typeof updateAdSchema>;
 
 export const activeAdsQuery = z.object({
-  placement: z.enum(AD_PLACEMENTS).optional(),
+  placement: z.enum(['homepage', 'search_results', 'property_page', 'all', 'packages', 'experiences', 'stays', 'home']).optional(),
   adType: z.enum(AD_TYPES).optional(),
   page: z.string().trim().max(200).optional(),
   device: z.enum(DEVICES).optional(),

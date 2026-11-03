@@ -16,6 +16,7 @@ async function main(): Promise<void> {
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`Mahastays API listening on :${env.PORT} (env=${env.NODE_ENV}, payments=${env.PAYMENT_GATEWAY}, storage=${env.STORAGE_PROVIDER})`);
+    logger.info(`Razorpay Payment Webhook active: ${env.API_PUBLIC_URL}/api/v1/payments/verify-webhook (also ${env.API_PUBLIC_URL}/webhook/razorpay)`);
   });
 
   if (env.ENABLE_JOBS) startJobs();

@@ -188,7 +188,24 @@ async function notifyConfirmed(core: BookingCore): Promise<void> {
   try {
     const user = await prisma.user.findUnique({ where: { id: core.userId }, select: { fullName: true, email: true, phone: true } });
     if (!user) return;
-    const mail = templates.bookingConfirmed({ name: user.fullName, reference: core.reference, title: core.title, when: whenLabel(core), totalInr: core.grandTotalInr });
+    const raw = core.raw as any;
+    const guests = raw?.guestsCount
+      ? `${raw.guestsCount} Guests`
+      : raw?.guests?.adults
+      ? `${raw.guests.adults} Adults${raw.guests.children ? `, ${raw.guests.children} Child` : ''}`
+      : raw?.adults
+      ? `${raw.adults} Adults${raw.children ? `, ${raw.children} Child` : ''}`
+      : undefined;
+    const invoiceNumber = raw?.invoiceNumber || (core.reference ? core.reference.replace('MHA-', 'INV-') : undefined);
+    const mail = templates.bookingConfirmed({
+      name: user.fullName,
+      reference: core.reference,
+      title: core.title,
+      when: whenLabel(core),
+      totalInr: core.grandTotalInr,
+      guests,
+      invoiceNumber,
+    });
     await sendEmail({ to: user.email, subject: mail.subject, html: mail.html });
     if (user.phone) await sendTransactionalSms(`${user.phone.countryCode}${user.phone.nationalNumber}`, `Mahastays: booking ${core.reference} confirmed. Total paid Rs ${core.grandTotalInr}.`);
   } catch (err) {
@@ -221,6 +238,7 @@ export async function verifyClientPayment(userId: string, input: { orderId: stri
 export async function handleWebhook(rawBody: Buffer, signature: string | undefined) {
   const gateway = getPaymentGateway();
   if (!signature || !gateway.verifyWebhookSignature(rawBody, signature)) {
+    logger.warn({ hasSignature: Boolean(signature) }, '[webhook] Razorpay webhook signature verification failed');
     throw ApiError.unauthorized('Invalid webhook signature', 'INVALID_SIGNATURE');
   }
   let event: { event?: string; payload?: Record<string, { entity?: Record<string, unknown> }> };
@@ -230,18 +248,25 @@ export async function handleWebhook(rawBody: Buffer, signature: string | undefin
     throw ApiError.badRequest('Malformed webhook body', undefined, 'INVALID_JSON');
   }
 
+  logger.info({ event: event.event }, '[webhook] Processing Razorpay webhook event');
+
   const paymentEntity = event.payload?.payment?.entity as { id?: string; order_id?: string; method?: string; error_description?: string } | undefined;
   const orderEntity = event.payload?.order?.entity as { id?: string } | undefined;
 
   switch (event.event) {
     case 'payment.captured':
-    case 'order.paid': {
+    case 'order.paid':
+    case 'payment.authorized': {
       const orderId = paymentEntity?.order_id ?? orderEntity?.id;
-      if (paymentEntity?.id && orderId) await confirmCapture({ orderId, paymentId: paymentEntity.id, method: paymentEntity.method, source: 'webhook' });
+      if (paymentEntity?.id && orderId) {
+        logger.info({ orderId, paymentId: paymentEntity.id, event: event.event }, '[webhook] Confirming capture from Razorpay webhook');
+        await confirmCapture({ orderId, paymentId: paymentEntity.id, method: paymentEntity.method, source: 'webhook' });
+      }
       break;
     }
     case 'payment.failed': {
       if (paymentEntity?.order_id) {
+        logger.warn({ orderId: paymentEntity.order_id, reason: paymentEntity.error_description }, '[webhook] Razorpay payment failed event received');
         await prisma.payment.updateMany({
           where: { gatewayOrderId: paymentEntity.order_id, status: 'initiated' },
           data: { status: 'failed', failureReason: paymentEntity.error_description?.slice(0, 250) ?? 'PAYMENT_FAILED' },
@@ -250,9 +275,9 @@ export async function handleWebhook(rawBody: Buffer, signature: string | undefin
       break;
     }
     default:
-      logger.debug({ event: event.event }, 'webhook event ignored');
+      logger.info({ event: event.event }, '[webhook] Razorpay webhook event received and acknowledged');
   }
-  return { received: true };
+  return { received: true, event: event.event };
 }
 
 /** DEV ONLY (mock gateway): simulates the customer completing checkout. */

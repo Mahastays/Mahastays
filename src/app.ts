@@ -1,7 +1,7 @@
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { type Express, type Request } from 'express';
+import express, { type Express, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { API_PREFIX } from './config/constants';
@@ -10,7 +10,23 @@ import { logger } from './config/logger';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { globalLimiter } from './middlewares/rateLimiter';
 import { requestId } from './middlewares/requestId';
+import { handleWebhook } from './modules/payments/payment.service';
 import { apiRouter } from './routes';
+
+/**
+ * Standard paths recognized for Razorpay Payment Webhooks:
+ * Supported both under the API_PREFIX (e.g. /api/v1/payments/verify-webhook)
+ * and directly at root domain (e.g. /webhook/razorpay).
+ */
+export const RAZORPAY_WEBHOOK_PATHS = [
+  `${API_PREFIX}/payments/verify-webhook`,
+  `${API_PREFIX}/payments/webhook`,
+  `${API_PREFIX}/webhook/razorpay`,
+  `${API_PREFIX}/webhook`,
+  '/webhook/razorpay',
+  '/webhook',
+  '/razorpay-webhook',
+];
 
 export function createApp(): Express {
   const app = express();
@@ -45,7 +61,7 @@ export function createApp(): Express {
       origin: (origin, callback) => callback(null, !origin || env.corsOrigins.includes(origin)),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type', 'x-master-pin', 'x-request-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type', 'x-master-pin', 'x-request-id', 'x-razorpay-signature', 'x-webhook-signature'],
       exposedHeaders: ['x-request-id'],
       maxAge: 600,
     }),
@@ -53,9 +69,74 @@ export function createApp(): Express {
   app.use(compression());
   app.use(globalLimiter);
 
-  // The payment webhook signature is computed over the EXACT bytes the gateway sent, so this route gets a raw
-  // body parser — and it must be registered BEFORE express.json().
-  app.use(`${API_PREFIX}/payments/verify-webhook`, express.raw({ type: '*/*', limit: '1mb' }));
+  // ─────────────────────────────────────────────────────────────────────────
+  // RAZORPAY PAYMENT WEBHOOK (MOUNTED IN MAIN APP ENTRY BEFORE EXPRESS.JSON)
+  // The HMAC-SHA256 signature is calculated over the EXACT raw binary bytes.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.use(RAZORPAY_WEBHOOK_PATHS, express.raw({ type: '*/*', limit: '5mb' }));
+
+  // Webhook Health & Verification Status Ping
+  app.get(RAZORPAY_WEBHOOK_PATHS, (_req: Request, res: Response) => {
+    res.status(200).json({
+      success: true,
+      service: 'Mahastays Razorpay Payment Confirmation Webhook',
+      status: 'active',
+      environment: env.NODE_ENV,
+      gateway: env.PAYMENT_GATEWAY,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Main Razorpay Payment Confirmation Webhook Handler
+  app.post(RAZORPAY_WEBHOOK_PATHS, async (req: Request, res: Response) => {
+    const signature =
+      (req.headers['x-razorpay-signature'] as string | undefined) ||
+      (req.headers['x-webhook-signature'] as string | undefined) ||
+      undefined;
+
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : typeof req.body === 'string'
+      ? Buffer.from(req.body, 'utf8')
+      : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
+
+    logger.info(
+      {
+        path: req.originalUrl || req.url,
+        hasSignature: Boolean(signature),
+        rawBytesLength: rawBody.length,
+      },
+      '[webhook] Razorpay payment confirmation webhook received in main app'
+    );
+
+    try {
+      const result = await handleWebhook(rawBody, signature);
+      return res.status(200).json({
+        success: true,
+        status: 'ok',
+        ...result,
+      });
+    } catch (err: any) {
+      logger.error(
+        {
+          err: err?.message || err,
+          path: req.originalUrl || req.url,
+        },
+        '[webhook] Razorpay payment confirmation webhook processing failed'
+      );
+
+      const statusCode = err?.statusCode || (err?.code === 'INVALID_SIGNATURE' ? 401 : 400);
+      return res.status(statusCode).json({
+        success: false,
+        error: {
+          code: err?.code || 'WEBHOOK_FAILED',
+          message: err?.message || 'Webhook verification or processing failed',
+        },
+      });
+    }
+  });
+
+  // Standard JSON & Form parsers for all standard API routes
   app.use(express.json({ limit: '30mb' }));
   app.use(express.urlencoded({ extended: true, limit: '30mb' }));
   app.use(cookieParser());
