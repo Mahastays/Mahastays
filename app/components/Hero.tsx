@@ -66,51 +66,6 @@ interface AdOffer {
   link: string;
 }
 
-const DEFAULT_OFFERS: AdOffer[] = [
-  {
-    id: "default-offer-1",
-    name: "Evershine Grand Resort",
-    duration: "3D / 2N",
-    view: "Ocean View",
-    location: "Bali, Indonesia",
-    originalPrice: 18500,
-    discountedPrice: 12499,
-    discountPercent: 32,
-    badgeText: "Hot Deal",
-    badgeType: "hot",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop&q=80",
-    link: "/explore",
-  },
-  {
-    id: "default-offer-2",
-    name: "The Cliff Luxury Villa",
-    duration: "4D / 3N",
-    view: "Mountain View",
-    location: "Manali, India",
-    originalPrice: 24000,
-    discountedPrice: 16999,
-    discountPercent: 29,
-    badgeText: "Best Seller",
-    badgeType: "seller",
-    image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop&q=80",
-    link: "/explore",
-  },
-  {
-    id: "default-offer-3",
-    name: "Azure Water Villa",
-    duration: "4D / 3N",
-    view: "Private Pool",
-    location: "Maldives",
-    originalPrice: 36000,
-    discountedPrice: 24990,
-    discountPercent: 31,
-    badgeText: "New Offer",
-    badgeType: "new",
-    image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&auto=format&fit=crop&q=80",
-    link: "/explore",
-  },
-];
-
 export default function Hero() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -250,10 +205,10 @@ export default function Hero() {
           });
           setOffers(mapped);
         } else if (isMounted) {
-          setOffers(DEFAULT_OFFERS);
+          setOffers([]);
         }
       } catch {
-        if (isMounted) setOffers(DEFAULT_OFFERS);
+        if (isMounted) setOffers([]);
       } finally {
         if (isMounted) setIsLoadingOffers(false);
       }
@@ -463,252 +418,235 @@ export default function Hero() {
         )}
       </div>
 
-      {/* ─── Horizontal Ad / Special Offers Slider Section (In place of search) ─── */}
-      <div className="relative -mt-14 sm:-mt-18 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex items-center gap-3 sm:gap-3.5 w-full">
-          {/* Card 0: Special Offers Intro Card (Fixed on the left, White Theme) */}
-          <div className="w-[150px] sm:w-[170px] h-[130px] shrink-0 rounded-2xl bg-white border border-slate-100 p-3 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.06)] z-10 select-none">
-            {/* Parasol umbrella + sun lounger + tropical palm leaves illustration */}
-            <div className="absolute -right-1 -bottom-1 pointer-events-none">
-              <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-22 h-18 sm:w-24 sm:h-20">
-                {/* Tropical Palm leaves */}
-                <path d="M120 100C105 85 90 85 70 95C85 80 100 80 120 100Z" fill="#15803d" opacity="0.65" />
-                <path d="M120 85C100 70 85 75 65 90C80 70 100 68 120 85Z" fill="#16a34a" opacity="0.8" />
-                <path d="M120 95C95 90 85 92 60 98C80 88 100 88 120 95Z" fill="#22c55e" opacity="0.55" />
-                {/* Umbrella Pole */}
-                <line x1="86" y1="54" x2="86" y2="96" stroke="#c28e5c" strokeWidth="2.5" strokeLinecap="round" />
-                {/* Umbrella Canopy */}
-                <path d="M58 54C58 37 71 31 86 29C101 31 114 37 114 54C105 56 99 54 86 54C73 54 67 56 58 54Z" fill="#ef4444" opacity="0.9" />
-                <path d="M67 54C69 41 77 33 86 29C95 33 103 41 105 54C97 55 93 54 86 54C79 54 75 55 67 54Z" fill="#fca5a5" opacity="0.95" />
-                <path d="M77 54C79 43 82 35 86 29C90 35 93 43 95 54C91 54 89 54 86 54C83 54 81 54 77 54Z" fill="#ffffff" opacity="0.95" />
-                <circle cx="86" cy="28.5" r="2" fill="#b91c1c" />
-                {/* Beach Lounger Bed */}
-                <path d="M64 94L77 86L96 88L104 94" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="71" y1="94" x2="77" y2="86" stroke="#b45309" strokeWidth="1.8" strokeLinecap="round" />
-                <line x1="93" y1="94" x2="93" y2="88" stroke="#b45309" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M67 91L77 85L94 87" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </div>
-
-            {/* Top row: % Badge and Action Arrow */}
-            <div className="flex items-center justify-between relative z-10">
-              <div className="w-6 h-6 rounded-full bg-[#ea110d] text-white flex items-center justify-center font-black text-xs shadow-xs">
-                %
+      {/* ─── Horizontal Ad / Special Offers Slider Section (Only shown if active ads exist) ─── */}
+      {!isLoadingOffers && offers.length > 0 && (
+        <div className="relative -mt-14 sm:-mt-18 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full animate-in fade-in duration-300">
+          <div className="flex items-center gap-3 sm:gap-3.5 w-full">
+            {/* Card 0: Special Offers Intro Card (Fixed on the left, White Theme) */}
+            <div className="w-[150px] sm:w-[170px] h-[130px] shrink-0 rounded-2xl bg-white border border-slate-100 p-3 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.06)] z-10 select-none">
+              {/* Parasol umbrella + sun lounger + tropical palm leaves illustration */}
+              <div className="absolute -right-1 -bottom-1 pointer-events-none">
+                <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-22 h-18 sm:w-24 sm:h-20">
+                  {/* Tropical Palm leaves */}
+                  <path d="M120 100C105 85 90 85 70 95C85 80 100 80 120 100Z" fill="#15803d" opacity="0.65" />
+                  <path d="M120 85C100 70 85 75 65 90C80 70 100 68 120 85Z" fill="#16a34a" opacity="0.8" />
+                  <path d="M120 95C95 90 85 92 60 98C80 88 100 88 120 95Z" fill="#22c55e" opacity="0.55" />
+                  {/* Umbrella Pole */}
+                  <line x1="86" y1="54" x2="86" y2="96" stroke="#c28e5c" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Umbrella Canopy */}
+                  <path d="M58 54C58 37 71 31 86 29C101 31 114 37 114 54C105 56 99 54 86 54C73 54 67 56 58 54Z" fill="#ef4444" opacity="0.9" />
+                  <path d="M67 54C69 41 77 33 86 29C95 33 103 41 105 54C97 55 93 54 86 54C79 54 75 55 67 54Z" fill="#fca5a5" opacity="0.95" />
+                  <path d="M77 54C79 43 82 35 86 29C90 35 93 43 95 54C91 54 89 54 86 54C83 54 81 54 77 54Z" fill="#ffffff" opacity="0.95" />
+                  <circle cx="86" cy="28.5" r="2" fill="#b91c1c" />
+                  {/* Beach Lounger Bed */}
+                  <path d="M64 94L77 86L96 88L104 94" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="71" y1="94" x2="77" y2="86" stroke="#b45309" strokeWidth="1.8" strokeLinecap="round" />
+                  <line x1="93" y1="94" x2="93" y2="88" stroke="#b45309" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M67 91L77 85L94 87" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
               </div>
-              <Link
-                href="/packages"
-                className="w-7 h-7 rounded-full bg-[#ea110d] hover:bg-[#d00f0c] text-white flex items-center justify-center shadow-xs transition-transform hover:scale-105 active:scale-95"
-                aria-label="View Special Offers"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
-            </div>
 
-            {/* Title & Subtitle */}
-            <div className="relative z-10">
-              <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight font-poppins">
-                Special<br />Offers
-              </h3>
-              <p className="text-[10px] text-slate-500 leading-tight mt-1 max-w-[105px]">
-                Exclusive stays at member rates
-              </p>
-            </div>
-          </div>
-
-          {/* Sliding Cards Container - ONLY HOTEL CARDS SLIDE */}
-          <div className="relative flex-1 min-w-0 group/carousel">
-            {/* Left Slide Button (Visible when scrolled) */}
-            {canScrollLeft && (
-              <button
-                type="button"
-                onClick={slideLeft}
-                aria-label="Slide offers left"
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-
-            {/* Cards Horizontal Track */}
-            <div
-              ref={carouselRef}
-              className="flex items-center gap-3 sm:gap-3.5 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth snap-x snap-mandatory"
-            >
-              {isLoadingOffers ? (
-                <div className="flex items-center gap-3">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white/90 backdrop-blur-md rounded-2xl p-3 border border-white/40 shadow-xs animate-pulse flex items-center gap-3"
-                    >
-                      <div className="w-28 sm:w-30 h-full bg-slate-200/90 rounded-xl shrink-0" />
-                      <div className="flex-1 space-y-2 py-1">
-                        <div className="h-4 bg-slate-200/90 rounded w-4/5" />
-                        <div className="h-3 bg-slate-200/70 rounded w-1/2" />
-                        <div className="h-3.5 bg-slate-200/70 rounded w-2/3" />
-                        <div className="h-4 bg-slate-200/90 rounded w-1/3 mt-2" />
-                      </div>
-                    </div>
-                  ))}
+              {/* Top row: % Badge and Action Arrow */}
+              <div className="flex items-center justify-between relative z-10">
+                <div className="w-6 h-6 rounded-full bg-[#ea110d] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                  %
                 </div>
-              ) : (
-                offers.map((offer) => {
-                const isFav = Boolean(favorites[offer.id]);
-                return (
-                  <div
-                    key={offer.id}
-                    className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all flex items-center gap-3 snap-start group relative"
-                  >
-                    {/* Left Side: Image with badges */}
-                    <div className="relative w-28 sm:w-30 h-full rounded-xl overflow-hidden shrink-0 bg-slate-100">
-                      <img
-                        src={offer.image}
-                        alt={offer.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
+                <Link
+                  href="/packages"
+                  className="w-7 h-7 rounded-full bg-[#ea110d] hover:bg-[#d00f0c] text-white flex items-center justify-center shadow-xs transition-transform hover:scale-105 active:scale-95"
+                  aria-label="View Special Offers"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
+              </div>
 
-                      {/* Top-Left Category Badge */}
-                      <div
-                        className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-xs text-white ${
-                          offer.badgeType === "hot"
-                            ? "bg-[#ea110d]"
-                            : offer.badgeType === "seller"
-                            ? "bg-[#16a34a]"
-                            : offer.badgeType === "new"
-                            ? "bg-[#2563eb]"
-                            : "bg-[#ea580c]"
-                        }`}
-                      >
-                        {offer.badgeType === "hot" && (
-                          <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M12 23c6.075 0 11-4.925 11-11C23 6.8 19.5 3 17 1c0 3-2 5-4 5s-3-2-3-4C7 4.5 3 8 3 12c0 6.075 4.925 11 9 11z" />
-                          </svg>
-                        )}
-                        {offer.badgeType === "seller" && (
-                          <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
-                          </svg>
-                        )}
-                        {offer.badgeType === "new" && (
-                          <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                        )}
-                        {offer.badgeType === "limited" && (
-                          <svg className="w-2.5 h-2.5 fill-none stroke-current" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                        )}
-                        <span>{offer.badgeText}</span>
-                      </div>
+              {/* Title & Subtitle */}
+              <div className="relative z-10">
+                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight font-poppins">
+                  Special<br />Offers
+                </h3>
+                <p className="text-[10px] text-slate-500 leading-tight mt-1 max-w-[105px]">
+                  Exclusive stays at member rates
+                </p>
+              </div>
+            </div>
 
-                      {/* Top-Right Favorite Heart */}
-                      <button
-                        type="button"
-                        onClick={(e) => toggleFavorite(offer, e)}
-                        aria-label="Add to favorites"
-                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/85 hover:bg-white text-slate-700 hover:text-[#ea110d] flex items-center justify-center shadow-xs transition-colors cursor-pointer"
-                      >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill={isFav ? "#ea110d" : "none"}
-                          stroke={isFav ? "#ea110d" : "currentColor"}
-                          strokeWidth={2}
-                          viewBox="0 0 24 24"
+            {/* Sliding Cards Container - ONLY HOTEL CARDS SLIDE */}
+            <div className="relative flex-1 min-w-0 group/carousel">
+              {/* Left Slide Button (Visible when scrolled) */}
+              {canScrollLeft && (
+                <button
+                  type="button"
+                  onClick={slideLeft}
+                  aria-label="Slide offers left"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Cards Horizontal Track */}
+              <div
+                ref={carouselRef}
+                className="flex items-center gap-3 sm:gap-3.5 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth snap-x snap-mandatory"
+              >
+                {offers.map((offer) => {
+                  const isFav = Boolean(favorites[offer.id]);
+                  return (
+                    <div
+                      key={offer.id}
+                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all flex items-center gap-3 snap-start group relative"
+                    >
+                      {/* Left Side: Image with badges */}
+                      <div className="relative w-28 sm:w-30 h-full rounded-xl overflow-hidden shrink-0 bg-slate-100">
+                        <img
+                          src={offer.image}
+                          alt={offer.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+
+                        {/* Top-Left Category Badge */}
+                        <div
+                          className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-xs text-white ${
+                            offer.badgeType === "seller"
+                              ? "bg-[#16a34a]"
+                              : offer.badgeType === "new"
+                              ? "bg-[#2563eb]"
+                              : offer.badgeType === "limited"
+                              ? "bg-[#ea580c]"
+                              : "bg-[#ea110d]"
+                          }`}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
-                        </svg>
-                      </button>
-
-                      {/* Bottom-Left Location Pill */}
-                      <div className="absolute bottom-1.5 left-1.5 max-w-[90%] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-xs text-white text-[9px] font-medium flex items-center gap-1 truncate">
-                        <svg className="w-2.5 h-2.5 text-white/90 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="truncate">{offer.location}</span>
-                      </div>
-                    </div>
-
-                    {/* Right Side: Stay Information & Pricing */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                      <div>
-                        <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 font-poppins truncate leading-snug">
-                          {offer.name}
-                        </h4>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
-                          {offer.duration} · {offer.view}
-                        </p>
-                      </div>
-
-                      <div className="pt-0.5">
-                        <span className="text-[10px] text-slate-400 line-through block leading-none">
-                          ₹{offer.originalPrice.toLocaleString("en-IN")}
-                        </span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-sm sm:text-[15px] font-extrabold text-slate-900 font-poppins leading-tight">
-                            ₹{offer.discountedPrice.toLocaleString("en-IN")}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                              offer.badgeType === "seller"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : offer.badgeType === "new"
-                                ? "bg-blue-50 text-blue-700"
-                                : offer.badgeType === "limited"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-rose-50 text-[#ea110d]"
-                            }`}
-                          >
-                            {offer.discountPercent}% OFF
-                          </span>
+                          {offer.badgeType === "hot" && (
+                            <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M12 23c6.075 0 11-4.925 11-11C23 6.8 19.5 3 17 1c0 3-2 5-4 5s-3-2-3-4C7 4.5 3 8 3 12c0 6.075 4.925 11 9 11z" />
+                            </svg>
+                          )}
+                          {offer.badgeType === "seller" && (
+                            <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                            </svg>
+                          )}
+                          {offer.badgeType === "new" && (
+                            <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          )}
+                          {offer.badgeType === "limited" && (
+                            <svg className="w-2.5 h-2.5 fill-none stroke-current" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                          )}
+                          <span>{offer.badgeText}</span>
                         </div>
 
-                        <Link
-                          href={offer.link}
-                          className="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-[#ea110d] inline-flex items-center gap-1 transition-colors mt-1 group-hover:translate-x-0.5"
+                        {/* Top-Right Favorite Heart */}
+                        <button
+                          type="button"
+                          onClick={(e) => toggleFavorite(offer, e)}
+                          aria-label="Add to favorites"
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/85 hover:bg-white text-slate-700 hover:text-[#ea110d] flex items-center justify-center shadow-xs transition-colors cursor-pointer"
                         >
-                          <span>View Details</span>
-                          <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill={isFav ? "#ea110d" : "none"}
+                            stroke={isFav ? "#ea110d" : "currentColor"}
+                            strokeWidth={2}
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
                           </svg>
-                        </Link>
+                        </button>
+
+                        {/* Bottom-Left Location Pill */}
+                        <div className="absolute bottom-1.5 left-1.5 max-w-[90%] px-1.5 py-0.5 rounded-full bg-black/65 backdrop-blur-xs text-white text-[9px] font-medium flex items-center gap-1 truncate">
+                          <svg className="w-2.5 h-2.5 text-white/90 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="truncate">{offer.location}</span>
+                        </div>
+                      </div>
+
+                      {/* Right Side: Stay Information & Pricing */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
+                        <div>
+                          <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 font-poppins truncate leading-snug">
+                            {offer.name}
+                          </h4>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
+                            {offer.duration} · {offer.view}
+                          </p>
+                        </div>
+
+                        <div className="pt-0.5">
+                          <span className="text-[10px] text-slate-400 line-through block leading-none">
+                            ₹{offer.originalPrice.toLocaleString("en-IN")}
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm sm:text-[15px] font-extrabold text-slate-900 font-poppins leading-tight">
+                              ₹{offer.discountedPrice.toLocaleString("en-IN")}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                offer.badgeType === "seller"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : offer.badgeType === "new"
+                                  ? "bg-blue-50 text-blue-700"
+                                  : offer.badgeType === "limited"
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-rose-50 text-[#ea110d]"
+                              }`}
+                            >
+                              {offer.discountPercent}% OFF
+                            </span>
+                          </div>
+
+                          <Link
+                            href={offer.link}
+                            className="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-[#ea110d] inline-flex items-center gap-1 transition-colors mt-1 group-hover:translate-x-0.5"
+                          >
+                            <span>View Details</span>
+                            <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
+
+              {/* Right Slide Button (Always on right edge) */}
+              {canScrollRight && (
+                <button
+                  type="button"
+                  onClick={slideRight}
+                  aria-label="Slide offers right"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               )}
             </div>
-
-            {/* Right Slide Button (Always on right edge) */}
-            {canScrollRight && (
-              <button
-                type="button"
-                onClick={slideRight}
-                aria-label="Slide offers right"
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
