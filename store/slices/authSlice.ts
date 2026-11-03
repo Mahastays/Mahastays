@@ -3,11 +3,11 @@ import api, { getApiErrorMessage } from '../../lib/api';
 import { CurrentUser, UserRole } from '../../types';
 
 export const ADMIN_DEMO_CREDENTIALS = {
-  email: 'admin@mahastays.com',
-  password: 'admin123',
-  name: 'Ariana Davis',
-  title: 'Operations Lead — Western Maharashtra',
-  code: 'ADM-1001',
+  email: 'bookingmahastays@gmail.com',
+  password: 'Mahastays@2026',
+  name: 'MahaStays Admin',
+  title: 'Platform Owner & Executive Administrator',
+  code: 'ADM-100',
   portalName: 'Admin Operations Portal',
 };
 
@@ -106,8 +106,20 @@ export const loginUser = createAsyncThunk(
       } else {
         // Try admin endpoint
         const res = await api.post('/auth/admin/login', { email: trimmedEmail, password });
-        const token = res.data?.data?.accessToken || res.data?.accessToken;
-        const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
+        const resData = res.data?.data || res.data;
+
+        // Check if 2-step verification (email OTP) is required
+        if (resData?.twoFactorRequired || resData?.requiresOtp) {
+          return {
+            requiresOtp: true,
+            challengeToken: resData.challengeToken,
+            email: resData.email || trimmedEmail,
+            message: resData.message || `A 6-digit verification code was sent to ${resData.email || trimmedEmail}`,
+          };
+        }
+
+        const token = resData?.accessToken || res.data?.accessToken;
+        const rawUser = resData?.user || resData?.profile || res.data?.user;
         if (token && typeof window !== 'undefined') {
           localStorage.setItem('mahastays_admin_token', token);
           localStorage.setItem('mahastays_token', token);
@@ -120,13 +132,13 @@ export const loginUser = createAsyncThunk(
             role: 'admin',
             avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
             title: rawUser.roleTitle || 'Operations Lead — Western Maharashtra',
-            adminCode: rawUser.adminCode || 'ADM-1001',
+            adminCode: rawUser.adminCode || 'ADM-100',
           };
           if (typeof window !== 'undefined') {
             localStorage.setItem('mahastays_auth_user', JSON.stringify(adminUser));
             localStorage.setItem('mahastays_auth_view_mode', 'admin');
           }
-          return { user: adminUser, role: 'admin' as const, token };
+          return { user: adminUser, role: 'admin' as const, token, requiresOtp: false };
         }
       }
     } catch (apiErr: any) {
@@ -252,6 +264,65 @@ export const loginVendor = createAsyncThunk(
   }
 );
 
+// Verify Admin Email OTP Thunk
+export const verifyAdminOtp = createAsyncThunk(
+  'auth/verifyAdminOtp',
+  async (
+    payload: { challengeToken: string; code: string; email?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.post('/auth/admin/login/verify-otp', {
+        challengeToken: payload.challengeToken,
+        code: payload.code.trim(),
+      });
+      const data = res.data?.data || res.data;
+      const token = data?.accessToken || res.data?.accessToken;
+      const rawUser = data?.user || data?.profile || res.data?.user;
+
+      if (token && typeof window !== 'undefined') {
+        localStorage.setItem('mahastays_admin_token', token);
+        localStorage.setItem('mahastays_token', token);
+      }
+      if (rawUser) {
+        const adminUser: CurrentUser = {
+          id: rawUser.id || rawUser._id,
+          name: rawUser.fullName || rawUser.name || 'MahaStays Admin',
+          email: rawUser.email || payload.email || 'bookingmahastays@gmail.com',
+          role: 'admin',
+          avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+          title: rawUser.roleTitle || 'Platform Owner & Executive Administrator',
+          adminCode: rawUser.adminCode || 'ADM-100',
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mahastays_auth_user', JSON.stringify(adminUser));
+          localStorage.setItem('mahastays_auth_view_mode', 'admin');
+        }
+        return { user: adminUser, role: 'admin' as const, token };
+      }
+      return rejectWithValue('Invalid response from authentication server');
+    } catch (err: any) {
+      return rejectWithValue(getApiErrorMessage(err) || 'Invalid verification code');
+    }
+  }
+);
+
+// Resend Admin OTP Thunk
+export const resendAdminOtp = createAsyncThunk(
+  'auth/resendAdminOtp',
+  async (payload: { challengeToken: string }, { rejectWithValue }) => {
+    try {
+      const res = await api.post('/auth/admin/login/resend-otp', {
+        challengeToken: payload.challengeToken,
+      });
+      const data = res.data?.data || res.data;
+      return data;
+    } catch (err: any) {
+      return rejectWithValue(getApiErrorMessage(err) || 'Failed to resend verification code');
+    }
+  }
+);
+
 // Async Thunk: Logout
 export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
   try {
@@ -309,6 +380,11 @@ export const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+        if (action.payload?.requiresOtp) {
+          state.isAuthenticated = false;
+          state.error = null;
+          return;
+        }
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.role = action.payload.role;
@@ -318,6 +394,23 @@ export const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || 'Authentication failed. Please check credentials.';
+      })
+      // Verify Admin OTP
+      .addCase(verifyAdminOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyAdminOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.role = action.payload.role;
+        state.token = action.payload.token;
+        state.error = null;
+      })
+      .addCase(verifyAdminOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Invalid verification code';
       })
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {

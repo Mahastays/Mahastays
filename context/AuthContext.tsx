@@ -5,6 +5,8 @@ import { CurrentUser, UserRole } from '../types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   loginUser as loginUserThunk,
+  verifyAdminOtp as verifyAdminOtpThunk,
+  resendAdminOtp as resendAdminOtpThunk,
   logoutUser,
   ADMIN_DEMO_CREDENTIALS,
   VENDOR_DEMO_CREDENTIALS,
@@ -27,7 +29,13 @@ interface AuthContextType {
   login: (
     email: string,
     password?: string
+  ) => Promise<{ success: boolean; requiresOtp?: boolean; challengeToken?: string; email?: string; error?: string }>;
+  verifyOtp: (
+    challengeToken: string,
+    code: string,
+    email?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  resendOtp: (challengeToken: string) => Promise<{ success: boolean; challengeToken?: string; error?: string }>;
   logout: () => void;
 }
 
@@ -44,12 +52,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (
     email: string,
     password?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; requiresOtp?: boolean; challengeToken?: string; email?: string; error?: string }> => {
     try {
-      const result = await dispatch(loginUserThunk({ email, password })).unwrap();
+      const result: any = await dispatch(loginUserThunk({ email, password })).unwrap();
+      if (result?.requiresOtp) {
+        return {
+          success: false,
+          requiresOtp: true,
+          challengeToken: result.challengeToken,
+          email: result.email,
+        };
+      }
       return { success: !!result };
     } catch (err: any) {
       return { success: false, error: err || 'Authentication failed' };
+    }
+  };
+
+  const verifyOtp = async (
+    challengeToken: string,
+    code: string,
+    email?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await dispatch(verifyAdminOtpThunk({ challengeToken, code, email })).unwrap();
+      return { success: !!result };
+    } catch (err: any) {
+      return { success: false, error: err || 'Verification failed' };
+    }
+  };
+
+  const resendOtp = async (
+    challengeToken: string
+  ): Promise<{ success: boolean; challengeToken?: string; error?: string }> => {
+    try {
+      const result: any = await dispatch(resendAdminOtpThunk({ challengeToken })).unwrap();
+      return { success: true, challengeToken: result?.challengeToken };
+    } catch (err: any) {
+      return { success: false, error: err || 'Failed to resend code' };
     }
   };
 
@@ -71,6 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         error,
         login,
+        verifyOtp,
+        resendOtp,
         logout,
       }}
     >

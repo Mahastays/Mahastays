@@ -35,13 +35,30 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
   const searchParams = useSearchParams();
   const redirectTarget = searchParams?.get('redirect') || '/dashboard';
 
-  const { login } = useAuth();
+  const { login, verifyOtp, resendOtp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // 2-Step Email Verification State
+  const [step, setStep] = useState<'credentials' | 'otp'>('credentials');
+  const [otp, setOtp] = useState('');
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+
+  // Resend Countdown Timer
+  React.useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -56,6 +73,15 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
 
     try {
       const res = await login(email, password);
+      if (res.requiresOtp && res.challengeToken) {
+        setChallengeToken(res.challengeToken);
+        setOtpEmail(res.email || email);
+        setStep('otp');
+        setOtpCountdown(45);
+        setError(null);
+        return;
+      }
+
       if (res.success) {
         if (onSuccess) {
           onSuccess();
@@ -69,6 +95,57 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
       setError('An unexpected error occurred during sign in. Please retry.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await verifyOtp(challengeToken || '', cleanOtp, otpEmail);
+      if (res.success) {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push(redirectTarget);
+        }
+      } else {
+        setError(res.error || 'Invalid verification code. Please check your email and retry.');
+      }
+    } catch {
+      setError('Verification failed. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0 || !challengeToken || isResending) return;
+    setIsResending(true);
+    setError(null);
+    setResendSuccess(null);
+
+    try {
+      const res = await resendOtp(challengeToken);
+      if (res.success) {
+        if (res.challengeToken) setChallengeToken(res.challengeToken);
+        setOtpCountdown(45);
+        setResendSuccess(`A fresh 6-digit code has been dispatched to ${otpEmail || 'your email'}.`);
+        setTimeout(() => setResendSuccess(null), 5000);
+      } else {
+        setError(res.error || 'Failed to resend code');
+      }
+    } catch {
+      setError('Could not resend code. Please retry.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -86,6 +163,14 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
 
     try {
       const res = await login(demoEmail, demoPass);
+      if (res.requiresOtp && res.challengeToken) {
+        setChallengeToken(res.challengeToken);
+        setOtpEmail(res.email || demoEmail);
+        setStep('otp');
+        setOtpCountdown(45);
+        setError(null);
+        return;
+      }
       if (res.success) {
         if (onSuccess) {
           onSuccess();
