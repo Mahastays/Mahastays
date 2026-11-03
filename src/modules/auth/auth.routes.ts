@@ -93,20 +93,35 @@ authRouter.post('/vendor/login', authLimiter, async (req, res) => {
   sendSession(res, await svc.loginWithPassword('vendor', email, password, meta), meta);
 });
 
-/* ── staff: admin / super-admin / sub-admin (2FA for admin & super-admin) ── */
+/* ── staff: admin / super-admin / sub-admin (Email OTP for admin & super-admin) ── */
 authRouter.post('/admin/login', authLimiter, async (req, res) => {
   const meta = metaOf(req);
   const result = await svc.staffLogin(staffLoginSchema.parse(bodyOf(req)), meta);
   if (result.twoFactorRequired) {
-    ok(res, { twoFactorRequired: true, challengeToken: result.challengeToken, expiresInSeconds: result.expiresInSeconds });
+    ok(res, {
+      twoFactorRequired: true,
+      requiresOtp: true,
+      challengeToken: result.challengeToken,
+      expiresInSeconds: result.expiresInSeconds,
+      email: result.email,
+      message: result.message,
+    });
     return;
   }
   sendSession(res, result.session, meta);
 });
 
-authRouter.post(['/admin/login/2fa', '/admin/2fa/verify'], authLimiter, async (req, res) => {
+authRouter.post(['/admin/login/verify-otp', '/admin/login/2fa', '/admin/2fa/verify', '/admin/verify-otp'], authLimiter, async (req, res) => {
   const meta = metaOf(req);
   sendSession(res, await svc.completeStaffLogin(staffTwoFactorSchema.parse(bodyOf(req)), meta), meta);
+});
+
+authRouter.post('/admin/login/resend-otp', otpLimiter, async (req, res) => {
+  const challengeToken = req.body?.challengeToken;
+  if (!challengeToken || typeof challengeToken !== 'string') {
+    throw ApiError.badRequest('Challenge token is required to resend verification code');
+  }
+  ok(res, await svc.resendStaffLoginOtp(challengeToken));
 });
 
 const twoFactorRole = (req: Request) => {

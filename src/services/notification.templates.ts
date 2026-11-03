@@ -139,6 +139,28 @@ const button = (href: string, label: string) =>
   </div>`;
 
 export const templates = {
+  adminLoginOtp(name: string, otp: string) {
+    return {
+      subject: `Your Mahastays Admin Verification Code: ${otp}`,
+      ...layout(
+        'Admin Portal Verification',
+        `<p style="margin:0 0 12px;">Dear <strong>${esc(name)}</strong>,</p>
+        <p style="margin:0 0 16px;">A sign-in attempt was initiated for your Mahastays Admin Operations account. Use the one-time verification code below to complete your authentication:</p>
+        
+        <div style="background:#f8fafc;border:2px dashed #ea110d;border-radius:14px;padding:24px;margin:22px 0;text-align:center;">
+          <div style="font-size:12px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Your 6-Digit One-Time Code</div>
+          <div style="font-size:38px;font-weight:900;letter-spacing:8px;color:#ea110d;font-family:monospace;padding:6px 0;">${otp}</div>
+          <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Valid for 10 minutes &bull; Do not share this code with anyone</div>
+        </div>
+
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin:20px 0;font-size:12px;color:#991b1b;">
+          <strong>Security Warning:</strong> If you did not initiate this login request, your account password may be compromised. Please change your password immediately or contact technical operations.
+        </div>`,
+        { badge: 'Admin Security 2FA', badgeType: 'danger', preheader: `Your one-time login verification code is ${otp}` }
+      ),
+    };
+  },
+
   verifyEmail(name: string, token: string) {
     const link = `${env.APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
     return {

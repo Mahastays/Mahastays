@@ -188,7 +188,7 @@ export async function registerVendor(input: RegisterVendorInput, meta: RequestMe
 /* ──────────────────────── staff (admin / sub-admin / super-admin) ──────────────────────── */
 
 export type StaffLoginResult =
-  | { twoFactorRequired: true; challengeToken: string; expiresInSeconds: number }
+  | { twoFactorRequired: true; requiresOtp: boolean; challengeToken: string; expiresInSeconds: number; email: string; message: string }
   | { twoFactorRequired: false; session: Session };
 
 export function generateRecoveryKeys(count = 8): { keys: string[]; hashes: string[] } {
@@ -213,33 +213,88 @@ export async function staffLogin(
     throw ApiError.forbidden('Sign-in from this network is not allowed', 'IP_NOT_ALLOWED');
   }
 
-  const tf = actor.twoFactor;
-  if (tf?.enabled) {
-    return { twoFactorRequired: true, challengeToken: signMfaChallenge(actor.id, actor.role), expiresInSeconds: 300 };
-  }
-  if (tf?.enforced && env.isProd) {
-    throw ApiError.forbidden('Two-factor authentication must be enabled for this account. Contact the platform owner.', 'MFA_SETUP_REQUIRED');
-  }
+  // Generate a secure 6-digit email OTP for 2-step verification
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = sha256(otp);
 
-  const session = await createSession({ id: actor.id, role: actor.role }, meta);
-  await audit({ actor: { id: actor.id, role: actor.role }, action: 'STAFF_LOGIN', targetEntity: actor.role, targetId: actor.id, newState: { mfa: false, ip: meta.ip } });
-  return { twoFactorRequired: false, session };
+  try {
+    const mail = templates.adminLoginOtp(actor.fullName, otp);
+    await sendEmail({
+      to: actor.email,
+      subject: mail.subject,
+      html: mail.html,
+      text: `Your Mahastays Admin verification code is: ${otp}. It expires in 10 minutes.`,
+    });
+  } catch (err) {
+    logger.error({ err, email: actor.email }, '[admin-auth] Failed to dispatch admin login OTP email');
+  }
+  logger.info({ email: actor.email, otp: env.isProd ? '***' : otp }, '[admin-auth] Dispatched admin login OTP to email');
+
+  const challengeToken = signMfaChallenge(actor.id, actor.role, { otpHash, email: actor.email });
+
+  return {
+    twoFactorRequired: true,
+    requiresOtp: true,
+    challengeToken,
+    expiresInSeconds: 600,
+    email: actor.email,
+    message: `A 6-digit verification code has been sent to ${actor.email}`,
+  };
+}
+
+export async function resendStaffLoginOtp(
+  challengeToken: string
+): Promise<{ challengeToken: string; expiresInSeconds: number; email: string }> {
+  const { sub, role, email } = verifyMfaChallenge(challengeToken);
+  const actor = await findLoginActorById(role, sub);
+  if (!actor || !isStatusAllowed(actor.role, actor.status)) {
+    throw ApiError.unauthorized('Challenge is invalid', 'MFA_CHALLENGE_INVALID');
+  }
+  const targetEmail = actor.email || email || '';
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = sha256(otp);
+
+  try {
+    const mail = templates.adminLoginOtp(actor.fullName, otp);
+    await sendEmail({
+      to: targetEmail,
+      subject: mail.subject,
+      html: mail.html,
+      text: `Your Mahastays Admin verification code is: ${otp}. It expires in 10 minutes.`,
+    });
+  } catch (err) {
+    logger.error({ err, email: targetEmail }, '[admin-auth] Failed to resend admin login OTP');
+  }
+  logger.info({ email: targetEmail, otp: env.isProd ? '***' : otp }, '[admin-auth] Resent admin login OTP to email');
+
+  const newChallengeToken = signMfaChallenge(actor.id, actor.role, { otpHash, email: targetEmail });
+  return { challengeToken: newChallengeToken, expiresInSeconds: 600, email: targetEmail };
 }
 
 export async function completeStaffLogin(input: { challengeToken: string; code: string }, meta: RequestMeta): Promise<Session> {
-  const { sub, role } = verifyMfaChallenge(input.challengeToken);
+  const { sub, role, otpHash } = verifyMfaChallenge(input.challengeToken);
   const actor = await findLoginActorById(role, sub);
-  if (!actor || !isStatusAllowed(actor.role, actor.status) || !actor.twoFactor?.secretEnc) {
-    throw ApiError.unauthorized('Two-factor challenge is invalid', 'MFA_CHALLENGE_INVALID');
+  if (!actor || !isStatusAllowed(actor.role, actor.status)) {
+    throw ApiError.unauthorized('Two-factor challenge is invalid or user is not active', 'MFA_CHALLENGE_INVALID');
   }
   assertNotLocked(actor);
 
   let valid = false;
   let usedRecoveryKey = false;
-  if (/^\d{6}$/.test(input.code)) {
-    valid = verifyTotp(decrypt(actor.twoFactor.secretEnc), input.code);
-  } else if (actor.role === 'super_admin' && actor.recoveryKeyHashes) {
-    const hash = sha256(input.code.trim().toUpperCase());
+
+  const trimmedCode = input.code.trim();
+
+  // 1. Verify against email OTP hash
+  if (otpHash && safeEqual(sha256(trimmedCode), otpHash)) {
+    valid = true;
+  }
+  // 2. Also allow TOTP authenticator app if configured
+  else if (/^\d{6}$/.test(trimmedCode) && actor.twoFactor?.secretEnc) {
+    valid = verifyTotp(decrypt(actor.twoFactor.secretEnc), trimmedCode);
+  }
+  // 3. Also allow super-admin recovery keys
+  else if (actor.role === 'super_admin' && actor.recoveryKeyHashes) {
+    const hash = sha256(trimmedCode.toUpperCase());
     const match = actor.recoveryKeyHashes.find((h) => safeEqual(h, hash));
     if (match) {
       valid = true;
@@ -247,13 +302,17 @@ export async function completeStaffLogin(input: { challengeToken: string; code: 
       await prisma.superAdmin.update({ where: { id: actor.id }, data: { recoveryKeyHashes: { set: actor.recoveryKeyHashes.filter((h) => h !== match) } } });
     }
   }
+
   if (!valid) {
     await registerFailedLogin(actor);
-    throw ApiError.unauthorized('Invalid two-factor code', 'INVALID_2FA_CODE');
+    throw ApiError.unauthorized('Invalid verification code. Please check your email or request a new code.', 'INVALID_2FA_CODE');
   }
 
+  // Clear failed login attempts upon successful OTP verification
+  await patchActor(actor.role, actor.id, { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() });
+
   const session = await createSession({ id: actor.id, role: actor.role }, meta);
-  await audit({ actor: { id: actor.id, role: actor.role }, action: usedRecoveryKey ? 'STAFF_LOGIN_RECOVERY_KEY' : 'STAFF_LOGIN', targetEntity: actor.role, targetId: actor.id, newState: { mfa: true, ip: meta.ip } });
+  await audit({ actor: { id: actor.id, role: actor.role }, action: usedRecoveryKey ? 'STAFF_LOGIN_RECOVERY_KEY' : 'STAFF_LOGIN_EMAIL_OTP', targetEntity: actor.role, targetId: actor.id, newState: { mfa: true, ip: meta.ip } });
   return session;
 }
 

@@ -44,18 +44,27 @@ export function verifyAccessToken(token: string): { sub: string; role: Role } {
   return { sub: payload.sub, role: payload.role };
 }
 
-/** Short-lived token proving the password step succeeded; exchanged for tokens after a valid TOTP. */
-export function signMfaChallenge(id: string, role: Role): string {
-  return jwt.sign({ role, purpose: 'mfa' }, env.JWT_ACCESS_SECRET, {
+/** Short-lived token proving the password step succeeded; exchanged for tokens after valid email OTP or TOTP. */
+export function signMfaChallenge(
+  id: string,
+  role: Role,
+  extra?: { otpHash?: string; email?: string }
+): string {
+  return jwt.sign({ role, purpose: 'mfa', ...extra }, env.JWT_ACCESS_SECRET, {
     subject: id,
     issuer: ISSUER,
     audience: MFA_AUDIENCE,
     algorithm: 'HS256',
-    expiresIn: '5m',
+    expiresIn: '10m',
   });
 }
 
-export function verifyMfaChallenge(token: string): { sub: string; role: Role } {
+export function verifyMfaChallenge(token: string): {
+  sub: string;
+  role: Role;
+  otpHash?: string;
+  email?: string;
+} {
   try {
     const payload = jwt.verify(token, env.JWT_ACCESS_SECRET, {
       issuer: ISSUER,
@@ -65,7 +74,13 @@ export function verifyMfaChallenge(token: string): { sub: string; role: Role } {
     if (typeof payload === 'string' || !payload.sub || !isRole(payload.role) || payload.purpose !== 'mfa') {
       throw new Error('bad challenge');
     }
-    return { sub: payload.sub, role: payload.role };
+    const anyPayload = payload as any;
+    return {
+      sub: payload.sub,
+      role: payload.role,
+      otpHash: anyPayload.otpHash,
+      email: anyPayload.email,
+    };
   } catch {
     throw ApiError.unauthorized('Two-factor challenge is invalid or expired. Please sign in again.', 'MFA_CHALLENGE_INVALID');
   }
