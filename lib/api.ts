@@ -22,10 +22,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: Normalize backend ApiError responses
+// Response interceptor: Normalize backend ApiError responses & clear stale session on 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status = error.response?.status;
+    if (status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('mahastays_token');
+      localStorage.removeItem('mahastays_auth_user');
+    }
+
     const errorData = error.response?.data?.error;
     let message = errorData?.message || error.response?.data?.message;
 

@@ -55,13 +55,13 @@ function SuccessClientContent() {
           b.property?.images?.[0]?.url ||
           b.package?.thumbnail ||
           b.experience?.image ||
-          "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80";
+          "";
 
         let location =
           b.property?.city ||
           b.package?.city ||
           b.experience?.city ||
-          "Panchgani-Mahabaleshwar Road, Satara, Maharashtra";
+          "";
 
         if (type === "package") {
           title = b.package?.title || b.title || "Curated Getaway Package";
@@ -94,10 +94,15 @@ function SuccessClientContent() {
             })
           : undefined;
 
+        const isPaid = (payment.status === "captured" || b.paymentStatus === "paid");
+        const isCancelled = b.bookingStatus === "cancelled";
+
         setConfirmationData({
           bookingReference: b.bookingReference || refCode,
-          invoiceNumber: payment.invoiceNumber || b.invoiceNumber,
+          invoiceNumber: isPaid && !isCancelled ? (payment.invoiceNumber || b.invoiceNumber) : undefined,
           bookingType: type,
+          paymentStatus: b.paymentStatus || (payment.status === "captured" ? "paid" : "initiated"),
+          bookingStatus: b.bookingStatus || "confirmed",
           title,
           image,
           rating: 4.9,
@@ -117,27 +122,7 @@ function SuccessClientContent() {
         });
       })
       .catch(() => {
-        // Fallback demo data matching reference format
-        setConfirmationData({
-          bookingReference: refCode || "MHA-2026-0006",
-          invoiceNumber: `INV-${new Date().getFullYear()}-00006`,
-          bookingType: "stay",
-          title: "HillView Luxury Resort & Spa",
-          image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80",
-          rating: 4.8,
-          reviewsCount: 210,
-          location: "Panchgani-Mahabaleshwar Road, Satara District, Maharashtra",
-          checkInDate: "Sat, Oct 15",
-          checkInTime: "02:00 PM",
-          checkOutDate: "Tue, Oct 18",
-          checkOutTime: "11:00 AM",
-          nights: 3,
-          guestsText: "2 Adults, 1 Child",
-          roomOrTierText: "Entire 4BHK Villa (Private Infinity Pool)",
-          amountPaid: 18438,
-          paymentMethod: "Razorpay / UPI",
-          bookedOnDate: "03 Nov 2026",
-        });
+        setConfirmationData(null);
       })
       .finally(() => {
         setLoading(false);

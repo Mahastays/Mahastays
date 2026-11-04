@@ -26,6 +26,8 @@ export interface BookingConfirmationData {
   bookingReference: string;
   invoiceNumber?: string;
   bookingType?: "stay" | "package" | "experience";
+  paymentStatus?: string;
+  bookingStatus?: string;
   title: string;
   image?: string;
   rating?: number;
@@ -72,13 +74,11 @@ export default function BookingConfirmationView({ data }: BookingConfirmationVie
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"
   }/bookings/invoice/ref/${encodeURIComponent(data.bookingReference)}`;
 
-  // Default fallback values
-  const ratingScore = data.rating || 4.9;
-  const reviewsCount = data.reviewsCount || 128;
-  const locationText = data.location || "Panchgani-Mahabaleshwar Road, Satara, Maharashtra";
-  const defaultImage =
-    data.image ||
-    "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80";
+  // Real data values (leave blank/hidden if not provided)
+  const ratingScore = data.rating || null;
+  const reviewsCount = data.reviewsCount || 0;
+  const locationText = data.location || "";
+  const defaultImage = data.image || "";
 
   const nightsDisplay =
     data.nights && data.nights > 0
@@ -96,6 +96,14 @@ export default function BookingConfirmationView({ data }: BookingConfirmationVie
   const cancellationText =
     data.cancellationDateText ||
     `Your property allows free cancellation (100% refund) up to 48 hours before check-in.`;
+
+  const isCancelled = data.bookingStatus === 'cancelled';
+  const isPaid =
+    !isCancelled &&
+    data.paymentStatus === 'paid' &&
+    data.paymentMethod !== 'Pay at Property' &&
+    data.paymentMethod !== 'pay_at_property' &&
+    Boolean(data.invoiceNumber);
 
   return (
     <div className="w-full">
@@ -156,28 +164,32 @@ export default function BookingConfirmationView({ data }: BookingConfirmationVie
                   </h2>
 
                   {/* Rating row */}
-                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500">
-                    <div className="flex items-center text-amber-500">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3.5 h-3.5 ${
-                            i < 4
-                              ? "fill-amber-400 text-amber-400"
-                              : "fill-amber-200 text-amber-300"
-                          }`}
-                        />
-                      ))}
+                  {ratingScore ? (
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500">
+                      <div className="flex items-center text-amber-500">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3.5 h-3.5 ${
+                              i < Math.round(Number(ratingScore))
+                                ? "fill-amber-400 text-amber-400"
+                                : "fill-amber-200 text-amber-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="font-semibold text-slate-700">{ratingScore}</span>
+                      {reviewsCount > 0 && <span className="text-slate-400">({reviewsCount} reviews)</span>}
                     </div>
-                    <span className="font-semibold text-slate-700">{ratingScore}</span>
-                    <span className="text-slate-400">({reviewsCount} reviews)</span>
-                  </div>
+                  ) : null}
 
                   {/* Location row */}
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-[#ea110d] shrink-0" />
-                    <span className="truncate">{locationText}</span>
-                  </div>
+                  {locationText && (
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 text-[#ea110d] shrink-0" />
+                      <span className="truncate">{locationText}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -310,36 +322,60 @@ export default function BookingConfirmationView({ data }: BookingConfirmationVie
                   <span className="font-semibold text-slate-800">{bookedOnText}</span>
                 </div>
 
-                {data.invoiceNumber && (
+                {isPaid && data.invoiceNumber ? (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 font-medium">Invoice #</span>
                     <span className="font-mono font-medium text-slate-700">
                       {data.invoiceNumber}
                     </span>
                   </div>
+                ) : isCancelled ? (
+                  <div className="flex items-center justify-between text-xs text-rose-600 font-medium">
+                    <span>Tax Invoice</span>
+                    <span>No Invoice (Cancelled)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-xs text-amber-700 font-medium">
+                    <span>Tax Invoice</span>
+                    <span>Pending Payment</span>
+                  </div>
                 )}
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-slate-100">
-                <a
-                  href={invoiceDownloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold font-poppins shadow-sm transition cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Receipt (PDF)</span>
-                </a>
+                {isPaid ? (
+                  <>
+                    <a
+                      href={invoiceDownloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold font-poppins shadow-sm transition cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download Receipt (PDF)</span>
+                    </a>
 
-                <button
-                  type="button"
-                  onClick={() => setShowInvoiceModal(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-slate-300 hover:border-slate-800 text-slate-800 text-xs font-bold font-poppins transition cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
-                  <span>View Tax Invoice</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowInvoiceModal(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-slate-300 hover:border-slate-800 text-slate-800 text-xs font-bold font-poppins transition cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
+                      <span>View Tax Invoice</span>
+                    </button>
+                  </>
+                ) : isCancelled ? (
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-700 text-xs font-medium text-center space-y-1">
+                    <div className="font-bold">Booking Cancelled</div>
+                    <div className="text-[11px] text-rose-600">In accordance with tax regulations, tax invoices are not issued for cancelled bookings.</div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-800 text-xs font-medium text-center space-y-1">
+                    <div className="font-bold">Payment Pending at Property</div>
+                    <div className="text-[11px] text-amber-700">Official GST Tax Invoice will be issued upon check-in payment.</div>
+                  </div>
+                )}
 
                 <Link
                   href="/explore"

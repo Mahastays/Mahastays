@@ -10,6 +10,16 @@ import { toast } from "../../components/ui/Toast";
 import BookingInvoiceModal from "../components/booking/BookingInvoiceModal";
 import BookingConfirmationView, { BookingConfirmationData } from "../components/booking/BookingConfirmationView";
 import { FileText, Download } from "lucide-react";
+import { MAHASTAYS_LOGO_DATA_URI } from "./brandLogoData";
+
+const getRazorpayBrandLogo = (): string => {
+  if (typeof window !== "undefined") {
+    if (window.location.protocol === "https:" && window.location.origin) {
+      return `${window.location.origin}/brand/mahastays-logo-main.png`;
+    }
+  }
+  return MAHASTAYS_LOGO_DATA_URI;
+};
 
 interface CheckoutFormData {
   fullName: string;
@@ -55,6 +65,9 @@ function CheckoutContent() {
   const slotTime = searchParams.get("slotTime") || "06:00 AM – 08:00 AM";
   const imageUrl = searchParams.get("image") || "/maha photos/luxury-pool.jpg";
   const priceParam = parseInt(searchParams.get("price") || "8900", 10);
+  const discountParam = searchParams.get("discount");
+  const feeParam = searchParams.get("cleaningFee");
+  const gstParam = searchParams.get("gst");
 
   // Form State
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -115,6 +128,12 @@ function CheckoutContent() {
   const endDt = new Date(endDate);
   const nights = Math.max(1, Math.round((endDt.getTime() - startDt.getTime()) / (1000 * 60 * 60 * 24)));
   
+  // Dynamic pricing overrides from listing configuration
+  const customDiscountPercent = discountParam !== null ? parseInt(discountParam, 10) : null;
+  const customFee = feeParam !== null ? parseInt(feeParam, 10) : null;
+  const customGstPercent = gstParam !== null ? parseInt(gstParam, 10) : null;
+  const discountPercent = customDiscountPercent !== null ? customDiscountPercent : 8;
+
   let baseCost = 0;
   let memberDiscount = 0;
   let fee = 0;
@@ -123,21 +142,25 @@ function CheckoutContent() {
 
   if (bookingType === "stay") {
     baseCost = priceParam * nights;
-    memberDiscount = Math.round(baseCost * 0.08);
-    fee = 445; // Cleaning & Sanitization
-    taxes = Math.round((baseCost - memberDiscount + fee) * 0.18);
+    memberDiscount = Math.round(baseCost * (discountPercent / 100));
+    fee = customFee !== null ? customFee : 445;
+    const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
+    taxes = Math.round((baseCost - memberDiscount + fee) * gstRate);
     grandTotal = baseCost - memberDiscount + fee + taxes;
   } else if (bookingType === "package") {
-    baseCost = priceParam * 3;
-    memberDiscount = Math.round(baseCost * 0.08);
-    fee = 445;
-    taxes = Math.round((baseCost - memberDiscount + fee) * 0.18);
+    const totalTravelers = Math.max(1, adults + children);
+    baseCost = priceParam * totalTravelers;
+    memberDiscount = Math.round(baseCost * (discountPercent / 100));
+    fee = customFee !== null ? customFee : 0;
+    const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
+    taxes = Math.round((baseCost - memberDiscount + fee) * gstRate);
     grandTotal = baseCost - memberDiscount + fee + taxes;
   } else {
     baseCost = priceParam * adults + Math.round(priceParam * 0.7 * children);
-    memberDiscount = Math.round(baseCost * 0.08);
-    fee = 199; // Adventure safety & insurance
-    taxes = Math.round((baseCost - memberDiscount + fee) * 0.05);
+    memberDiscount = Math.round(baseCost * (discountPercent / 100));
+    fee = customFee !== null ? customFee : 0;
+    const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
+    taxes = Math.round((baseCost - memberDiscount + fee) * gstRate);
     grandTotal = baseCost - memberDiscount + fee + taxes;
   }
 
@@ -387,13 +410,15 @@ function CheckoutContent() {
       const realOrderId = gatewayOrder?.orderId;
       const isValidRzpOrderId = typeof realOrderId === "string" && realOrderId.startsWith("order_") && !realOrderId.includes("MHA") && !realOrderId.includes("INV");
 
+      const brandLogo = getRazorpayBrandLogo();
+
       const options: any = {
         key: rzpKey,
         amount: amountPaise,
         currency: gatewayOrder?.currency || "INR",
         name: "Mahastays",
         description: `${bookingType.toUpperCase()} Booking - ${title.slice(0, 30)}`,
-        image: imageUrl || "/maha photos/luxury-pool.jpg",
+        image: brandLogo,
         handler: async function (response: any) {
           try {
             setIsLoading(true);
@@ -446,11 +471,42 @@ function CheckoutContent() {
         },
         theme: {
           color: "#ea110d",
+          backdrop_color: "rgba(15, 23, 42, 0.65)",
+          hide_topbar: false,
         },
         modal: {
+          backdropclose: false,
+          escape: true,
+          handleback: true,
+          confirm_close: true,
+          animation: true,
           ondismiss: function () {
             setIsLoading(false);
             toast.info("Payment window closed. You can retry whenever you are ready.");
+          },
+        },
+        config: {
+          display: {
+            language: "en",
+            blocks: {
+              upi: {
+                name: "Pay via UPI",
+                instruments: [{ method: "upi" }],
+              },
+              other: {
+                name: "Cards, Netbanking & Wallets",
+                instruments: [
+                  { method: "card" },
+                  { method: "emi" },
+                  { method: "netbanking" },
+                  { method: "wallet" },
+                ],
+              },
+            },
+            sequence: ["block.upi", "block.other"],
+            preferences: {
+              show_default_blocks: true,
+            },
           },
         },
       };
@@ -473,7 +529,8 @@ function CheckoutContent() {
       try {
         const scriptLoaded = await loadRazorpayScript();
         if (scriptLoaded) {
-          const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ;
+          const brandLogo = getRazorpayBrandLogo();
+          const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TsvM6ELYin3phv";
           const fallbackRef = `MHA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
           const fallbackInv = `INV-2026-27-${String(Math.floor(1 + Math.random() * 9999)).padStart(5, "0")}`;
 
@@ -483,7 +540,7 @@ function CheckoutContent() {
             currency: "INR",
             name: "Mahastays",
             description: `${bookingType.toUpperCase()} Booking - ${title.slice(0, 30)}`,
-            image: imageUrl || "/maha photos/luxury-pool.jpg",
+            image: brandLogo,
             handler: function (response: any) {
               setBookingResult({
                 bookingReference: fallbackRef,
@@ -508,11 +565,44 @@ function CheckoutContent() {
               email: formData.email,
               contact: extractPhone(formData.phone),
             },
-            theme: { color: "#ea110d" },
+            theme: {
+              color: "#ea110d",
+              backdrop_color: "rgba(15, 23, 42, 0.65)",
+              hide_topbar: false,
+            },
             modal: {
+              backdropclose: false,
+              escape: true,
+              handleback: true,
+              confirm_close: true,
+              animation: true,
               ondismiss: function () {
                 setIsLoading(false);
                 toast.info("Payment window closed.");
+              },
+            },
+            config: {
+              display: {
+                language: "en",
+                blocks: {
+                  upi: {
+                    name: "Pay via UPI",
+                    instruments: [{ method: "upi" }],
+                  },
+                  other: {
+                    name: "Cards, Netbanking & Wallets",
+                    instruments: [
+                      { method: "card" },
+                      { method: "emi" },
+                      { method: "netbanking" },
+                      { method: "wallet" },
+                    ],
+                  },
+                },
+                sequence: ["block.upi", "block.other"],
+                preferences: {
+                  show_default_blocks: true,
+                },
               },
             },
           };
@@ -532,15 +622,18 @@ function CheckoutContent() {
   };
 
   if (bookingResult) {
+    const isPayAtProperty = formData.paymentMethod === "pay_at_property";
     const confirmationData: BookingConfirmationData = {
       bookingReference: bookingResult.bookingReference,
-      invoiceNumber: bookingResult.invoiceNumber,
+      invoiceNumber: isPayAtProperty ? undefined : bookingResult.invoiceNumber,
       bookingType,
+      paymentStatus: isPayAtProperty ? "initiated" : "paid",
+      bookingStatus: "confirmed",
       title,
       image:
         bookingResult.booking?.image ||
         imageUrl ||
-        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80",
+        "",
       rating: 4.9,
       reviewsCount: 128,
       location: "Panchgani-Mahabaleshwar Road, Satara District, Maharashtra",
@@ -1263,18 +1356,22 @@ function CheckoutContent() {
                   <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString("en-IN")}</span>
                 </div>
 
-                <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Mahastays Member Discount (8%)</span>
-                  <span>-₹{memberDiscount.toLocaleString("en-IN")}</span>
-                </div>
+                {discountPercent > 0 && memberDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>Mahastays Member Discount ({discountPercent}%)</span>
+                    <span>-₹{memberDiscount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+
+                {fee > 0 && (
+                  <div className="flex justify-between">
+                    <span>{bookingType === "experience" ? "Safety Gear & Insurance" : bookingType === "package" ? "Concierge & Service Fee" : "Cleaning & Sanitization"}</span>
+                    <span className="text-slate-900 font-semibold">₹{fee.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
 
                 <div className="flex justify-between">
-                  <span>{bookingType === "experience" ? "Safety Gear & Insurance" : "Cleaning & Sanitization"}</span>
-                  <span className="text-slate-900 font-semibold">₹{fee}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span>Taxes &amp; GST ({bookingType === "experience" ? "5%" : "18%"})</span>
+                  <span>Taxes &amp; GST ({customGstPercent !== null ? customGstPercent : (bookingType === "experience" ? 18 : 18)}%)</span>
                   <span className="text-slate-900 font-semibold">₹{taxes.toLocaleString("en-IN")}</span>
                 </div>
 

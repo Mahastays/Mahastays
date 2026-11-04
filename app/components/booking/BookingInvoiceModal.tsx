@@ -131,9 +131,14 @@ export default function BookingInvoiceModal({
 
   if (!isOpen || !booking) return null;
 
-  const invNumber =
-    booking.invoiceNumber ||
-    `INV-${new Date(booking.createdAt || Date.now()).getFullYear()}-${booking.bookingReference.replace(/[^A-Z0-9]/gi, '').slice(-6).toUpperCase()}`;
+  const isCancelled = booking.bookingStatus === 'cancelled';
+  const isPaid = !isCancelled && (booking.paymentStatus === 'paid' || booking.paymentStatus === 'captured');
+
+  const invNumber = isCancelled
+    ? 'NO INVOICE (CANCELLED)'
+    : isPaid
+    ? (booking.invoiceNumber || `INV-${new Date(booking.createdAt || Date.now()).getFullYear()}-${booking.bookingReference.replace(/[^A-Z0-9]/gi, '').slice(-6).toUpperCase()}`)
+    : 'PENDING PAYMENT';
 
   const invDate = booking.createdAt
     ? new Date(booking.createdAt).toLocaleDateString('en-IN', {
@@ -195,13 +200,12 @@ export default function BookingInvoiceModal({
   const sgstAmount = taxesTotal - cgstAmount;
   const gstRate = isStay ? 12 : isPackage ? 5 : 18;
 
-  const isPaid =
-    booking.paymentStatus === 'paid' ||
-    booking.paymentStatus === 'captured' ||
-    booking.bookingStatus === 'confirmed';
-
   // Handle PDF Download
   const handleDownloadPdf = async () => {
+    if (!isPaid || isCancelled) {
+      alert(isCancelled ? 'Invoice cannot be downloaded for cancelled bookings.' : 'Invoice is not available for unpaid bookings.');
+      return;
+    }
     setIsDownloading(true);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -264,9 +268,9 @@ export default function BookingInvoiceModal({
             <button
               type="button"
               onClick={handleDownloadPdf}
-              disabled={isDownloading}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold cursor-pointer transition shadow-xs disabled:opacity-60"
-              title="Download PDF"
+              disabled={isDownloading || !isPaid || isCancelled}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold cursor-pointer transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              title={isCancelled ? 'No invoice for cancelled bookings' : !isPaid ? 'Invoice available after payment' : 'Download PDF'}
             >
               {isDownloading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -312,8 +316,14 @@ export default function BookingInvoiceModal({
             </div>
 
             <div className="sm:text-right">
-              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-800 mb-2 border border-slate-200">
-                {isPaid ? 'TAX INVOICE' : 'PROFORMA TAX INVOICE'}
+              <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-2 border ${
+                isCancelled
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : isPaid
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
+                {isCancelled ? 'BOOKING CANCELLED' : isPaid ? 'TAX INVOICE' : 'PAYMENT PENDING'}
               </span>
               <div className="text-xs space-y-0.5 text-slate-600">
                 <p>

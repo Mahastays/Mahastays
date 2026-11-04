@@ -86,41 +86,18 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
         setBookingData(invoiceData);
       })
       .catch((err) => {
-        // Fallback demo data so page never breaks if offline
-        setBookingData({
-          id: refCode,
-          bookingReference: refCode,
-          bookingType: 'stay',
-          invoiceNumber: `INV-${new Date().getFullYear()}-${refCode.slice(-6).toUpperCase()}`,
-          createdAt: new Date().toISOString(),
-          guestName: 'Guest User',
-          guestEmail: 'guest@mahastays.com',
-          billingState: 'Maharashtra',
-          paymentStatus: 'paid',
-          paymentMethod: 'UPI',
-          bookingStatus: 'confirmed',
-          title: 'Sunset Ridge Private Villa',
-          dates: '15 Oct 2026 – 18 Oct 2026',
-          nights: 3,
-          guests: '2 Adults, 1 Child',
-          roomOrTierName: 'Entire 4BHK Villa (Private Infinity Pool)',
-          amount: 22715,
-          pricing: {
-            grandTotal: 22715,
-            cleaningFee: 445,
-            memberDiscount: 1800,
-            taxesGst: 2470,
-            taxableSubtotal: 20245,
-          },
-        });
+        setError(err.response?.data?.message || 'Could not retrieve booking details for invoice generation.');
       })
       .finally(() => {
         setLoading(false);
       });
   }, [refCode]);
 
+  const isPaid = bookingData?.paymentStatus === 'paid';
+  const isCancelled = bookingData?.bookingStatus === 'cancelled';
+
   const handleDownloadPdf = async () => {
-    if (!bookingData) return;
+    if (!bookingData || !isPaid || isCancelled) return;
     setIsDownloading(true);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -137,10 +114,11 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
         a.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        window.print();
+        const data = await res.json().catch(() => null);
+        alert(data?.message || 'Invoice PDF is not available.');
       }
     } catch {
-      window.print();
+      alert('Failed to connect to invoice server.');
     } finally {
       setIsDownloading(false);
     }
@@ -167,9 +145,9 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
           <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
             <AlertCircle className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 font-poppins">Invoice Not Found</h2>
+          <h2 className="text-xl font-bold text-slate-900 font-poppins">Invoice Not Available</h2>
           <p className="text-xs text-slate-500">
-            We couldn&apos;t retrieve the reservation invoice for reference <strong className="text-slate-800">{refCode}</strong>.
+            {error || `We couldn't retrieve the reservation invoice for reference ${refCode}.`}
           </p>
           <Link
             href="/profile?tab=bookings"
@@ -178,6 +156,58 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
             ← View My Bookings
           </Link>
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isCancelled) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
+        <Navbar />
+        <main className="max-w-md mx-auto w-full px-4 pt-32 pb-16 flex-1 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 font-poppins">Booking Cancelled — No Tax Invoice</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Booking reference <strong className="text-slate-800">{bookingData.bookingReference}</strong> was cancelled. In accordance with government GST regulations, official tax invoices are not issued or generated for cancelled bookings.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/profile?tab=bookings"
+              className="inline-block px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-[#ea110d] transition"
+            >
+              ← Back to My Bookings
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isPaid) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
+        <Navbar />
+        <main className="max-w-md mx-auto w-full px-4 pt-32 pb-16 flex-1 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 font-poppins">Payment Pending — Tax Invoice Not Generated</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Booking reference <strong className="text-slate-800">{bookingData.bookingReference}</strong> is currently unpaid ({bookingData.paymentMethod === 'pay_at_property' ? 'Pay at Property' : 'Pending'}). Official GST Tax Invoices are generated only after payment is captured and verified.
+          </p>
+          <div className="pt-2">
+            <Link
+              href={`/checkout/success?ref=${bookingData.bookingReference}`}
+              className="inline-block px-5 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition"
+            >
+              View Booking Voucher
+            </Link>
+          </div>
+        </main>
         <Footer />
       </div>
     );

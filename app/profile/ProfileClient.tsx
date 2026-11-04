@@ -1097,44 +1097,56 @@ function ProfileContent() {
                       </div>
 
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSelectedInvoiceBooking({
-                              id: b.id,
-                              bookingReference: b.bookingReference,
-                              bookingType: b.bookingType,
-                              invoiceNumber: b.invoiceNumber,
-                              title: b.title,
-                              dates: b.dates,
-                              guests: b.guests,
-                              roomOrTierName: b.roomOrTierName,
-                              amount: b.amount,
-                              paymentStatus: b.paymentStatus,
-                              bookingStatus: b.status,
-                              createdAt: b.createdAt,
-                              pricing: b.pricing,
-                              guestName: user?.fullName,
-                              guestEmail: user?.email,
-                            })
-                          }
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:border-slate-800 hover:text-slate-900 transition shadow-2xs cursor-pointer"
-                          title="View Official GST Tax Invoice"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
-                          <span>Tax Invoice</span>
-                        </button>
+                        {b.paymentStatus === "paid" && b.status !== "cancelled" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedInvoiceBooking({
+                                  id: b.id,
+                                  bookingReference: b.bookingReference,
+                                  bookingType: b.bookingType,
+                                  invoiceNumber: b.invoiceNumber,
+                                  title: b.title,
+                                  dates: b.dates,
+                                  guests: b.guests,
+                                  roomOrTierName: b.roomOrTierName,
+                                  amount: b.amount,
+                                  paymentStatus: b.paymentStatus,
+                                  bookingStatus: b.status,
+                                  createdAt: b.createdAt,
+                                  pricing: b.pricing,
+                                  guestName: user?.fullName,
+                                  guestEmail: user?.email,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:border-slate-800 hover:text-slate-900 transition shadow-2xs cursor-pointer"
+                              title="View Official GST Tax Invoice"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
+                              <span>Tax Invoice</span>
+                            </button>
 
-                        <a
-                          href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bookings/invoice/ref/${b.bookingReference}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#ea110d] bg-rose-50 border border-rose-200 hover:bg-rose-100 transition shadow-2xs cursor-pointer"
-                          title="Download PDF Invoice"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>PDF</span>
-                        </a>
+                            <a
+                              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bookings/invoice/ref/${b.bookingReference}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#ea110d] bg-rose-50 border border-rose-200 hover:bg-rose-100 transition shadow-2xs cursor-pointer"
+                              title="Download PDF Invoice"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>PDF</span>
+                            </a>
+                          </>
+                        ) : b.status === "cancelled" ? (
+                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold text-rose-600 bg-rose-50 border border-rose-200">
+                            Cancelled • No Invoice
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200">
+                            Pay at Property • Invoice on Payment
+                          </span>
+                        )}
 
                         <Link
                           href={`/checkout/success?ref=${b.bookingReference}`}

@@ -140,22 +140,28 @@ export default function StayCard({ stay, onBook }: StayCardProps) {
 
           {/* Rating and Tags Row */}
           <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-            <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-amber-900 shrink-0">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="#f59e0b"
-                stroke="#f59e0b"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="shrink-0"
-              >
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-              <span>{stay.rating}</span>
-            </div>
+            {stay.rating && Number(stay.rating) > 0 ? (
+              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-amber-900 shrink-0">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="#f59e0b"
+                  stroke="#f59e0b"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                <span>{stay.rating}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 shrink-0">
+                <span>New</span>
+              </div>
+            )}
 
             {stay.tags.slice(0, 2).map((tag) => (
               <span

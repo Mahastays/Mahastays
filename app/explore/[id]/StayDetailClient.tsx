@@ -7,10 +7,12 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { DetailPageSkeleton } from "../../components/Skeletons";
+import { VideoPlayerModal } from "../../components/VideoPlayerModal";
 import { RoomType, StayDetail } from "../staysData";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchPropertyByCode } from "@/store/slices/propertyslice";
 import { useWishlistItem } from "@/lib/wishlist";
+import { api } from "@/lib/api";
 
 export default function StayBookingDetailsPage() {
   const params = useParams();
@@ -98,10 +100,13 @@ export default function StayBookingDetailsPage() {
       images: rawImages,
       gallery: p.gallery || [],
       videos: p.videos || [],
-      host: p.host || { name: p.hostName || "Verified Host", role: p.hostRole || "Property Manager", experience: p.hostExperience || "5+ Years", avatar: p.hostAvatar },
+      videoUrl: p.videoUrl || p.video || (p.videos && p.videos[0]) || "",
+      keyAmenities: p.keyAmenities || [],
+      idealFor: p.idealFor || "",
+      host: p.host || { name: p.hostName || "Verified Host", role: p.hostRole || "Property Manager", experience: p.hostExperience || "Host since 2019", avatar: p.hostAvatar, staysCount: p.hostStaysCount || "64+ Verified Group Stays", confirmationBadge: "Instant Booking Confirmed" },
       hostName: p.hostName || p.host?.name || "Verified Host",
       hostRole: p.hostRole || p.host?.role || "Property Manager",
-      hostExperience: p.hostExperience || p.host?.experience || "5+ Years",
+      hostExperience: p.hostExperience || p.host?.experience || "Host since 2019",
       hostAvatar: p.hostAvatar || p.host?.avatar,
       highlights: p.highlights || [],
       amenities: p.amenities || [],
@@ -203,6 +208,68 @@ export default function StayBookingDetailsPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [writeReviewOpen, setWriteReviewOpen] = useState(false);
+  const [realReviews, setRealReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [newReviewAuthor, setNewReviewAuthor] = useState("");
+  const [newReviewLocation, setNewReviewLocation] = useState("");
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMsg, setReviewMsg] = useState("");
+
+  const loadStayReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const targetId = stay?.id || stayId;
+      const res = await api.get(`/reviews?targetType=property&targetId=${targetId}`);
+      const data = res.data?.data || res.data?.items || res.data || [];
+      if (Array.isArray(data)) {
+        setRealReviews(data);
+      }
+    } catch {
+      // offline / not found
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (stay?.id || stayId) {
+      loadStayReviews();
+    }
+  }, [stay?.id, stayId]);
+
+  const handlePostReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReviewAuthor.trim() || !newReviewComment.trim()) return;
+    setReviewSubmitting(true);
+    setReviewMsg("");
+    try {
+      await api.post("/reviews", {
+        targetType: "property",
+        targetId: stay?.id || stayId,
+        author: newReviewAuthor.trim(),
+        location: newReviewLocation.trim() || undefined,
+        rating: newReviewRating,
+        comment: newReviewComment.trim(),
+        roomStayed: selectedRoom?.name || "Suite Stay",
+      });
+      setReviewMsg("Review posted successfully!");
+      setTimeout(() => {
+        setWriteReviewOpen(false);
+        setNewReviewAuthor("");
+        setNewReviewLocation("");
+        setNewReviewComment("");
+        setNewReviewRating(5);
+        setReviewMsg("");
+        loadStayReviews();
+      }, 1000);
+    } catch (err: any) {
+      setReviewMsg(err.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   // Selected Room
   const selectedRoom: RoomType | undefined = useMemo(() => {
@@ -237,12 +304,24 @@ export default function StayBookingDetailsPage() {
     return isNaN(diff) || diff <= 0 ? 3 : Math.round(diff);
   }, [checkInDate, checkOutDate]);
 
+  // Pricing configuration from DB
+  const pricingRules = (stay as any)?.pricingRules;
+  const memberDiscountPercent = typeof pricingRules?.memberDiscountPercent === 'number'
+    ? pricingRules.memberDiscountPercent
+    : 8;
+  const includeCleaningFee = pricingRules?.includeCleaningFee !== false && pricingRules?.cleaningFee !== 0;
+  const cleaningFee = includeCleaningFee
+    ? (typeof pricingRules?.cleaningFee === 'number' ? pricingRules.cleaningFee : 445)
+    : 0;
+  const gstPercent = typeof pricingRules?.gstPercent === 'number'
+    ? pricingRules.gstPercent
+    : (pricingRules?.includeGst === false ? 0 : 18);
+  const gstRate = gstPercent / 100;
+
   const basePrice = roomPricePerNight * nights;
-  const discountAmount = Math.round(basePrice * 0.08);
-  const cleaningFee = 445;
-  const gstRate = 0.18;
+  const discountAmount = Math.round(basePrice * (memberDiscountPercent / 100));
   const taxesAndGst = Math.round((basePrice - discountAmount + cleaningFee) * gstRate);
-  const grandTotal = basePrice - discountAmount + cleaningFee + taxesAndGst;
+  const grandTotal = Math.max(0, basePrice - discountAmount + cleaningFee + taxesAndGst);
 
   // Tab change handler (switches content in place, no jump scrolling)
   const handleTabChange = (tabId: string) => {
@@ -507,65 +586,43 @@ export default function StayBookingDetailsPage() {
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
                     <span>Hosted by {stay.host?.name || "Kunal & Caretaker Ramesh"}</span>
-                    <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
-                      ✓
-                    </span>
+                    {((stay.host as any)?.verified !== false) && (
+                      <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
+                        ✓
+                      </span>
+                    )}
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                    {stay.host?.role || "Property Owner & Manager"} • Host since 2019 • 64+ Verified Group Stays
+                    {stay.host?.role || "Property Owner & Manager"}
+                    {stay.host?.experience ? ` • ${stay.host.experience}` : " • Host since 2019"}
+                    {(stay.host as any)?.staysCount ? ` • ${(stay.host as any).staysCount}` : " • 64+ Verified Group Stays"}
                   </p>
                 </div>
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-100 text-xs font-bold text-[#ea110d] font-poppins shrink-0">
                 <span className="text-[#ea110d] font-bold">✓</span>
-                <span>Instant Booking Confirmed</span>
+                <span>{(stay.host as any)?.confirmationBadge || "Instant Booking Confirmed"}</span>
               </div>
             </div>
 
             {/* Quick 4 Highlights Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                {
-                  title: "Infinity Pool Deck",
-                  desc: "Heated pool with valley view",
-                  icon: (
-                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2 13c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0M2 18c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0M4 7h4m-2-3v6m10-3h4m-2-3v6" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: "Private Chef",
-                  desc: "On-demand dining & BBQ",
-                  icon: (
-                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 3v7a2 2 0 002 2h0a2 2 0 002-2V3M8 3v18M18 3v18M15 3h6v4a3 3 0 01-3 3h0a3 3 0 01-3-3V3z" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: "Butler Service",
-                  desc: "Personalised assistance",
-                  icon: (
-                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v2m-6 9h12a1 1 0 001-1 7 7 0 00-14 0 1 1 0 001 1zm-2 3h16a1 1 0 010 2H4a1 1 0 010-2z" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: "High-Speed Wi-Fi",
-                  desc: "Stay connected 250 Mbps",
-                  icon: (
-                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.393 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-                    </svg>
-                  ),
-                },
-              ].map((h, i) => (
+              {(((stay as any).keyAmenities && (stay as any).keyAmenities.length > 0)
+                ? (stay as any).keyAmenities.map((ka: any) => ({
+                    title: ka.name || ka.title,
+                    desc: ka.desc || ka.description,
+                  }))
+                : [
+                    { title: "Infinity Pool Deck", desc: "Heated pool with valley view" },
+                    { title: "Private Chef", desc: "On-demand dining & BBQ" },
+                    { title: "Butler Service", desc: "Personalised assistance" },
+                    { title: "High-Speed Wi-Fi", desc: "Stay connected 250 Mbps" },
+                  ]
+              ).map((h: any, i: number) => (
                 <div key={i} className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-xs flex flex-col group hover:border-slate-300 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/70 flex items-center justify-center mb-2.5 shrink-0 group-hover:bg-slate-100 transition-colors">
-                    {h.icon}
+                  <div className="w-8 h-8 rounded-lg bg-rose-50/70 border border-rose-200/50 text-[#ea110d] flex items-center justify-center mb-2.5 shrink-0 group-hover:bg-rose-100/60 transition-colors font-bold text-xs">
+                    ✓
                   </div>
                   <div className="text-xs font-bold text-slate-900 font-poppins">{h.title}</div>
                   <div className="text-[11px] text-slate-500 mt-0.5 leading-tight">{h.desc}</div>
@@ -1141,26 +1198,38 @@ export default function StayBookingDetailsPage() {
                   </a>
                 </div>
 
-                {/* Map Preview Banner */}
-                <div className="relative rounded-2xl overflow-hidden h-56 sm:h-64 bg-slate-100 border border-slate-200">
-                  <Image
-                    src="/panchgani.jpg"
-                    alt="Map Location View"
-                    fill
-                    className="object-cover opacity-90"
+                {/* Live Interactive Map View */}
+                <div className="relative rounded-2xl overflow-hidden min-h-[300px] sm:min-h-[360px] bg-slate-100 border border-slate-200 shadow-inner">
+                  <iframe
+                    title="Property Map Location"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${(
+                      (typeof stay.address?.lng === 'number' ? stay.address.lng : 73.8015) - 0.015
+                    ).toFixed(5)}%2C${(
+                      (typeof stay.address?.lat === 'number' ? stay.address.lat : 17.9242) - 0.011
+                    ).toFixed(5)}%2C${(
+                      (typeof stay.address?.lng === 'number' ? stay.address.lng : 73.8015) + 0.015
+                    ).toFixed(5)}%2C${(
+                      (typeof stay.address?.lat === 'number' ? stay.address.lat : 17.9242) + 0.011
+                    ).toFixed(5)}&layer=mapnik&marker=${(typeof stay.address?.lat === 'number' ? stay.address.lat : 17.9242).toFixed(5)}%2C${(typeof stay.address?.lng === 'number' ? stay.address.lng : 73.8015).toFixed(5)}`}
+                    className="absolute inset-0 w-full h-full border-0"
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-[#ea110d] text-white flex items-center justify-center shadow-xl animate-bounce">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div className="mt-1 px-3 py-1 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-md backdrop-blur-sm">
-                      {stay.name}
-                    </div>
+                  <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md text-xs font-bold font-poppins text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{stay.name}</span>
                   </div>
+                  <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] font-mono">
+                    GPS: {(typeof stay.address?.lat === 'number' ? stay.address.lat : 17.9242).toFixed(5)}° N, {(typeof stay.address?.lng === 'number' ? stay.address.lng : 73.8015).toFixed(5)}° E
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps?q=${typeof stay.address?.lat === 'number' ? stay.address.lat : 17.9242},${typeof stay.address?.lng === 'number' ? stay.address.lng : 73.8015}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins shadow-md hover:bg-[#d00f0c] transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Get Directions</span>
+                    <span>↗</span>
+                  </a>
                 </div>
 
                 {/* Nearby Attractions */}
@@ -1230,42 +1299,44 @@ export default function StayBookingDetailsPage() {
 
                 {/* Review Cards */}
                 <div className="space-y-4 pt-2">
-                  {[
-                    {
-                      name: "Abhishek Kulkarni",
-                      date: "September 2026",
-                      rating: 5,
-                      room: "Entire 4BHK Villa",
-                      comment:
-                        "Exceeded all expectations! The private infinity pool overlooking the valley is sensational. Caretaker Ramesh arranged delicious Maharashtrian barbecue dinners. Absolutely booking again.",
-                    },
-                    {
-                      name: "Pooja & Rohan Sharma",
-                      date: "August 2026",
-                      rating: 5,
-                      room: "Panoramic Sunset Suite",
-                      comment:
-                        "The cleanest and most aesthetic property in Panchgani. High-speed Wi-Fi allowed smooth remote work during the day, followed by starry bonfire nights.",
-                    },
-                  ].map((rev, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center font-poppins">
-                            {rev.name[0]}
+                  {reviewsLoading ? (
+                    <div className="py-6 text-center text-xs text-slate-400">Loading guest reviews from database...</div>
+                  ) : realReviews.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-2">
+                      <p className="text-xs text-slate-500 font-medium">No reviews written for this property yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => setWriteReviewOpen(true)}
+                        className="text-xs font-bold text-[#ea110d] hover:underline cursor-pointer"
+                      >
+                        Be the first to share your experience →
+                      </button>
+                    </div>
+                  ) : (
+                    realReviews.map((rev, i) => (
+                      <div key={rev.id || i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center font-poppins">
+                              {rev.author ? rev.author[0].toUpperCase() : "G"}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 font-poppins">{rev.author}</div>
+                              <div className="text-[10px] text-slate-400 font-roboto">
+                                {rev.date || "Recent"} {rev.roomStayed ? `• ${rev.roomStayed}` : ""}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-xs font-bold text-slate-900 font-poppins">{rev.name}</div>
-                            <div className="text-[10px] text-slate-400 font-roboto">{rev.date} • {rev.room}</div>
+                          <div className="text-amber-500 text-xs font-bold">
+                            {"★".repeat(rev.rating || 5)}
                           </div>
                         </div>
-                        <div className="text-amber-500 text-xs font-bold">{"★".repeat(rev.rating)}</div>
+                        <p className="text-xs text-slate-600 leading-relaxed font-roboto">
+                          &quot;{rev.comment}&quot;
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed font-roboto">
-                        &quot;{rev.comment}&quot;
-                      </p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -1455,6 +1526,9 @@ export default function StayBookingDetailsPage() {
                       children: String(children),
                       nights: String(nights),
                       price: String(roomPricePerNight),
+                      discount: String(memberDiscountPercent),
+                      cleaningFee: String(includeCleaningFee ? cleaningFee : 0),
+                      gst: String(gstPercent),
                       image: allPhotos[0] || "",
                     });
                     router.push(`/checkout?${queryParams.toString()}`);
@@ -1484,18 +1558,22 @@ export default function StayBookingDetailsPage() {
                   <span className="font-semibold text-slate-900">₹{basePrice.toLocaleString("en-IN")}</span>
                 </div>
 
-                <div className="flex justify-between text-emerald-600 font-medium">
-                  <span>Mahastays Member Discount (8%)</span>
-                  <span>-₹{discountAmount.toLocaleString("en-IN")}</span>
-                </div>
+                {memberDiscountPercent > 0 && discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-medium">
+                    <span>Mahastays Member Discount ({memberDiscountPercent}%)</span>
+                    <span>-₹{discountAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+
+                {includeCleaningFee && cleaningFee > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Cleaning &amp; Sanitization Fee</span>
+                    <span className="font-semibold text-slate-900">₹{cleaningFee.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
 
                 <div className="flex justify-between text-slate-600">
-                  <span>Cleaning &amp; Sanitization Fee</span>
-                  <span className="font-semibold text-slate-900">₹{cleaningFee.toLocaleString("en-IN")}</span>
-                </div>
-
-                <div className="flex justify-between text-slate-600">
-                  <span>Taxes &amp; GST (18%)</span>
+                  <span>Taxes &amp; GST ({gstPercent}%)</span>
                   <span className="font-semibold text-slate-900">₹{taxesAndGst.toLocaleString("en-IN")}</span>
                 </div>
 
@@ -1548,6 +1626,9 @@ export default function StayBookingDetailsPage() {
                 children: String(children),
                 nights: String(nights),
                 price: String(roomPricePerNight),
+                discount: String(memberDiscountPercent),
+                cleaningFee: String(includeCleaningFee ? cleaningFee : 0),
+                gst: String(gstPercent),
                 image: allPhotos[0] || "",
               });
               router.push(`/checkout?${queryParams.toString()}`);
@@ -1601,82 +1682,91 @@ export default function StayBookingDetailsPage() {
       )}
 
       {/* Video Modal */}
-      {videoModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-3xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-4 flex items-center justify-between border-b border-slate-800 text-white">
-              <span className="text-sm font-bold font-poppins">Video Tour: {stay.name}</span>
-              <button
-                onClick={() => setVideoModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold hover:bg-white/20"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="relative aspect-video bg-black flex items-center justify-center">
-              <Image
-                src={allPhotos[0]}
-                alt="Video Tour"
-                fill
-                className="object-cover opacity-60"
-              />
-              <div className="relative z-10 text-center text-white px-4">
-                <div className="w-16 h-16 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-2xl mx-auto shadow-2xl mb-2">
-                  ▶
-                </div>
-                <div className="text-sm font-bold font-poppins">Curated 4K Drone &amp; Villa Walkthrough</div>
-                <div className="text-xs text-slate-300 mt-1">Available exclusively to confirmed guests upon reservation</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <VideoPlayerModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        videoUrl={(stay as any).videoUrl}
+        title={`Video Tour: ${stay.name}`}
+      />
 
       {/* Write Review Modal */}
       {writeReviewOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 font-poppins">Write a Guest Review</h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 font-poppins">Write a Guest Review</h3>
               <button
+                type="button"
                 onClick={() => setWriteReviewOpen(false)}
                 className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold hover:bg-slate-200"
               >
                 ✕
               </button>
             </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Share your genuine feedback for {stay.name} to help other travelers.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Your Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Rahul Patil"
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d]"
-                />
+
+            {reviewMsg ? (
+              <div className="py-6 text-center space-y-2">
+                <div className="text-sm font-bold text-slate-900">{reviewMsg}</div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Rating</label>
-                <div className="text-xl text-amber-500 cursor-pointer">★★★★★</div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Your Review</label>
-                <textarea
-                  rows={4}
-                  placeholder="Write your experience with rooms, pool, host and amenities..."
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d]"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setWriteReviewOpen(false)}
-                className="w-full py-3 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md hover:bg-red-700 transition"
-              >
-                Submit Review
-              </button>
-            </div>
+            ) : (
+              <form onSubmit={handlePostReview} className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Your Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newReviewAuthor}
+                    onChange={(e) => setNewReviewAuthor(e.target.value)}
+                    placeholder="e.g. Rahul Patil"
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">City / Hometown</label>
+                  <input
+                    type="text"
+                    value={newReviewLocation}
+                    onChange={(e) => setNewReviewLocation(e.target.value)}
+                    placeholder="e.g. Pune, Mumbai"
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rating</label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewReviewRating(star)}
+                        className={`text-2xl cursor-pointer ${star <= newReviewRating ? "text-amber-400" : "text-slate-200"}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-slate-700 ml-2">{newReviewRating} / 5</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Your Review</label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={newReviewComment}
+                    onChange={(e) => setNewReviewComment(e.target.value)}
+                    placeholder="Describe your stay, rooms, service, and amenities..."
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d] resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={reviewSubmitting}
+                  className="w-full py-3 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md hover:bg-red-700 transition cursor-pointer disabled:opacity-50"
+                >
+                  {reviewSubmitting ? "Submitting..." : "Submit Real Review"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

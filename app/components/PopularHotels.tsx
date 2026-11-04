@@ -19,20 +19,20 @@ export default function PopularHotels() {
   const stays: Stay[] = items.map((property) => ({
     id: property.id,
     name: property.name,
-    price: property.price || `₹${property.numericPrice?.toLocaleString("en-IN")}`,
+    price: property.price || (property.numericPrice ? `₹${property.numericPrice?.toLocaleString("en-IN")}` : ""),
     numericPrice: property.numericPrice,
     inrPrice: property.inrPrice || property.numericPrice,
-    rating: property.rating || "4.8",
-    description: property.description,
+    rating: property.rating || "",
+    description: property.description || "",
     tags: property.tags || [],
     image:
       typeof property.images?.[0] === "string"
         ? property.images[0]
-        : property.images?.[0]?.url || property.gallery?.[0] || "/hero-resort.jpg",
+        : property.images?.[0]?.url || property.gallery?.[0] || "",
     type: (property.type as any) || (property.propertyType === "villa" ? "Villa" : "Resort"),
-    location: property.location,
-    city: property.city,
-    country: property.country,
+    location: property.location || "",
+    city: property.city || "",
+    country: property.country || "India",
     bgColor: property.bgColor || undefined,
     gradientOverlay: property.gradientOverlay || undefined,
     featured: property.featured,
