@@ -14,6 +14,7 @@ import {
   Eye,
   FileText,
   BadgeCheck,
+  RotateCw,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -35,9 +36,24 @@ export default function ApprovalsView({ onOpenRejectModal }: ApprovalsViewProps)
     approveExperience,
     approveAdCampaign,
     verifyVendorKYC,
+    refreshData,
   } = useData();
 
   const [activeTab, setActiveTab] = useState<'all' | 'properties' | 'packages' | 'experiences' | 'ads' | 'kyc'>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshApprovals = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
+  React.useEffect(() => {
+    refreshData();
+  }, []);
 
   const pendingProperties = properties.filter((p) => p.status === 'pending_approval');
   const pendingPackages = packages.filter((p) => p.status === 'pending_approval');
@@ -71,6 +87,17 @@ export default function ApprovalsView({ onOpenRejectModal }: ApprovalsViewProps)
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRefreshApprovals}
+            disabled={isRefreshing}
+            title="Refetch all pending items from database"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition active:scale-95 disabled:opacity-60 cursor-pointer"
+          >
+            <RotateCw className={`w-3.5 h-3.5 text-rose-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Queue'}</span>
+          </button>
+
           <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-600 text-white shadow-xs">
             {totalPending} Items Pending Review
           </span>

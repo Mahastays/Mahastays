@@ -41,53 +41,119 @@ const initialState: VendorsState = {
   error: null,
 };
 
-export const normalizeVendor = (raw: any): VendorItem => ({
-  id: raw.id || raw._id,
-  vendorCode: raw.vendorCode || 'VND-3001',
-  businessName: raw.businessName || 'Hospitality Partner',
-  displayName: raw.displayName || raw.businessName || 'Vendor Partner',
-  displayRole: raw.displayRole || 'Host & Partner',
-  experienceSummary: raw.experienceSummary || 'Verified Partner',
-  category: raw.category || 'property_host',
-  avatarUrl: raw.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-  email: raw.email || '',
-  phone: raw.phone || '',
-  status: raw.status || 'active',
-  compliance: {
-    panNumber: raw.compliance?.panNumber || 'ABCDE1234F',
-    gstin: raw.compliance?.gstin || '27ABCDE1234F1Z5',
-    tourismLicenseNumber: raw.compliance?.tourismLicenseNumber || 'MTDC/2026/089',
-    verificationStatus: raw.compliance?.verificationStatus || 'approved',
-  },
-  banking: {
-    bankName: raw.banking?.bankName || 'HDFC Bank',
-    accountHolderName: raw.banking?.accountHolderName || raw.businessName || 'Hospitality Partner',
-    accountNumberLast4: raw.banking?.accountNumberLast4 || (raw.banking?.accountNumberMasked ? raw.banking.accountNumberMasked.slice(-4) : '4821'),
-    ifscCode: raw.banking?.ifscCode || 'HDFC0001234',
-    isAccountVerified: raw.banking?.isAccountVerified ?? true,
-  },
-  wallet: {
-    availableInr: raw.wallet?.availableInr ?? raw.wallet?.availablePayoutBalanceInr ?? 0,
-    pendingInr: raw.wallet?.pendingInr ?? raw.wallet?.pendingClearanceBalanceInr ?? 0,
-    lifetimeEarningsInr: raw.wallet?.lifetimeEarningsInr ?? raw.wallet?.totalLifetimeEarningsInr ?? 0,
-    lifetimeCommissionInr: raw.wallet?.lifetimeCommissionInr ?? raw.wallet?.totalLifetimeCommissionPaidInr ?? 0,
-  },
-  commissionTerms: raw.commissionTerms
-    ? {
-        commissionType: raw.commissionTerms.commissionType || 'percentage',
-        propertyCommissionRatePercent: raw.commissionTerms.propertyCommissionRatePercent ?? 12,
-        packageCommissionRatePercent: raw.commissionTerms.packageCommissionRatePercent ?? 10,
-        experienceCommissionRatePercent: raw.commissionTerms.experienceCommissionRatePercent ?? 15,
-        payoutCycle: raw.commissionTerms.payoutCycle || 'monthly',
-      }
-    : {
-        commissionType: 'percentage',
-        propertyCommissionRatePercent: 12,
-        packageCommissionRatePercent: 10,
-        experienceCommissionRatePercent: 15,
-        payoutCycle: 'monthly',
+const isDummyString = (str?: string | null) => {
+  if (!str) return true;
+  const s = str.trim().toLowerCase();
+  return (
+    s === 'abcde1234f' ||
+    s === '27abcde1234f1z5' ||
+    s === 'mtdc/2026/089' ||
+    s === 'main market road' ||
+    s.includes('photo-1507003211169-0a1dd7228f2d') ||
+    s.includes('photo-1589829545856-d10d557cf95f') ||
+    s.includes('photo-1450133064473-71024230f91b') ||
+    s.includes('pravatar.cc') ||
+    s === 'hdfc bank' ||
+    s === 'hdfc0001234' ||
+    s === 'mahabaleshwar main branch'
+  );
+};
+
+export const normalizeVendor = (raw: any): VendorItem => {
+  const pan = raw.compliance?.panNumber || raw.panNumber || '';
+  const gstin = raw.compliance?.gstin || raw.gstin || '';
+  const mtdc = raw.compliance?.tourismLicenseNumber || raw.tourismLicenseNumber || '';
+  const aadhaar = raw.compliance?.aadhaarNumber || raw.aadhaarNumber || '';
+  const avatar = raw.avatarUrl || '';
+  const identityProof = raw.compliance?.identityProofUrl || raw.identityProofUrl || '';
+  const businessProof = raw.compliance?.businessProofUrl || raw.businessProofUrl || '';
+  const bankProof = raw.compliance?.bankProofUrl || raw.bankProofUrl || '';
+  const tourismProof = raw.compliance?.tourismProofUrl || raw.tourismProofUrl || '';
+  const addr1 = raw.contact?.registeredOfficeAddress?.addressLine1 || '';
+  const bankName = raw.banking?.bankName || '';
+  const ifsc = raw.banking?.ifscCode || '';
+  const branch = raw.banking?.branchName || '';
+
+  const cleanPan = isDummyString(pan) ? '' : pan;
+  const cleanGstin = isDummyString(gstin) ? '' : gstin;
+  const cleanMtdc = isDummyString(mtdc) ? '' : mtdc;
+  const cleanAvatar = isDummyString(avatar) ? '' : avatar;
+  const cleanIdentityProof = isDummyString(identityProof) ? '' : identityProof;
+  const cleanBusinessProof = isDummyString(businessProof) ? '' : businessProof;
+  const cleanAddr1 = isDummyString(addr1) ? '' : addr1;
+  const cleanBankName = isDummyString(bankName) ? '' : bankName;
+  const cleanIfsc = isDummyString(ifsc) ? '' : ifsc;
+  const cleanBranch = isDummyString(branch) ? '' : branch;
+
+  return {
+    id: raw.id || raw._id,
+    vendorCode: raw.vendorCode || 'VND',
+    businessName: raw.businessName || '',
+    displayName: raw.displayName || raw.businessName || '',
+    displayRole: raw.displayRole || '',
+    experienceSummary: (raw.experienceSummary?.includes('Verified Mahastays Partner since') ? '' : raw.experienceSummary) || '',
+    category: raw.category || 'property_host',
+    businessType: raw.businessType || 'proprietorship',
+    avatarUrl: cleanAvatar,
+    email: raw.email || '',
+    phone: raw.phone || '',
+    status: raw.status || 'active',
+    compliance: {
+      panNumber: cleanPan,
+      gstin: cleanGstin,
+      tourismLicenseNumber: cleanMtdc,
+      aadhaarNumber: aadhaar,
+      identityProofUrl: cleanIdentityProof,
+      businessProofUrl: cleanBusinessProof,
+      bankProofUrl: bankProof,
+      tourismProofUrl: tourismProof,
+      verificationStatus: !cleanPan && !cleanIdentityProof ? 'pending' : (raw.compliance?.verificationStatus || 'pending'),
+    },
+    banking: {
+      bankName: cleanBankName,
+      accountHolderName: raw.banking?.accountHolderName || '',
+      accountNumber: raw.banking?.accountNumber || '',
+      accountNumberLast4: raw.banking?.accountNumberLast4 || (raw.banking?.accountNumber ? raw.banking.accountNumber.slice(-4) : ''),
+      ifscCode: cleanIfsc,
+      branchName: cleanBranch,
+      upiId: raw.banking?.upiId || '',
+      isAccountVerified: !cleanBankName && !raw.banking?.accountNumber ? false : (raw.banking?.isAccountVerified ?? false),
+    },
+    contact: {
+      primaryContactPerson: raw.contact?.primaryContactPerson || raw.displayName || '',
+      alternatePhone: raw.contact?.alternatePhone || '',
+      registeredOfficeAddress: {
+        addressLine1: cleanAddr1,
+        addressLine2: cleanAddr1 ? (raw.contact?.registeredOfficeAddress?.addressLine2 || '') : '',
+        city: cleanAddr1 ? (raw.contact?.registeredOfficeAddress?.city || '') : '',
+        state: cleanAddr1 ? (raw.contact?.registeredOfficeAddress?.state || '') : '',
+        pincode: cleanAddr1 ? (raw.contact?.registeredOfficeAddress?.pincode || '') : '',
+        country: cleanAddr1 ? (raw.contact?.registeredOfficeAddress?.country || 'India') : '',
       },
-});
+    },
+    wallet: {
+      availableInr: raw.wallet?.availableInr ?? raw.wallet?.availablePayoutBalanceInr ?? 0,
+      pendingInr: raw.wallet?.pendingInr ?? raw.wallet?.pendingClearanceBalanceInr ?? 0,
+      lifetimeEarningsInr: raw.wallet?.lifetimeEarningsInr ?? raw.wallet?.totalLifetimeEarningsInr ?? 0,
+      lifetimeCommissionInr: raw.wallet?.lifetimeCommissionInr ?? raw.wallet?.totalLifetimeCommissionPaidInr ?? 0,
+    },
+    commissionTerms: raw.commissionTerms
+      ? {
+          commissionType: raw.commissionTerms.commissionType || 'percentage',
+          propertyCommissionRatePercent: raw.commissionTerms.propertyCommissionRatePercent ?? 12,
+          packageCommissionRatePercent: raw.commissionTerms.packageCommissionRatePercent ?? 10,
+          experienceCommissionRatePercent: raw.commissionTerms.experienceCommissionRatePercent ?? 15,
+          payoutCycle: raw.commissionTerms.payoutCycle || 'monthly',
+        }
+      : {
+          commissionType: 'percentage',
+          propertyCommissionRatePercent: 12,
+          packageCommissionRatePercent: 10,
+          experienceCommissionRatePercent: 15,
+          payoutCycle: 'monthly',
+        },
+  };
+};
 
 export const fetchVendors = createAsyncThunk('vendors/fetchVendors', async () => {
   try {
@@ -257,20 +323,61 @@ export const updateVendorProfileAsync = createAsyncThunk(
         panNumber?: string;
         gstin?: string;
         tourismLicenseNumber?: string;
+        aadhaarNumber?: string;
+        identityProofUrl?: string;
+        businessProofUrl?: string;
+        bankProofUrl?: string;
+        tourismProofUrl?: string;
         primaryContactPerson?: string;
+        alternatePhone?: string;
         addressLine1?: string;
+        addressLine2?: string;
         city?: string;
         state?: string;
         pincode?: string;
+        bankName?: string;
+        accountHolderName?: string;
+        accountNumber?: string;
+        ifscCode?: string;
+        branchName?: string;
+        upiId?: string;
       };
     },
     { getState }
   ) => {
     let updatedVendor: VendorItem | null = null;
+    const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+
     try {
-      const res = await api.patch(`/admin/vendors/${vendorId}`, data);
-      if (res.data?.data) {
-        updatedVendor = normalizeVendor(res.data.data);
+      if (isVendor) {
+        const res = await api.put('/vendor/me', data).catch(() => api.patch(`/admin/vendors/${vendorId}`, data));
+        if (res.data?.data) {
+          updatedVendor = normalizeVendor(res.data.data);
+        }
+        if (data.identityProofUrl || data.businessProofUrl || data.panNumber) {
+          await api.put('/vendor/me/kyc', {
+            panNumber: data.panNumber || '',
+            gstin: data.gstin,
+            tourismLicenseNumber: data.tourismLicenseNumber,
+            identityProofUrl: data.identityProofUrl || '',
+            businessProofUrl: data.businessProofUrl || '',
+          }).catch(() => null);
+        }
+        if (data.accountNumber && data.ifscCode) {
+          await api.put('/vendor/me/banking', {
+            accountHolderName: data.accountHolderName || data.businessName || '',
+            accountNumber: data.accountNumber,
+            bankName: data.bankName || '',
+            ifscCode: data.ifscCode,
+            branchName: data.branchName,
+            upiId: data.upiId,
+          }).catch(() => null);
+        }
+      } else {
+        const res = await api.patch(`/admin/vendors/${vendorId}`, data).catch(() => api.put(`/vendor/me`, data));
+        if (res.data?.data) {
+          updatedVendor = normalizeVendor(res.data.data);
+        }
       }
     } catch {
       // Offline fallback
@@ -282,12 +389,12 @@ export const updateVendorProfileAsync = createAsyncThunk(
         if (updatedVendor) return updatedVendor;
         return {
           ...v,
-          email: data.email || v.email,
           businessName: data.businessName || v.businessName,
           displayName: data.displayName || v.displayName,
           displayRole: data.displayRole || v.displayRole,
           phone: data.phone || v.phone,
           category: data.category || v.category,
+          businessType: data.businessType || v.businessType,
           avatarUrl: data.avatarUrl || v.avatarUrl,
           experienceSummary: data.experienceSummary !== undefined ? data.experienceSummary : v.experienceSummary,
           compliance: {
@@ -295,6 +402,34 @@ export const updateVendorProfileAsync = createAsyncThunk(
             panNumber: data.panNumber || v.compliance.panNumber,
             gstin: data.gstin !== undefined ? data.gstin : v.compliance.gstin,
             tourismLicenseNumber: data.tourismLicenseNumber !== undefined ? data.tourismLicenseNumber : v.compliance.tourismLicenseNumber,
+            aadhaarNumber: data.aadhaarNumber !== undefined ? data.aadhaarNumber : (v.compliance as any).aadhaarNumber,
+            identityProofUrl: data.identityProofUrl !== undefined ? data.identityProofUrl : (v.compliance as any).identityProofUrl,
+            businessProofUrl: data.businessProofUrl !== undefined ? data.businessProofUrl : (v.compliance as any).businessProofUrl,
+            bankProofUrl: data.bankProofUrl !== undefined ? data.bankProofUrl : (v.compliance as any).bankProofUrl,
+            tourismProofUrl: data.tourismProofUrl !== undefined ? data.tourismProofUrl : (v.compliance as any).tourismProofUrl,
+            verificationStatus: 'under_review' as const,
+          },
+          banking: {
+            ...v.banking,
+            bankName: data.bankName || v.banking.bankName,
+            accountHolderName: data.accountHolderName || v.banking.accountHolderName,
+            accountNumber: data.accountNumber || (v.banking as any).accountNumber,
+            accountNumberLast4: data.accountNumber ? data.accountNumber.slice(-4) : v.banking.accountNumberLast4,
+            ifscCode: data.ifscCode || v.banking.ifscCode,
+            branchName: data.branchName || (v.banking as any).branchName,
+            upiId: data.upiId || (v.banking as any).upiId,
+          },
+          contact: {
+            primaryContactPerson: data.primaryContactPerson || v.contact?.primaryContactPerson || data.displayName || v.displayName,
+            alternatePhone: data.alternatePhone || v.contact?.alternatePhone,
+            registeredOfficeAddress: {
+              addressLine1: data.addressLine1 || v.contact?.registeredOfficeAddress?.addressLine1 || '',
+              addressLine2: data.addressLine2 || v.contact?.registeredOfficeAddress?.addressLine2 || '',
+              city: data.city || v.contact?.registeredOfficeAddress?.city || '',
+              state: data.state || v.contact?.registeredOfficeAddress?.state || '',
+              pincode: data.pincode || v.contact?.registeredOfficeAddress?.pincode || '',
+              country: 'India',
+            },
           },
         };
       }

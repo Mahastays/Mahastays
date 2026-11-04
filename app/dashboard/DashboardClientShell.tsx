@@ -100,9 +100,9 @@ export default function DashboardClientShell({ children }: { children: React.Rea
   };
 
   const handleOpenCreateModal = (type: 'property' | 'package' | 'experience' | 'ad') => {
-    if (type === 'property') setPropertyModalOpen(true);
-    else if (type === 'package') setPackageModalOpen(true);
-    else if (type === 'experience') setExperienceModalOpen(true);
+    if (type === 'property') router.push('/dashboard/hotels/new');
+    else if (type === 'package') router.push('/dashboard/packages/new');
+    else if (type === 'experience') router.push('/dashboard/experiences/new');
     else if (type === 'ad') setAdModalOpen(true);
   };
 

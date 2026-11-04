@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   ShieldCheck,
   Percent,
@@ -126,7 +127,7 @@ export default function SettingsPage() {
         newPassword,
       });
       if (res.status === 200 || res.status === 201) {
-        setPassSuccess('Administrator password updated successfully! Please store it securely.');
+        setPassSuccess(isAdmin ? 'Administrator password updated successfully! Please store it securely.' : 'Partner account password updated successfully! Please store it securely.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -722,46 +723,66 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ── 4. Security & Compliance State (From Screenshot) ── */}
+      {/* ── 4. Authenticated Session Information ── */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-2xs">
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Security & Compliance State</span>
+          <ShieldCheck className="w-4 h-4 text-rose-600" />
+          <span>Active Authenticated Session</span>
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
-            <div className="text-slate-400 font-medium">Session Authenticated As</div>
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="space-y-1">
+            <div className="text-slate-400 font-medium">Logged in User Account</div>
             <div className="font-bold text-slate-800 dark:text-slate-100">
-              {user?.name} ({user?.email})
+              {user?.name || 'Authorized User'} ({user?.email})
             </div>
             <div className="text-[11px] text-slate-500">
-              Role: <span className="capitalize font-semibold text-rose-600">{user?.role}</span>
+              Access Role: <span className="capitalize font-semibold text-rose-600">{user?.role}</span>
+              {user?.businessName && ` • Entity: ${user.businessName}`}
             </div>
           </div>
-
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
-            <div className="text-slate-400 font-medium">Compliance Verification</div>
-            <div className="font-bold text-emerald-600 flex items-center gap-1.5">
-              <span>MTDC Hospitality Certified</span>
-              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-                Active
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-500">Verified against Government of Maharashtra Tourism Portal</div>
-          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-900/60">
+            Secure Live Session
+          </span>
         </div>
       </div>
 
-      {/* ── 5. Administrator Password & Security Settings ── */}
+      {/* ── Vendor Self-Service KYC & Documents Banner (For Vendors) ── */}
+      {!isAdmin && (
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-[#134E4A] to-[#0f3d3a] text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Host Compliance & KYC
+              </span>
+              <span className="text-xs text-emerald-200">MTDC &amp; GST Registered Partner</span>
+            </div>
+            <h3 className="text-base font-bold">My Full KYC &amp; Verification Documents</h3>
+            <p className="text-xs text-emerald-100/80 max-w-xl">
+              Inspect your verified KYC records, upload or replace compliance documents (Identity Proof, Business Registration, Bank Cheque, MTDC License), update names and payout account details.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/vendors"
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-[#134E4A] text-xs font-bold transition shadow-sm whitespace-nowrap cursor-pointer flex items-center gap-2"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+            <span>Manage My KYC &amp; Docs</span>
+          </Link>
+        </div>
+      )}
+
+      {/* ── 5. Password & Security Settings ── */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-5 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-rose-600" />
-              <span>Change Administrator Password</span>
+              <span>{isAdmin ? 'Change Administrator Password' : 'Change Partner Portal Password'}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Update password for administrative access ({user?.email || 'bookingmahastays@gmail.com'})
+              {isAdmin
+                ? `Update password for administrative access (${user?.email || 'bookingmahastays@gmail.com'})`
+                : `Update login password for partner account (${user?.email})`}
             </p>
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/60 w-fit">
@@ -801,7 +822,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowCurrentPass(!showCurrentPass)}
-                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -826,7 +847,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowNewPass(!showNewPass)}
-                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -865,7 +886,7 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <KeyRound className="w-3.5 h-3.5" />
-                  <span>Update Admin Password</span>
+                  <span>{isAdmin ? 'Update Admin Password' : 'Update Partner Password'}</span>
                 </>
               )}
             </button>

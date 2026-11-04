@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Building2, Plus, BedDouble, MapPin, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Building2, Plus, BedDouble, MapPin, Image as ImageIcon, UploadCloud, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { uploadImageToCloudinary } from '@/lib/upload';
 import { PropertyType } from '../../types';
 
 interface CreatePropertyModalProps {
@@ -19,12 +20,29 @@ export default function CreatePropertyModal({ isOpen, onClose }: CreatePropertyM
   const [propertyType, setPropertyType] = useState<PropertyType>('resort');
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('Venna Lake Road, Mahabaleshwar');
+  const [location, setLocation] = useState('');
   const [city, setCity] = useState('Mahabaleshwar');
-  const [numericPrice, setNumericPrice] = useState('8500');
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop&q=80');
-  const [roomName, setRoomName] = useState('Executive Valley Suite');
-  const [roomPrice, setRoomPrice] = useState('8500');
+  const [numericPrice, setNumericPrice] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [roomName, setRoomName] = useState('');
+  const [roomPrice, setRoomPrice] = useState('');
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const res = await uploadImageToCloudinary(file, 'listing_media');
+      if (res?.url) setImageUrl(res.url);
+    } catch (err: any) {
+      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -36,25 +54,31 @@ export default function CreatePropertyModal({ isOpen, onClose }: CreatePropertyM
       name: name.trim(),
       propertyType,
       tagline: tagline.trim() || undefined,
-      description: description.trim() || 'Luxury property surrounded by the Western Ghats.',
+      description: description.trim(),
       location: location.trim(),
       city: city.trim(),
-      numericPrice: parseInt(numericPrice, 10) || 8500,
-      images: [imageUrl.trim()],
-      vendorId: user?.vendorId || 'vnd_resort_01',
-      vendorName: user?.businessName || 'HillView Hospitality Pvt Ltd',
+      numericPrice: parseInt(numericPrice, 10) || 0,
+      images: imageUrl.trim() ? [imageUrl.trim()] : [],
+      vendorId: user?.vendorId || user?.id || '',
+      vendorName: user?.businessName || user?.name || '',
+      address: {
+        fullAddress: location.trim() || `${city.trim()}, Maharashtra`,
+        lat: 17.9242,
+        lng: 73.8015,
+        mapLink: 'https://www.google.com/maps?q=17.9242,73.8015',
+      },
       rooms: [
         {
           roomId: `rm_${Date.now()}`,
           name: roomName.trim() || 'Deluxe Room',
           maxGuests: 2,
-          basePrice: parseInt(roomPrice, 10) || 8500,
-          count: 5,
-          images: [imageUrl.trim()],
-          amenities: ['Breakfast included', 'Valley View', 'High-speed WiFi', 'AC'],
+          basePrice: parseInt(roomPrice, 10) || parseInt(numericPrice, 10) || 0,
+          count: 1,
+          images: imageUrl.trim() ? [imageUrl.trim()] : [],
+          amenities: ['Free WiFi'],
         },
       ],
-      amenities: ['Free WiFi', 'Breakfast Included', 'Swimming Pool', 'Private Parking', 'Mountain View'],
+      amenities: ['Free WiFi'],
     });
 
     onClose();
@@ -170,14 +194,54 @@ export default function CreatePropertyModal({ isOpen, onClose }: CreatePropertyM
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">Cover Image URL</label>
+              <label className="font-semibold text-slate-700 dark:text-slate-300 block">Cover Photo</label>
               <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                required
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
               />
+              {imageUrl ? (
+                <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  <span className="text-[11px] text-emerald-600 font-bold flex-1 truncate">Photo Uploaded</span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[10px] px-2 py-1 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 text-slate-700 dark:text-slate-200 font-bold"
+                  >
+                    Change
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="text-[10px] px-1.5 py-1 text-rose-500 font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-400 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4 text-rose-500" />
+                      <span>Upload Photo</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 

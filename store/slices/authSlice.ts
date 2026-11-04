@@ -2,24 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api, { getApiErrorMessage } from '../../lib/api';
 import { CurrentUser, UserRole } from '../../types';
 
-export const ADMIN_DEMO_CREDENTIALS = {
-  email: 'bookingmahastays@gmail.com',
-  password: 'Mahastays@2026',
-  name: 'MahaStays Admin',
-  title: 'Platform Owner & Executive Administrator',
-  code: 'ADM-100',
-  portalName: 'Admin Operations Portal',
-};
 
-export const VENDOR_DEMO_CREDENTIALS = {
-  email: 'vendor@mahastays.com',
-  password: 'vendor123',
-  name: 'Vikramaditya Rao',
-  title: 'Resort General Manager · HillView Hospitality',
-  code: 'VND-3001',
-  businessName: 'HillView Hospitality Pvt Ltd',
-  portalName: 'Vendor Partner Portal',
-};
 
 interface AuthState {
   user: CurrentUser | null;
@@ -77,7 +60,7 @@ export const loginUser = createAsyncThunk(
             name: rawUser.displayName || rawUser.businessName || rawUser.fullName || 'Vendor Partner',
             email: rawUser.email || trimmedEmail,
             role: 'vendor',
-            avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+            avatar: rawUser.avatarUrl || '',
             title: `${rawUser.displayRole || 'Host'} · ${rawUser.businessName || 'Mahastays Partner'}`,
             businessName: rawUser.businessName || 'Hospitality Partner',
             vendorId: rawUser.id || rawUser._id,
@@ -122,7 +105,7 @@ export const loginUser = createAsyncThunk(
             name: rawUser.fullName || rawUser.name || 'Platform Administrator',
             email: rawUser.email || trimmedEmail,
             role: 'admin',
-            avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+            avatar: rawUser.avatarUrl || '',
             title: rawUser.roleTitle || 'Executive Administrator',
             adminCode: rawUser.adminCode || 'ADM-100',
           };
@@ -164,7 +147,7 @@ export const loginUser = createAsyncThunk(
           name: rawUser.fullName || rawUser.name || 'Platform Administrator',
           email: rawUser.email || trimmedEmail,
           role: 'admin',
-          avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+          avatar: rawUser.avatarUrl || '',
           title: rawUser.roleTitle || 'Executive Administrator',
           adminCode: rawUser.adminCode || 'ADM-100',
         };
@@ -189,7 +172,7 @@ export const loginUser = createAsyncThunk(
             name: rawUser.displayName || rawUser.businessName || rawUser.fullName || 'Vendor Partner',
             email: rawUser.email || trimmedEmail,
             role: 'vendor',
-            avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+            avatar: rawUser.avatarUrl || '',
             title: `${rawUser.displayRole || 'Host'} · ${rawUser.businessName || 'Mahastays Partner'}`,
             businessName: rawUser.businessName || 'Hospitality Partner',
             vendorId: rawUser.id || rawUser._id,
@@ -249,9 +232,9 @@ export const verifyAdminOtp = createAsyncThunk(
         const adminUser: CurrentUser = {
           id: rawUser.id || rawUser._id,
           name: rawUser.fullName || rawUser.name || 'MahaStays Admin',
-          email: rawUser.email || payload.email || 'bookingmahastays@gmail.com',
+          email: rawUser.email || payload.email || '[EMAIL_ADDRESS]',
           role: 'admin',
-          avatar: rawUser.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+          avatar: rawUser.avatarUrl || '',
           title: rawUser.roleTitle || 'Platform Owner & Executive Administrator',
           adminCode: rawUser.adminCode || 'ADM-100',
         };
@@ -284,6 +267,26 @@ export const resendAdminOtp = createAsyncThunk(
   }
 );
 
+export function isTokenExpired(token: string | null | undefined): boolean {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    if (!decoded.exp) return false;
+    return decoded.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 // Async Thunk: Logout
 export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
   try {
@@ -295,6 +298,7 @@ export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
     localStorage.removeItem('mahastays_auth_user');
     localStorage.removeItem('mahastays_auth_view_mode');
     localStorage.removeItem('mahastays_admin_token');
+    localStorage.removeItem('mahastays_auth_token');
     localStorage.removeItem('mahastays_token');
   }
   return true;
@@ -309,9 +313,32 @@ export const authSlice = createSlice({
         const storedUser = localStorage.getItem('mahastays_auth_user');
         const token =
           localStorage.getItem('mahastays_admin_token') ||
+          localStorage.getItem('mahastays_auth_token') ||
           localStorage.getItem('mahastays_token');
 
-        if (storedUser) {
+        // Check if existing token has expired
+        if (token && isTokenExpired(token)) {
+          localStorage.removeItem('mahastays_auth_user');
+          localStorage.removeItem('mahastays_auth_view_mode');
+          localStorage.removeItem('mahastays_admin_token');
+          localStorage.removeItem('mahastays_auth_token');
+          localStorage.removeItem('mahastays_token');
+
+          state.user = null;
+          state.role = null;
+          state.isAuthenticated = false;
+          state.token = null;
+          state.initialized = true;
+
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/login')) {
+            const redirectParam = encodeURIComponent(currentPath + (window.location.search || ''));
+            window.location.href = `/login?session_expired=true&redirect=${redirectParam}`;
+          }
+          return;
+        }
+
+        if (storedUser && token) {
           try {
             const parsed = JSON.parse(storedUser);
             state.user = parsed;
@@ -324,6 +351,11 @@ export const authSlice = createSlice({
             state.isAuthenticated = false;
             state.token = null;
           }
+        } else {
+          state.user = null;
+          state.role = null;
+          state.isAuthenticated = false;
+          state.token = null;
         }
       }
       state.initialized = true;

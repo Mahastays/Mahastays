@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Sparkles, Timer, MapPin } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Sparkles, Timer, MapPin, UploadCloud, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { uploadImageToCloudinary } from '@/lib/upload';
 import { Difficulty } from '../../types';
 
 interface CreateExperienceModalProps {
@@ -20,10 +21,27 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [duration, setDuration] = useState('4 Hours');
   const [city, setCity] = useState('Mahabaleshwar');
-  const [numericPrice, setNumericPrice] = useState('1500');
+  const [numericPrice, setNumericPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [guideName, setGuideName] = useState('Rajesh Gaikwad');
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=80');
+  const [guideName, setGuideName] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const res = await uploadImageToCloudinary(file, 'listing_media');
+      if (res?.url) setImageUrl(res.url);
+    } catch (err: any) {
+      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -37,21 +55,20 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
       difficulty,
       duration,
       city,
-      numericPrice: parseInt(numericPrice, 10) || 1500,
-      description: description.trim() || 'Exciting guided mountain trek with safety gear included.',
+      numericPrice: parseInt(numericPrice, 10) || 0,
+      description: description.trim(),
       image: imageUrl.trim(),
-      vendorId: user?.vendorId || 'vnd_adv_02',
-      vendorName: user?.businessName || 'Sahyadri Adventure & Treks',
+      vendorId: user?.vendorId || user?.id || '',
+      vendorName: user?.businessName || user?.name || '',
       guide: {
-        name: guideName.trim() || 'Certified Mountaineering Guide',
-        role: 'Naturalist & Mountain Guide',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        name: guideName.trim() || user?.name || 'Lead Guide',
+        role: 'Certified Guide',
+        avatar: '',
       },
       slots: [
-        { slotId: 'slot_morn', time: '06:00 AM - 10:00 AM', label: 'Morning Slot', capacity: 15, price: parseInt(numericPrice, 10) || 1500 },
-        { slotId: 'slot_eve', time: '03:30 PM - 07:00 PM', label: 'Sunset Slot', capacity: 15, price: parseInt(numericPrice, 10) || 1500 },
+        { slotId: `slot_${Date.now()}`, time: '07:00 AM - 11:00 AM', label: 'Morning Batch', capacity: 10, price: parseInt(numericPrice, 10) || 0 },
       ],
-      highlights: ['Safety Trekking Poles Included', 'Herbal Mountain Tea & Snacks', 'Certified Guide'],
+      highlights: ['Certified Guide'],
     });
 
     onClose();
@@ -166,14 +183,54 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">Photo URL</label>
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">Activity Photo</label>
             <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-              required
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
             />
+            {imageUrl ? (
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                <span className="text-[11px] text-emerald-600 font-bold flex-1 truncate">Photo Uploaded</span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[10px] px-2 py-1 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 text-slate-700 dark:text-slate-200 font-bold"
+                >
+                  Change
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageUrl('')}
+                  className="text-[10px] px-1.5 py-1 text-rose-500 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-400 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-4 h-4 text-rose-500" />
+                    <span>Upload Activity Photo</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">

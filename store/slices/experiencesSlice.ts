@@ -83,61 +83,61 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
     id: raw.id || raw._id,
     code: raw.code || raw.slug || `EXP-${(raw.id || '').slice(-4)}`,
     slug: raw.slug || `exp-${raw.id}`,
-    vendorId: raw.vendorId || '6ac968c0cd1b993fedb2dbef',
-    vendorName: raw.vendorName || 'Sahyadri Adventure & Treks',
-    title: raw.title || raw.name || 'Guided Mountain Experience',
-    category: raw.category || 'Trekking',
-    difficulty: (raw.difficulty || 'Moderate') as any,
-    duration: raw.duration || '2 Hours (6:00 AM – 8:00 AM)',
-    city: raw.city || 'Old Mahabaleshwar',
-    numericPrice: raw.numericPrice || 250,
-    originalPrice: raw.originalPrice || 350,
+    vendorId: raw.vendorId || '',
+    vendorName: raw.vendorName || '',
+    title: raw.title || raw.name || 'Experience',
+    category: raw.category || 'Activity',
+    difficulty: (raw.difficulty || 'Easy') as any,
+    duration: raw.duration || '',
+    city: raw.city || 'Mahabaleshwar',
+    numericPrice: raw.numericPrice || 0,
+    originalPrice: raw.originalPrice,
     image,
     gallery,
-    description: raw.description || 'A guided sunrise trek to Arthur Seat with sweeping views over the Savitri valley.',
-    highlights: Array.isArray(raw.highlights) && raw.highlights.length > 0 ? raw.highlights : [
-      'Certified Wilderness First-Aid Guide',
-      'Panoramic 360° Valley Views',
-      'Complimentary Herbal Tea at the Summit',
-    ],
-    slots: slots.length > 0 ? slots : [
-      { slotId: 'slot-sunrise', time: '06:00 AM – 08:00 AM', label: 'Sunrise Batch', capacity: 20, price: raw.numericPrice || 250 },
-      { slotId: 'slot-sunset', time: '04:30 PM – 06:30 PM', label: 'Golden Hour Batch', capacity: 20, price: raw.numericPrice || 250 },
-    ],
-    tiers: tiers.length > 0 ? tiers : [
-      {
-        id: 'tier-standard',
-        name: 'Standard Ticket',
-        badge: 'Best Seller',
-        pricePerPerson: raw.numericPrice || 250,
-        originalPrice: raw.originalPrice || 350,
-        description: 'Complete trail guidance with safety briefing',
-        features: ['Lead Guide', 'Trekking Poles on Request', 'First-Aid Standby'],
-      },
-    ],
-    timeline: Array.isArray(raw.timeline) && raw.timeline.length > 0 ? raw.timeline : [
-      { time: '05:45 AM', title: 'Assembly & Gear Check', desc: 'Meet at Old Mahabaleshwar Base Point for safety briefing.' },
-      { time: '06:15 AM', title: 'Ridge Trail Ascent', desc: 'Paced walking through dense evergreen canopy.' },
-      { time: '07:00 AM', title: 'Arthur Seat Sunrise Peak', desc: 'Watch golden sunrise lighting up the Konkan cliffs.' },
-      { time: '08:00 AM', title: 'Descent & Hot Tea', desc: 'Reach base camp, enjoy warm local tea and conclude.' },
-    ],
-    inclusions: inclusions.length > 0 ? inclusions : [
-      { title: 'Certified Guide', desc: 'Experienced mountaineering leader' },
-      { title: 'Entry Fees', desc: 'Forest department permits included' },
-      { title: 'Refreshments', desc: 'Hot beverage & energy snack at summit' },
-    ],
-    meetingPoint: raw.meetingPoint || 'Arthur Seat Point Base Parking, Old Mahabaleshwar',
-    maxGroupSize: raw.maxGroupSize || 20,
-    guide: raw.guide || {
-      name: 'Sahyadri Mountaineering Club',
-      role: 'Certified Trek Leader',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    description: raw.description || '',
+    highlights: Array.isArray(raw.highlights) ? raw.highlights : [],
+    slots,
+    tiers,
+    timeline: Array.isArray(raw.timeline) ? raw.timeline : [],
+    inclusions,
+    meetingPoint: raw.meetingPoint || '',
+    maxGroupSize: raw.maxGroupSize || 10,
+    guide: {
+      name: raw.guide?.name || raw.vendorName || 'Sameer Patil',
+      role: raw.guide?.role || 'Lead Trek Leader & Naturalist',
+      avatar: raw.guide?.avatar || '',
+      experience: raw.guide?.experience || '8+ Years Expedition Experience',
+      staysCount: raw.guide?.staysCount || '350+ Treks Guided',
+      verified: raw.guide?.verified ?? true,
+      confirmationBadge: raw.guide?.confirmationBadge || 'Instant Booking Confirmed',
     },
-    rating: raw.ratingScore || 4.9,
-    reviewsCount: raw.reviewsCount || 210,
+    host: raw.host || {
+      name: raw.guide?.name || raw.vendorName || 'Sameer Patil',
+      role: raw.guide?.role || 'Lead Trek Leader & Naturalist',
+      avatar: raw.guide?.avatar || '',
+      experience: raw.guide?.experience || '8+ Years Expedition Experience',
+      staysCount: raw.guide?.staysCount || '350+ Treks Guided',
+      verified: raw.guide?.verified ?? true,
+      confirmationBadge: raw.guide?.confirmationBadge || 'Instant Booking Confirmed',
+    },
+    keyHighlights: Array.isArray(raw.keyHighlights) && raw.keyHighlights.length > 0
+      ? raw.keyHighlights
+      : [
+          { name: 'Sunrise Summit', desc: 'Panoramic Western Ghats viewpoint' },
+          { name: 'Forest Trail', desc: 'Dense rainforest trail navigation' },
+          { name: 'Certified Guide', desc: 'Wilderness safety trained' },
+          { name: 'Hot Tea & Snacks', desc: 'Fresh local breakfast at peak' },
+        ],
+    videoUrl: raw.videoUrl || raw.video || '',
+    idealFor: raw.idealFor || 'Couples & Nature Enthusiasts',
+    exclusions: Array.isArray(raw.exclusions) ? raw.exclusions : ['Personal trekking gear', 'Transportation to base point'],
+    whatToBring: Array.isArray(raw.whatToBring) ? raw.whatToBring : ['Trekking shoes with grip', 'Rain jacket', 'Water bottle (min 1L)'],
+    rating: raw.ratingScore || raw.rating || 0,
+    reviewsCount: raw.reviewsCount || 0,
     featured: !!raw.featured,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
+    pricingRules: raw.pricingRules || undefined,
     createdAt: raw.createdAt || new Date().toISOString(),
   };
 };
@@ -156,9 +156,16 @@ const initialState: ExperiencesState = {
 export const fetchExperiences = createAsyncThunk('experiences/fetchExperiences', async () => {
   try {
     const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+    const requestConfig = {
+      params: { limit: 100, _t: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    };
     const res = isVendor
-      ? await api.get('/vendor/experiences').catch(() => api.get('/experiences'))
-      : await api.get('/admin/experiences').catch(() => api.get('/experiences'));
+      ? await api.get('/vendor/experiences', requestConfig).catch(() => api.get('/admin/experiences', requestConfig)).catch(() => api.get('/experiences', requestConfig))
+      : await api.get('/admin/experiences', requestConfig).catch(() => api.get('/vendor/experiences', requestConfig)).catch(() => api.get('/experiences', requestConfig));
 
     const rawList = Array.isArray(res.data?.data)
       ? res.data.data
@@ -185,10 +192,17 @@ export const fetchExperienceById = createAsyncThunk(
   'experiences/fetchExperienceById',
   async (id: string, { getState, rejectWithValue }) => {
     try {
+      const config = {
+        params: { _t: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      };
       const res = await api
-        .get(`/admin/experiences/${id}`)
-        .catch(() => api.get(`/vendor/experiences/${id}`))
-        .catch(() => api.get(`/experiences/${id}`));
+        .get(`/admin/experiences/${id}`, config)
+        .catch(() => api.get(`/vendor/experiences/${id}`, config))
+        .catch(() => api.get(`/experiences/${id}`, config));
 
       if (res.data?.data) {
         return normalizeExperience(res.data.data);
@@ -314,27 +328,23 @@ export const createExperienceAsync = createAsyncThunk(
       code: expData.code || `EXP-${Math.floor(100 + Math.random() * 900)}`,
       slug: (expData.title || 'new-experience').toLowerCase().replace(/\s+/g, '-'),
       vendorId: expData.vendorId || '6ac968c0cd1b993fedb2dbef',
-      vendorName: expData.vendorName || 'Sahyadri Adventure & Treks',
-      title: expData.title || 'New Mountain Experience',
+      vendorName: expData.vendorName || '',
+      title: expData.title || '',
       category: expData.category || 'Trekking',
       difficulty: expData.difficulty || 'Easy',
       duration: expData.duration || '3 Hours',
       city: expData.city || 'Mahabaleshwar',
-      numericPrice: expData.numericPrice || 1500,
-      originalPrice: expData.originalPrice || 1900,
-      image:
-        expData.image ||
-        'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=80',
-      description: expData.description || 'Guided outdoor experience through scenic trails and vistas.',
-      highlights: expData.highlights || ['Expert Guide Included', 'Safety Gear', 'Light Refreshments'],
-      slots: expData.slots || [
-        { slotId: 'slot_1', time: '07:00 AM - 10:00 AM', label: 'Morning Slot', capacity: 12, price: expData.numericPrice || 1500 },
-        { slotId: 'slot_2', time: '04:00 PM - 07:00 PM', label: 'Sunset Slot', capacity: 12, price: expData.numericPrice || 1500 },
-      ],
+      numericPrice: expData.numericPrice || 0,
+      originalPrice: expData.originalPrice || 0,
+      image: expData.image || '',
+      description: expData.description || '',
+      highlights: expData.highlights || [],
+      slots: expData.slots || [],
+      pricingRules: expData.pricingRules || undefined,
       guide: expData.guide || {
-        name: 'Sahyadri Expert Guide',
-        role: 'Certified Guide',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        name: '',
+        role: '',
+        avatar: '',
       },
       rating: 0,
       reviewsCount: 0,

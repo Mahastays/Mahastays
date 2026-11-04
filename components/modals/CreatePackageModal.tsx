@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Compass, Calendar } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Compass, Calendar, UploadCloud, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { uploadImageToCloudinary } from '@/lib/upload';
 import { PackageCategory, PackageType } from '../../types';
 
 interface CreatePackageModalProps {
@@ -21,9 +22,26 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
   const [category, setCategory] = useState<PackageCategory>('Honeymoon');
   const [durationDays, setDurationDays] = useState('3');
   const [durationNights, setDurationNights] = useState('2');
-  const [numericPrice, setNumericPrice] = useState('22000');
+  const [numericPrice, setNumericPrice] = useState('');
   const [shortDesc, setShortDesc] = useState('');
-  const [thumbnail, setThumbnail] = useState('https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&auto=format&fit=crop&q=80');
+  const [thumbnail, setThumbnail] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const res = await uploadImageToCloudinary(file, 'listing_media');
+      if (res?.url) setThumbnail(res.url);
+    } catch (err: any) {
+      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -36,23 +54,22 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
     createPackage({
       title: title.trim(),
       propertyId,
-      propertyName: matchedProp?.name || 'HillView Heritage Resort & Spa',
-      vendorId: user?.vendorId || 'vnd_resort_01',
-      vendorName: user?.businessName || 'HillView Hospitality Pvt Ltd',
+      propertyName: matchedProp?.name || '',
+      vendorId: user?.vendorId || user?.id || '',
+      vendorName: user?.businessName || user?.name || '',
       packageType,
       category,
-      durationDays: parseInt(durationDays, 10) || 3,
-      durationNights: parseInt(durationNights, 10) || 2,
-      numericPrice: parseInt(numericPrice, 10) || 22000,
-      shortDesc: shortDesc.trim() || 'Curated romantic getaway with all inclusions.',
+      durationDays: parseInt(durationDays, 10) || 1,
+      durationNights: parseInt(durationNights, 10) || 1,
+      numericPrice: parseInt(numericPrice, 10) || 0,
+      shortDesc: shortDesc.trim(),
       thumbnail,
-      images: [thumbnail],
+      images: thumbnail ? [thumbnail] : [],
       inclusions: [
-        { title: 'Accommodation', desc: `${durationNights} nights luxury valley view stay` },
-        { title: 'Meals', desc: 'Complimentary breakfast & chef dinner' },
-        { title: 'Activities', desc: 'Strawberry plucking tour & evening bonfire' },
+        { title: 'Accommodation', desc: `${durationNights} nights stay` },
+        { title: 'Meals', desc: 'Complimentary breakfast' },
       ],
-      exclusions: ['Flight / Railway tickets', 'Personal laundry'],
+      exclusions: ['Personal expenses'],
       tiers: [
         {
           tierId: 'tier_classic',
@@ -176,14 +193,54 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">Cover Thumbnail URL</label>
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block">Cover Photo</label>
             <input
-              type="url"
-              value={thumbnail}
-              onChange={(e) => setThumbnail(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-              required
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
             />
+            {thumbnail ? (
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                <span className="text-[11px] text-emerald-600 font-bold flex-1 truncate">Photo Uploaded</span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[10px] px-2 py-1 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 text-slate-700 dark:text-slate-200 font-bold"
+                >
+                  Change
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThumbnail('')}
+                  className="text-[10px] px-1.5 py-1 text-rose-500 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-400 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-4 h-4 text-rose-500" />
+                    <span>Upload Package Photo</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">

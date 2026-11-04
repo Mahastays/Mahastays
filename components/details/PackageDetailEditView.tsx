@@ -34,7 +34,11 @@ import {
   Compass,
   UploadCloud,
   Loader2,
+  RotateCw,
+  Video,
+  X,
 } from 'lucide-react';
+import { VideoPlayerModal, getYouTubeThumbnailUrl } from '../modals/VideoPlayerModal';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
 import { useAuth } from '@/context/AuthContext';
@@ -78,12 +82,27 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
   const [isWishlist, setIsWishlist] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadSuccessToast, setUploadSuccessToast] = useState<string | null>(null);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleRefresh = async () => {
+    if (!id) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchPackageById(id)).unwrap();
+    } catch (err) {
+      console.error('Refresh package error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Booking preview calculator states
   const [startDate, setStartDate] = useState('2026-10-15');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [showPricingEdit, setShowPricingEdit] = useState(false);
 
   // Frontend-matching Detail Tabs State
   const [activeDetailTab, setActiveDetailTab] = useState<string>('tiers');
@@ -167,61 +186,26 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
   const allPhotos = pkg.images && pkg.images.length > 0
     ? pkg.images
-    : [
-        pkg.thumbnail || 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1200',
-        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200',
-        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200',
-      ];
+    : pkg.thumbnail ? [pkg.thumbnail] : [];
 
   const tiers: PackageTierItem[] = pkg.tiers && pkg.tiers.length > 0
     ? pkg.tiers
     : [
         {
-          tierId: 'classic',
-          name: 'Classic Honeymoon Tier',
-          hotelType: '4-Star Valley View Resort',
-          pricePerPerson: pkg.numericPrice || 8500,
-          originalPrice: (pkg.numericPrice || 8500) + 3000,
-          features: ['Executive Valley Suite', 'Daily Breakfast & Dinner', 'Private Cab for 3 Days', 'Candlelight Dinner Setup'],
-        },
-        {
-          tierId: 'premium',
-          name: 'Royal Heritage Villa Tier',
-          hotelType: '5-Star Standalone Pool Villa',
-          pricePerPerson: (pkg.numericPrice || 8500) + 5500,
-          originalPrice: (pkg.numericPrice || 8500) + 9000,
-          features: ['Private Heated Pool', 'Chef on Demand All Meals', 'Luxury SUV Chauffeur', 'Arthur Seat Valley Free Pass'],
+          tierId: 'standard',
+          name: 'Standard Package',
+          hotelType: 'Accommodation Included',
+          pricePerPerson: pkg.numericPrice || 5000,
+          originalPrice: pkg.originalPrice || pkg.numericPrice || 5000,
+          features: Array.isArray(pkg.inclusions)
+            ? pkg.inclusions.map((inc: any) => (typeof inc === 'string' ? inc : inc.title || ''))
+            : ['Guided Tour', 'Standard Transfers'],
         },
       ];
 
   const itinerary = pkg.itinerary && pkg.itinerary.length > 0
     ? pkg.itinerary
-    : [
-        {
-          day: 1,
-          title: 'Arrival, Sunset Point & Romantic Candlelight Dinner',
-          desc: 'Private pickup from Pune/Mumbai, check-in to resort, evening visit to Bombay Point followed by 4-course candlelight dinner.',
-          activities: ['Private Chauffeur Pickup', 'Welcome Drink & Fruit Basket', 'Sunset at Bombay Point', 'Candlelight Dinner'],
-          meals: 'Dinner Included',
-          stay: '4-Star Valley Resort',
-        },
-        {
-          day: 2,
-          title: 'Arthur Seat Trek, Strawberry Farms & Boating',
-          desc: 'Morning valley excursion to Arthur Seat and Window Point, visit Mapro Garden for strawberry picking, sunset boating at Venna Lake.',
-          activities: ['Arthur Seat Excursion', 'Mapro Garden Strawberry Tasting', 'Private Shikara Boating at Venna Lake'],
-          meals: 'Breakfast & Dinner Included',
-          stay: '4-Star Valley Resort',
-        },
-        {
-          day: 3,
-          title: 'Pratapgad Fort Heritage Tour & Departure',
-          desc: 'Morning breakfast with Sahyadri view, guided heritage exploration of Pratapgad Fort, souvenir shopping in market, and return drop.',
-          activities: ['Guided Fort Tour', 'Mahabaleshwar Market Spices & Honey', 'Return Drop-off'],
-          meals: 'Breakfast Included',
-          stay: 'Checkout at 11:00 AM',
-        },
-      ];
+    : [];
 
   const selectedTier = tiers[selectedTierIndex] || tiers[0];
   const pricePerPerson = selectedTier.pricePerPerson || pkg.numericPrice || 8500;
@@ -229,13 +213,120 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const baseCost = pricePerPerson * Math.max(1, adults) + Math.round(pricePerPerson * 0.6) * children;
-  const memberDiscount = Math.round(baseCost * 0.08);
-  const conciergeFee = 445;
-  const taxesGst = Math.round((baseCost - memberDiscount + conciergeFee) * 0.05);
+
+  // Custom Pricing, Discounts & GST Rules
+  const pricingRules = pkg.pricingRules || {};
+  const discountPercent = typeof pricingRules.memberDiscountPercent === 'number' ? pricingRules.memberDiscountPercent : 8;
+  const discountType = pricingRules.discountType || 'percentage';
+  const customDiscountAmount = typeof pricingRules.customDiscountAmount === 'number' ? pricingRules.customDiscountAmount : 0;
+  const includeCleaningFee = pricingRules.includeCleaningFee !== false;
+  const configuredFee = typeof pricingRules.cleaningFee === 'number' ? pricingRules.cleaningFee : 445;
+  const conciergeFee = includeCleaningFee ? configuredFee : 0;
+  const includeGst = pricingRules.includeGst !== false;
+  const gstPercent = typeof pricingRules.gstPercent === 'number' ? pricingRules.gstPercent : 5;
+
+  const memberDiscount =
+    discountType === 'flat'
+      ? customDiscountAmount
+      : discountType === 'none' || discountPercent === 0
+      ? 0
+      : Math.round(baseCost * (discountPercent / 100));
+
+  const taxableAmount = Math.max(0, baseCost - memberDiscount + conciergeFee);
+  const taxesGst = includeGst ? Math.round(taxableAmount * (gstPercent / 100)) : 0;
   const grandTotal = baseCost - memberDiscount + conciergeFee + taxesGst;
+
+  const handlePricingRuleChange = (key: string, value: any) => {
+    if (!pkg) return;
+    setPkg({
+      ...pkg,
+      pricingRules: {
+        ...(pkg.pricingRules || {}),
+        [key]: value,
+      },
+    });
+  };
 
   const handleFieldChange = (field: keyof PackageItem, value: any) => {
     setPkg((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const handleHostChange = (field: string, val: any) => {
+    if (!pkg) return;
+    setPkg({
+      ...pkg,
+      host: {
+        name: pkg.host?.name || 'Vikramaditya & Concierge Team',
+        role: pkg.host?.role || 'Holiday Specialist & Concierge',
+        experience: pkg.host?.experience || '5 Years hosting',
+        staysCount: pkg.host?.staysCount || '1,200+ Verified Guests',
+        verified: pkg.host?.verified ?? true,
+        avatar: pkg.host?.avatar || '',
+        confirmationBadge: pkg.host?.confirmationBadge || 'Instant Booking Confirmed',
+        [field]: val,
+      },
+    });
+  };
+
+  const handleAddTierFeature = (tierIndex: number, featureText: string) => {
+    if (!pkg || !tiers[tierIndex]) return;
+    const currentFeatures = tiers[tierIndex].features ? [...tiers[tierIndex].features] : [];
+    currentFeatures.push(featureText);
+    handleUpdateTier(tierIndex, 'features', currentFeatures);
+  };
+
+  const handleUpdateTierFeature = (tierIndex: number, featureIndex: number, val: string) => {
+    if (!pkg || !tiers[tierIndex]) return;
+    const currentFeatures = [...(tiers[tierIndex].features || [])];
+    currentFeatures[featureIndex] = val;
+    handleUpdateTier(tierIndex, 'features', currentFeatures);
+  };
+
+  const handleRemoveTierFeature = (tierIndex: number, featureIndex: number) => {
+    if (!pkg || !tiers[tierIndex]) return;
+    const currentFeatures = (tiers[tierIndex].features || []).filter((_, i) => i !== featureIndex);
+    handleUpdateTier(tierIndex, 'features', currentFeatures);
+  };
+
+  const handleUpdateHighlight = (index: number, val: string) => {
+    if (!pkg) return;
+    const updated = [...pkg.highlights];
+    updated[index] = val;
+    setPkg({ ...pkg, highlights: updated });
+  };
+
+  const handleUpdateInclusion = (index: number, field: 'title' | 'desc', val: string) => {
+    if (!pkg || !pkg.inclusions) return;
+    const updated = [...pkg.inclusions];
+    updated[index] = { ...updated[index], [field]: val };
+    setPkg({ ...pkg, inclusions: updated });
+  };
+
+  const handleUpdateExclusion = (index: number, val: string) => {
+    if (!pkg || !pkg.exclusions) return;
+    const updated = [...pkg.exclusions];
+    updated[index] = val;
+    setPkg({ ...pkg, exclusions: updated });
+  };
+
+  const handleAddItineraryActivity = (dayIndex: number, act: string) => {
+    if (!pkg || !itinerary[dayIndex]) return;
+    const currentActs = itinerary[dayIndex].activities ? [...itinerary[dayIndex].activities] : [];
+    currentActs.push(act);
+    handleUpdateItineraryDay(dayIndex, 'activities', currentActs);
+  };
+
+  const handleUpdateItineraryActivity = (dayIndex: number, actIndex: number, val: string) => {
+    if (!pkg || !itinerary[dayIndex]) return;
+    const currentActs = [...(itinerary[dayIndex].activities || [])];
+    currentActs[actIndex] = val;
+    handleUpdateItineraryDay(dayIndex, 'activities', currentActs);
+  };
+
+  const handleRemoveItineraryActivity = (dayIndex: number, actIndex: number) => {
+    if (!pkg || !itinerary[dayIndex]) return;
+    const currentActs = (itinerary[dayIndex].activities || []).filter((_, i) => i !== actIndex);
+    handleUpdateItineraryDay(dayIndex, 'activities', currentActs);
   };
 
   const handleAddTier = () => {
@@ -350,6 +441,106 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
     });
   };
 
+  const handleKeyHighlightChange = (index: number, field: 'name' | 'desc', val: string) => {
+    if (!pkg) return;
+    const current = (pkg as any).keyHighlights ? [...(pkg as any).keyHighlights] : [
+      { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+      { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+      { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+      { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+    ];
+    if (current[index]) {
+      current[index] = { ...current[index], [field]: val };
+      setPkg({ ...pkg, keyHighlights: current } as any);
+    }
+  };
+
+  const handleRemoveKeyHighlight = (index: number) => {
+    if (!pkg) return;
+    const current = (pkg as any).keyHighlights ? [...(pkg as any).keyHighlights] : [
+      { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+      { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+      { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+      { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+    ];
+    const filtered = current.filter((_: any, i: number) => i !== index);
+    setPkg({ ...pkg, keyHighlights: filtered } as any);
+  };
+
+  const handleAddKeyHighlight = () => {
+    if (!pkg) return;
+    const current = (pkg as any).keyHighlights ? [...(pkg as any).keyHighlights] : [
+      { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+      { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+      { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+      { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+    ];
+    setPkg({
+      ...pkg,
+      keyHighlights: [...current, { name: 'New Highlight', desc: 'Highlight description' }],
+    } as any);
+  };
+
+  const handlePolicyChange = (field: string, val: any) => {
+    if (!pkg) return;
+    setPkg({
+      ...pkg,
+      policies: {
+        ...((pkg as any).policies || {}),
+        [field]: val,
+      },
+    } as any);
+  };
+
+  const handleAddSuitabilityRule = () => {
+    if (!pkg) return;
+    const current = (pkg as any).policies?.suitabilityRules ? [...(pkg as any).policies.suitabilityRules] : [
+      'Suitable for senior citizens and children',
+      'Verified chauffeur with background check',
+      'Emergency first-aid kit onboard',
+    ];
+    setPkg({
+      ...pkg,
+      policies: {
+        ...((pkg as any).policies || {}),
+        suitabilityRules: [...current, 'New safety & suitability rule'],
+      },
+    } as any);
+  };
+
+  const handleRemoveSuitabilityRule = (index: number) => {
+    if (!pkg) return;
+    const current = (pkg as any).policies?.suitabilityRules ? [...(pkg as any).policies.suitabilityRules] : [
+      'Suitable for senior citizens and children',
+      'Verified chauffeur with background check',
+      'Emergency first-aid kit onboard',
+    ];
+    setPkg({
+      ...pkg,
+      policies: {
+        ...((pkg as any).policies || {}),
+        suitabilityRules: current.filter((_: any, i: number) => i !== index),
+      },
+    } as any);
+  };
+
+  const handleUpdateSuitabilityRule = (index: number, val: string) => {
+    if (!pkg) return;
+    const current = (pkg as any).policies?.suitabilityRules ? [...(pkg as any).policies.suitabilityRules] : [
+      'Suitable for senior citizens and children',
+      'Verified chauffeur with background check',
+      'Emergency first-aid kit onboard',
+    ];
+    current[index] = val;
+    setPkg({
+      ...pkg,
+      policies: {
+        ...((pkg as any).policies || {}),
+        suitabilityRules: current,
+      },
+    } as any);
+  };
+
   const handleAddImage = () => {
     if (!newImageUrl.trim() || !pkg) return;
     setPkg({
@@ -361,18 +552,22 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !pkg) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !pkg) return;
 
     try {
       setIsUploadingImage(true);
-      const res = await uploadImageToCloudinary(file, 'listing_media');
-      if (res?.url) {
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const res = await uploadImageToCloudinary(file, 'listing_media');
+        if (res?.url) uploadedUrls.push(res.url);
+      }
+      if (uploadedUrls.length) {
         setPkg({
           ...pkg,
-          images: [...allPhotos, res.url],
+          images: [...allPhotos, ...uploadedUrls],
         });
-        setUploadSuccessToast(`Uploaded & converted to WebP (${Math.round((res.bytes || 0) / 1024)} KB)`);
+        setUploadSuccessToast(`Uploaded ${uploadedUrls.length} photo(s)`);
         setTimeout(() => setUploadSuccessToast(null), 4000);
       }
     } catch (err: any) {
@@ -578,6 +773,18 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Customer Frontend UI ↗</span>
           </a>
+
+          {/* Dedicated Refresh Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            title="Refetch Package from Database"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
 
           {/* Toggle between Customer View and Live Edit Mode */}
           <button
@@ -874,6 +1081,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -891,40 +1099,13 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                 ) : (
                   <>
                     <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Upload WebP Photo</span>
+                    <span>Upload Photos</span>
                   </>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddImage(!showAddImage)}
-                className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Paste URL</span>
               </button>
             </div>
           )}
         </div>
-
-        {showAddImage && isEditMode && (
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-2 mb-3">
-            <input
-              type="url"
-              placeholder="Paste image URL (https://...)"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              className="flex-1 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-rose-500"
-            />
-            <button
-              type="button"
-              onClick={handleAddImage}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
-            >
-              Add
-            </button>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-auto sm:h-[420px] lg:h-[460px]">
           {/* Main Hero */}
@@ -1021,68 +1202,191 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
         <div className="lg:col-span-8 flex flex-col gap-4">
           {/* Host Card */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3.5 flex-1 min-w-0">
               <div className="w-12 h-12 rounded-full bg-[#0B0A06] text-white font-extrabold text-lg flex items-center justify-center font-poppins shrink-0 shadow-sm">
-                V
+                {(pkg.host?.name || 'V')[0].toUpperCase()}
               </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
-                  <span>Hosted by Vikramaditya &amp; Concierge Team</span>
-                  <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                    ✓
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                  Holiday Specialist &amp; Concierge • 5 Years hosting • 1,200+ Verified Guests
-                </p>
+              <div className="flex-1 min-w-0">
+                {isEditMode ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Host:</span>
+                      <input
+                        type="text"
+                        value={pkg.host?.name || 'Vikramaditya & Concierge Team'}
+                        onChange={(e) => handleHostChange('name', e.target.value)}
+                        placeholder="Host Name"
+                        className="text-xs font-bold text-slate-900 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Role:</span>
+                      <input
+                        type="text"
+                        value={pkg.host?.role || 'Holiday Specialist & Concierge'}
+                        onChange={(e) => handleHostChange('role', e.target.value)}
+                        placeholder="Role / Subtitle"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Exp:</span>
+                      <input
+                        type="text"
+                        value={pkg.host?.experience || '5 Years hosting'}
+                        onChange={(e) => handleHostChange('experience', e.target.value)}
+                        placeholder="e.g. 5 Years hosting"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Guests:</span>
+                      <input
+                        type="text"
+                        value={pkg.host?.staysCount || '1,200+ Verified Guests'}
+                        onChange={(e) => handleHostChange('staysCount', e.target.value)}
+                        placeholder="e.g. 1,200+ Verified Guests"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
+                      <span>Hosted by {pkg.host?.name || 'Vikramaditya & Concierge Team'}</span>
+                      {(pkg.host?.verified ?? true) && (
+                        <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
+                          ✓
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
+                      {pkg.host?.role || 'Holiday Specialist & Concierge'} • {pkg.host?.experience || '5 Years hosting'} • {pkg.host?.staysCount || '1,200+ Verified Guests'}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-200/80 text-[#ea110d] text-xs font-semibold self-start sm:self-auto font-poppins shadow-2xs">
-              <span className="text-[#ea110d] font-bold">✓</span>
-              <span>Instant Booking Confirmed</span>
+            <div className="shrink-0 self-start sm:self-auto">
+              {isEditMode ? (
+                <div className="flex flex-col gap-1.5 items-end">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Badge:</span>
+                    <input
+                      type="text"
+                      value={pkg.host?.confirmationBadge || 'Instant Booking Confirmed'}
+                      onChange={(e) => handleHostChange('confirmationBadge', e.target.value)}
+                      placeholder="Badge"
+                      className="text-xs font-semibold text-[#ea110d] border border-red-200 rounded-lg px-2 py-1 w-44"
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pkg.host?.verified ?? true}
+                      onChange={(e) => handleHostChange('verified', e.target.checked)}
+                      className="accent-[#ea110d]"
+                    />
+                    <span>Verified Badge</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-200/80 text-[#ea110d] text-xs font-semibold font-poppins shadow-2xs">
+                  <span className="text-[#ea110d] font-bold">✓</span>
+                  <span>{pkg.host?.confirmationBadge || 'Instant Booking Confirmed'}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Quick 4-Column Highlights Strip */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Building className="w-4 h-4 text-slate-700" />
+          {/* ─── Quick Feature Cards Strip (Dynamic: Edit / Remove / Add) ─── */}
+          {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0) || isEditMode) && (
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Key Feature Cards ({(pkg as any).keyHighlights?.length ?? 4})
+                </span>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleAddKeyHighlight}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#ea110d] hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Feature Card</span>
+                  </button>
+                )}
               </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 font-poppins">4-Star Resort Stay</div>
-                <div className="text-[10px] text-slate-500">Hilltop valley view rooms</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
+                  ? (pkg as any).keyHighlights
+                  : [
+                      { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+                      { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+                      { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+                      { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+                    ]
+                ).map((hl: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700 mt-0.5">
+                      {idx % 4 === 0 ? (
+                        <Building className="w-4 h-4 text-slate-700" />
+                      ) : idx % 4 === 1 ? (
+                        <Utensils className="w-4 h-4 text-slate-700" />
+                      ) : idx % 4 === 2 ? (
+                        <ShieldCheck className="w-4 h-4 text-slate-700" />
+                      ) : (
+                        <Compass className="w-4 h-4 text-slate-700" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {isEditMode ? (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={hl.name}
+                            onChange={(e) => handleKeyHighlightChange(idx, 'name', e.target.value)}
+                            placeholder="Card Title"
+                            className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                          />
+                          <input
+                            type="text"
+                            value={hl.desc}
+                            onChange={(e) => handleKeyHighlightChange(idx, 'desc', e.target.value)}
+                            placeholder="Card Description"
+                            className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-xs font-bold text-slate-900 font-poppins truncate">
+                            {hl.name}
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate">
+                            {hl.desc}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyHighlight(idx)}
+                        className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                        title="Remove this card (don't keep)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Utensils className="w-4 h-4 text-slate-700" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 font-poppins">All Meals &amp; Decor</div>
-                <div className="text-[10px] text-slate-500">Candlelight dinner setup</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <ShieldCheck className="w-4 h-4 text-slate-700" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 font-poppins">Dedicated Chauffeur</div>
-                <div className="text-[10px] text-slate-500">AC sedan sightseeing</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Compass className="w-4 h-4 text-slate-700" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 font-poppins">Venna Lake Boating</div>
-                <div className="text-[10px] text-slate-500">Free activity pass</div>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* ─── Sticky Navigation Tabs Bar with Left/Right Slide Buttons & White Gradient (Exact Frontend UI) ─── */}
           <div
@@ -1237,17 +1541,59 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                         {tier.hotelType || '4-Star Valley View Resort Stay Included'}
                       </p>
 
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {tier.features.map((feat, fIdx) => (
-                          <span
-                            key={fIdx}
-                            className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 text-slate-700 flex items-center gap-1 font-medium"
+                      {isEditMode ? (
+                        <div className="flex flex-wrap gap-1.5 pt-1.5 items-center">
+                          {tier.features.map((feat, fIdx) => (
+                            <div
+                              key={fIdx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-slate-800"
+                            >
+                              <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <input
+                                type="text"
+                                value={feat}
+                                onChange={(e) => handleUpdateTierFeature(idx, fIdx, e.target.value)}
+                                className="bg-transparent border-0 p-0 text-xs font-medium text-slate-800 focus:outline-none min-w-[70px]"
+                                placeholder="Feature / Inclusion"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveTierFeature(idx, fIdx);
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-0.5"
+                                title="Remove feature"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddTierFeature(idx, 'New Inclusion');
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-red-300 bg-red-50/40 text-[11px] font-bold text-[#ea110d] hover:bg-red-50 cursor-pointer"
                           >
-                            <Check className="w-3 h-3 text-emerald-500" />
-                            <span>{feat}</span>
-                          </span>
-                        ))}
-                      </div>
+                            <Plus className="w-3 h-3" />
+                            <span>Add Feature</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {tier.features.map((feat, fIdx) => (
+                            <span
+                              key={fIdx}
+                              className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 text-slate-700 flex items-center gap-1 font-medium"
+                            >
+                              <Check className="w-3 h-3 text-emerald-500" />
+                              <span>{feat}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 gap-1.5">
@@ -1356,47 +1702,117 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="text-[10px] uppercase font-bold text-slate-400">Duration</div>
-                        <div className="text-xs font-bold text-slate-800 mt-0.5">
-                          {pkg.durationDays || 3}D / {pkg.durationNights || 2}N
-                        </div>
+                        {isEditMode ? (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <input
+                              type="number"
+                              value={pkg.durationDays || 3}
+                              onChange={(e) => handleFieldChange('durationDays', Number(e.target.value))}
+                              className="text-xs font-bold text-slate-800 border border-slate-200 rounded px-1 py-0.5 w-10 text-center"
+                            />
+                            <span className="text-xs">D /</span>
+                            <input
+                              type="number"
+                              value={pkg.durationNights || 2}
+                              onChange={(e) => handleFieldChange('durationNights', Number(e.target.value))}
+                              className="text-xs font-bold text-slate-800 border border-slate-200 rounded px-1 py-0.5 w-10 text-center"
+                            />
+                            <span className="text-xs">N</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs font-bold text-slate-800 mt-0.5">
+                            {pkg.durationDays || 3}D / {pkg.durationNights || 2}N
+                          </div>
+                        )}
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="text-[10px] uppercase font-bold text-slate-400">Destinations</div>
-                        <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
-                          {pkg.location || pkg.city || 'Mahabaleshwar & Panchgani'}
-                        </div>
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={pkg.destinations || pkg.location || pkg.city || ''}
+                            onChange={(e) => {
+                              handleFieldChange('destinations', e.target.value);
+                              handleFieldChange('location', e.target.value);
+                            }}
+                            placeholder="e.g. Mahabaleshwar & Panchgani"
+                            className="text-xs font-bold text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 w-full mt-0.5"
+                          />
+                        ) : (
+                          <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
+                            {pkg.destinations || pkg.location || pkg.city || 'Mahabaleshwar & Panchgani'}
+                          </div>
+                        )}
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="text-[10px] uppercase font-bold text-slate-400">Package Type</div>
-                        <div className="text-xs font-bold text-slate-800 mt-0.5">
-                          {pkg.category || 'Luxury Holiday'}
-                        </div>
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={pkg.category || 'Luxury Holiday'}
+                            onChange={(e) => handleFieldChange('category', e.target.value)}
+                            placeholder="e.g. Honeymoon"
+                            className="text-xs font-bold text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 w-full mt-0.5"
+                          />
+                        ) : (
+                          <div className="text-xs font-bold text-slate-800 mt-0.5">
+                            {pkg.category || 'Luxury Holiday'}
+                          </div>
+                        )}
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="text-[10px] uppercase font-bold text-slate-400">Ideal For</div>
-                        <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
-                          Families &amp; Couples
-                        </div>
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={pkg.idealFor || 'Families & Couples'}
+                            onChange={(e) => handleFieldChange('idealFor', e.target.value)}
+                            placeholder="e.g. Couples & Families"
+                            className="text-xs font-bold text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 w-full mt-0.5"
+                          />
+                        ) : (
+                          <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
+                            {pkg.idealFor || 'Families & Couples'}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Video Tour Banner */}
-                  <div className="md:col-span-5 relative rounded-2xl overflow-hidden h-48 sm:h-52 bg-slate-900 group cursor-pointer border border-slate-200">
-                    <Image
-                      src={allPhotos[1] || allPhotos[0]}
-                      alt="Tour Preview"
-                      fill
-                      sizes="(max-width: 768px) 100vw, 420px"
-                      className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                    <div className="absolute bottom-3 right-3">
-                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform">
-                        <span className="text-[#ea110d] text-xs">▶</span>
-                        <span>Watch Tour Preview</span>
+                  {/* Video Tour Banner & YouTube Link Editor */}
+                  <div className="md:col-span-5 flex flex-col gap-2">
+                    <div
+                      onClick={() => setVideoModalOpen(true)}
+                      className="relative rounded-2xl overflow-hidden h-48 sm:h-52 bg-slate-900 group cursor-pointer border border-slate-200 shadow-sm"
+                    >
+                      <Image
+                        src={getYouTubeThumbnailUrl(pkg.videoUrl, allPhotos[1] || allPhotos[0])}
+                        alt="Tour Preview"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 420px"
+                        className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors" />
+                      <div className="absolute bottom-3 right-3">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform">
+                          <span className="text-[#ea110d] text-xs">▶</span>
+                          <span>Watch Tour Preview</span>
+                        </div>
                       </div>
                     </div>
+
+                    {isEditMode && (
+                      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                        <Video className="w-3.5 h-3.5 text-[#ea110d] shrink-0" />
+                        <input
+                          type="text"
+                          value={pkg.videoUrl || ''}
+                          onChange={(e) => handleFieldChange('videoUrl', e.target.value)}
+                          placeholder="YouTube Video URL (e.g. https://www.youtube.com/watch?v=...)"
+                          className="w-full text-xs bg-transparent border-0 focus:outline-none font-mono text-slate-800 placeholder-slate-400"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1419,7 +1835,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                       <button
                         type="button"
                         onClick={handleAddHighlight}
-                        className="px-2.5 py-1 rounded-lg bg-[#ea110d] text-white text-xs font-bold"
+                        className="px-2.5 py-1 rounded-lg bg-[#ea110d] text-white text-xs font-bold cursor-pointer"
                       >
                         Add
                       </button>
@@ -1437,15 +1853,25 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                       key={hIdx}
                       className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2"
                     >
-                      <div className="flex items-start gap-2.5">
+                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
                         <Sparkles className="w-4 h-4 text-[#ea110d] shrink-0 mt-0.5" />
-                        <span className="text-xs text-slate-700 font-medium">{hl}</span>
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={hl}
+                            onChange={(e) => handleUpdateHighlight(hIdx, e.target.value)}
+                            className="text-xs text-slate-700 font-medium bg-transparent border-b border-slate-300 w-full focus:outline-none"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-700 font-medium">{hl}</span>
+                        )}
                       </div>
                       {isEditMode && (
                         <button
                           type="button"
                           onClick={() => handleRemoveHighlight(hIdx)}
-                          className="text-slate-400 hover:text-rose-600"
+                          className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer shrink-0"
+                          title="Remove highlight"
                         >
                           ✕
                         </button>
@@ -1494,12 +1920,21 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                     key={i}
                     className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-50/50 border border-emerald-100/60 text-xs text-slate-700"
                   >
-                    <span className="font-medium text-emerald-900">{inc.title}</span>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={inc.title}
+                        onChange={(e) => handleUpdateInclusion(i, 'title', e.target.value)}
+                        className="font-medium text-emerald-900 bg-transparent border-0 p-0 text-xs w-full focus:outline-none"
+                      />
+                    ) : (
+                      <span className="font-medium text-emerald-900">{inc.title}</span>
+                    )}
                     {isEditMode && (
                       <button
                         type="button"
                         onClick={() => requestDeleteInclusion(i)}
-                        className="text-slate-400 hover:text-rose-600 ml-2"
+                        className="text-slate-400 hover:text-rose-600 ml-2 cursor-pointer"
                       >
                         ✕
                       </button>
@@ -1530,7 +1965,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                   <button
                     type="button"
                     onClick={handleAddExclusion}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold"
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold cursor-pointer"
                   >
                     Add
                   </button>
@@ -1544,12 +1979,21 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                       key={i}
                       className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-rose-50/40 border border-rose-100/60 text-xs text-slate-700"
                     >
-                      <span>{ex}</span>
+                      {isEditMode ? (
+                        <input
+                          type="text"
+                          value={ex}
+                          onChange={(e) => handleUpdateExclusion(i, e.target.value)}
+                          className="text-slate-700 bg-transparent border-0 p-0 text-xs w-full focus:outline-none"
+                        />
+                      ) : (
+                        <span>{ex}</span>
+                      )}
                       {isEditMode && (
                         <button
                           type="button"
                           onClick={() => requestDeleteExclusion(i)}
-                          className="text-slate-400 hover:text-rose-600 ml-2"
+                          className="text-slate-400 hover:text-rose-600 ml-2 cursor-pointer"
                         >
                           ✕
                         </button>
@@ -1634,17 +2078,54 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                     </div>
                   )}
 
-                  {dayItem.activities && dayItem.activities.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {dayItem.activities.map((act, aIdx) => (
-                        <span
-                          key={aIdx}
-                          className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[10px] font-medium"
+                  {isEditMode ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="text-[10px] uppercase font-bold text-slate-400">Activities / Bullet Points:</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(dayItem.activities || []).map((act, aIdx) => (
+                          <div
+                            key={aIdx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-700"
+                          >
+                            <input
+                              type="text"
+                              value={act}
+                              onChange={(e) => handleUpdateItineraryActivity(dIdx, aIdx, e.target.value)}
+                              className="bg-transparent border-0 p-0 text-xs text-slate-700 focus:outline-none min-w-[60px]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItineraryActivity(dIdx, aIdx)}
+                              className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer"
+                              title="Remove activity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleAddItineraryActivity(dIdx, 'New Activity')}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-dashed border-red-300 bg-red-50/40 text-[10px] font-bold text-[#ea110d] hover:bg-red-50 cursor-pointer"
                         >
-                          • {act}
-                        </span>
-                      ))}
+                          <Plus className="w-3 h-3" />
+                          <span>Add Activity</span>
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    dayItem.activities && dayItem.activities.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {dayItem.activities.map((act, aIdx) => (
+                          <span
+                            key={aIdx}
+                            className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[10px] font-medium"
+                          >
+                            • {act}
+                          </span>
+                        ))}
+                      </div>
+                    )
                   )}
                 </div>
               ))}
@@ -1660,55 +2141,175 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                   Package Policies &amp; Rules
                 </h3>
                 <p className="text-xs text-slate-500 font-roboto">
-                  Please review Mahastays transparent tour guidelines before booking
+                  Review and customize pickup timings, cancellation terms, and travel guidelines.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs font-bold text-slate-900 font-poppins">Confirmation &amp; Pickup</div>
-                  <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                    <p>Pickup: 08:30 AM onwards</p>
-                    <p>Drop-off: 06:00 PM on Day 3</p>
-                    <p className="text-slate-400">Doorstep pickup available in Panchgani</p>
+                {/* Card 1: Confirmation & Pickup */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                  <div>
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 font-poppins">Confirmation &amp; Pickup</div>
+                    <div className="text-[11px] text-slate-600 mt-2 space-y-1.5">
+                      {isEditMode ? (
+                        <>
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Pickup Timing</label>
+                            <input
+                              type="text"
+                              value={(pkg as any).policies?.pickupTiming || '08:30 AM onwards'}
+                              onChange={(e) => handlePolicyChange('pickupTiming', e.target.value)}
+                              className="text-xs font-semibold text-slate-800 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Drop-off Timing</label>
+                            <input
+                              type="text"
+                              value={(pkg as any).policies?.dropoffTiming || `06:00 PM on Day ${(pkg as any).durationDays || 3}`}
+                              onChange={(e) => handlePolicyChange('dropoffTiming', e.target.value)}
+                              className="text-xs font-semibold text-slate-800 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Pickup Note</label>
+                            <input
+                              type="text"
+                              value={(pkg as any).policies?.pickupNote || 'Doorstep pickup available in Panchgani / Mahabaleshwar'}
+                              onChange={(e) => handlePolicyChange('pickupNote', e.target.value)}
+                              className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p>Pickup: {(pkg as any).policies?.pickupTiming || '08:30 AM onwards'}</p>
+                          <p>Drop-off: {(pkg as any).policies?.dropoffTiming || `06:00 PM on Day ${(pkg as any).durationDays || 3}`}</p>
+                          <p className="text-slate-400">
+                            {(pkg as any).policies?.pickupNote || 'Doorstep pickup available in Panchgani'}
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
-                  <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                    <p className="font-semibold text-emerald-700">100% Full Refund</p>
-                    <p>Cancel up to 48 hours prior to start date with zero fee.</p>
+                {/* Card 2: Cancellation Policy */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                  <div>
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
+                    <div className="text-[11px] text-slate-600 mt-2 space-y-1.5">
+                      <p className="font-semibold text-emerald-700">100% Full Refund Option</p>
+                      {isEditMode ? (
+                        <textarea
+                          rows={3}
+                          value={
+                            (pkg as any).cancellationPolicy ||
+                            (pkg as any).policies?.cancellationPolicy ||
+                            'Cancel up to 48 hours prior to start date with zero fee.'
+                          }
+                          onChange={(e) => {
+                            handlePolicyChange('cancellationPolicy', e.target.value);
+                            setPkg({ ...pkg, cancellationPolicy: e.target.value });
+                          }}
+                          className="text-xs text-slate-700 border border-slate-200 rounded-lg p-2 w-full bg-white focus:outline-rose-500"
+                        />
+                      ) : (
+                        <p>
+                          {(pkg as any).cancellationPolicy ||
+                            (pkg as any).policies?.cancellationPolicy ||
+                            'Cancel up to 48 hours prior to start date with zero fee.'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Safety</div>
-                  <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                    <p>• Suitable for senior citizens and children</p>
-                    <p>• Verified chauffeur with background check</p>
-                    <p>• Emergency first-aid kit onboard</p>
+                {/* Card 3: Suitability & Safety */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Safety</div>
+                      </div>
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={handleAddSuitabilityRule}
+                          className="text-[11px] font-bold text-[#ea110d] hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-600 space-y-1.5 mt-2">
+                      {((pkg as any).policies?.suitabilityRules || [
+                        'Suitable for senior citizens and children',
+                        'Verified chauffeur with background check',
+                        'Emergency first-aid kit onboard',
+                      ]).map((rule: string, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between gap-1.5">
+                          {isEditMode ? (
+                            <>
+                              <input
+                                type="text"
+                                value={rule}
+                                onChange={(e) => handleUpdateSuitabilityRule(idx, e.target.value)}
+                                className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 flex-1 bg-white focus:outline-rose-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSuitabilityRule(idx)}
+                                className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <p>• {rule}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                    <Award className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs font-bold text-slate-900 font-poppins">Documents Required</div>
-                  <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                    <p>• Government photo ID for all travelers</p>
-                    <p>• Digital booking voucher</p>
-                    <p>• Safe travel guarantee included</p>
+                {/* Card 4: Documents Required */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                  <div>
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                      <Award className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 font-poppins">Documents Required</div>
+                    <div className="text-[11px] text-slate-600 mt-2 space-y-1.5">
+                      {isEditMode ? (
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Travel Documents Note</label>
+                          <input
+                            type="text"
+                            value={(pkg as any).policies?.documentsNote || 'Government photo ID & digital voucher'}
+                            onChange={(e) => handlePolicyChange('documentsNote', e.target.value)}
+                            className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <p>• {(pkg as any).policies?.documentsNote || 'Government photo ID for all travelers'}</p>
+                          <p>• Digital booking voucher</p>
+                          <p>• Safe travel guarantee included</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1939,24 +2540,193 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
             </button>
 
             <div className="border-t border-slate-100 pt-3 flex flex-col gap-2 text-xs text-slate-600 font-medium">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pricing Breakdown</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPricingEdit(!showPricingEdit)}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline flex items-center gap-1 cursor-pointer"
+                >
+                  {showPricingEdit ? '✓ Close Edit Rates' : '⚙ Edit Fees & Discounts'}
+                </button>
+              </div>
+
+              {/* Inline Rates & Fees Customizer */}
+              {showPricingEdit && (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3 mb-2 text-xs">
+                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                    <span>Package Pricing &amp; Fees</span>
+                    <span className="text-[10px] text-amber-600 font-normal">Saves on &ldquo;Save to Backend&rdquo;</span>
+                  </div>
+
+                  {/* 1. Discount Percentage */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Member Discount (%)</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">{discountPercent}%</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={discountPercent}
+                        onChange={(e) => handlePricingRuleChange('memberDiscountPercent', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                        className="w-20 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        {[0, 8, 10, 15].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => handlePricingRuleChange('memberDiscountPercent', pct)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
+                              discountPercent === pct ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {pct === 0 ? 'None' : `${pct}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Concierge & Booking Fee */}
+                  <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Concierge &amp; Booking Fee (₹)</span>
+                      <span className={`text-[10px] font-bold ${includeCleaningFee ? 'text-slate-700 dark:text-slate-300' : 'text-red-500 line-through'}`}>
+                        {includeCleaningFee ? `₹${conciergeFee}` : 'Fee Removed'}
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2.5 top-2 text-slate-400 text-xs">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={!includeCleaningFee}
+                          value={configuredFee}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                            handlePricingRuleChange('cleaningFee', val);
+                          }}
+                          className={`w-full pl-6 pr-2 py-1.5 rounded-xl border text-xs font-bold ${
+                            includeCleaningFee ? 'bg-white dark:bg-slate-900 border-slate-200' : 'bg-slate-100 text-slate-400 line-through'
+                          }`}
+                        />
+                      </div>
+                      {includeCleaningFee ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handlePricingRuleChange('includeCleaningFee', false);
+                            handlePricingRuleChange('cleaningFee', 0);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                          <span>Remove Fee</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handlePricingRuleChange('includeCleaningFee', true);
+                            handlePricingRuleChange('cleaningFee', 445);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                        >
+                          <Plus className="w-3 h-3 text-emerald-600" />
+                          <span>Restore</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. GST Rate */}
+                  <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Taxes &amp; GST Rate (%)</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">{includeGst ? `${gstPercent}% GST` : 'Exempt'}</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="28"
+                        disabled={!includeGst}
+                        value={gstPercent}
+                        onChange={(e) => handlePricingRuleChange('gstPercent', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                        className="w-20 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 text-xs font-bold"
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        {[0, 5, 12, 18].map((g) => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => {
+                              handlePricingRuleChange('includeGst', g > 0);
+                              handlePricingRuleChange('gstPercent', g);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
+                              gstPercent === g && (g === 0 || includeGst) ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {g === 0 ? 'Exempt' : `${g}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>
                   ₹{pricePerPerson.toLocaleString('en-IN')} × {adults} adults
                 </span>
                 <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>Member Discount (8%)</span>
-                <span>-₹{memberDiscount.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Concierge &amp; Booking Fee</span>
-                <span className="text-slate-900 font-semibold">₹{conciergeFee.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Taxes &amp; GST (5%)</span>
-                <span className="text-slate-900 font-semibold">₹{taxesGst.toLocaleString('en-IN')}</span>
-              </div>
+
+              {memberDiscount > 0 ? (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Member Discount ({discountPercent}%)</span>
+                  <span>-₹{memberDiscount.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Member Discount</span>
+                  <span>₹0 (None)</span>
+                </div>
+              )}
+
+              {includeCleaningFee && conciergeFee > 0 ? (
+                <div className="flex justify-between">
+                  <span>Concierge &amp; Booking Fee</span>
+                  <span className="text-slate-900 font-semibold">₹{conciergeFee.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Concierge &amp; Booking Fee</span>
+                  <span className="text-emerald-600 font-semibold">₹0 (Removed / Waived)</span>
+                </div>
+              )}
+
+              {includeGst && gstPercent > 0 ? (
+                <div className="flex justify-between">
+                  <span>Taxes &amp; GST ({gstPercent}%)</span>
+                  <span className="text-slate-900 font-semibold">₹{taxesGst.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Taxes &amp; GST</span>
+                  <span>₹0 (GST Exempt)</span>
+                </div>
+              )}
+
               <div className="border-t border-slate-200 pt-2.5 flex items-baseline justify-between">
                 <span className="text-sm font-bold text-slate-900 font-poppins">Total (INR)</span>
                 <span className="text-xl sm:text-2xl font-extrabold text-slate-900 font-poppins">
@@ -1987,6 +2757,16 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
         title={confirmDeleteState.title}
         itemName={confirmDeleteState.itemName}
         message={confirmDeleteState.message}
+      />
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        videoUrl={pkg.videoUrl}
+        title={`Tour Preview: ${pkg.title}`}
+        isEditMode={isEditMode}
+        onUpdateUrl={(newUrl) => handleFieldChange('videoUrl', newUrl)}
       />
     </div>
   );

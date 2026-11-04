@@ -56,12 +56,17 @@ export default function OverviewView({ onNavigateTab, onOpenCreateModal }: Overv
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
-              alt={user?.name}
-              className="w-16 h-16 rounded-2xl object-cover ring-2 ring-rose-100 dark:ring-rose-950"
-            />
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user?.name}
+                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-rose-100 dark:ring-rose-950"
+              />
+            ) : (
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl text-white ${isAdmin ? 'bg-rose-600' : 'bg-[#134E4A]'}`}>
+                {(user?.name || (isAdmin ? 'Admin' : 'Vendor'))[0].toUpperCase()}
+              </div>
+            )}
             <span
               className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 ${
                 isAdmin ? 'bg-rose-500' : 'bg-emerald-500'

@@ -19,6 +19,7 @@ import {
   Plus,
   Printer,
   RotateCcw,
+  RotateCw,
   Send,
   Sparkles,
   User,
@@ -35,6 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 import BookingInvoiceModal from '../modals/BookingInvoiceModal';
 import { useAppSelector, useAppDispatch } from '../../store';
 import {
+  fetchBookings,
   updateBookingStatusAsync,
   updatePaymentStatusAsync,
   toggleChargeSelected,
@@ -77,6 +79,18 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
   const [chargeCategory, setChargeCategory] = useState<'Restaurant' | 'Bar' | 'Spa' | 'Laundry' | 'Room'>('Restaurant');
   const [chargeTitle, setChargeTitle] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshBooking = async () => {
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchBookings()).unwrap();
+    } catch (err) {
+      console.error('Refresh booking error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!booking) {
     return (
@@ -117,7 +131,7 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
         text: noteText.trim(),
         authorName: user?.name || (isAdmin ? 'Admin Concierge' : 'Front Desk Lead'),
         authorRole: isAdmin ? 'Admin' : 'Vendor',
-        avatar: user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+        avatar: user?.avatar || '',
       })
     );
     setNoteText('');
@@ -222,16 +236,38 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
             </select>
           </div>
 
-          {/* Official Tax Invoice Button (View & Download) */}
+          {/* Dedicated Refresh Button */}
           <button
             type="button"
-            onClick={() => setIsInvoiceModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
-            title="View & Download Official GST Tax Invoice"
+            onClick={handleRefreshBooking}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+            title="Refresh Booking from Database"
           >
-            <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
-            <span>Tax Invoice</span>
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
+
+          {/* Official Tax Invoice Button (View & Download) */}
+          {booking.paymentStatus === 'paid' && booking.bookingStatus !== 'cancelled' ? (
+            <button
+              type="button"
+              onClick={() => setIsInvoiceModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+              title="View & Download Official GST Tax Invoice"
+            >
+              <FileText className="w-3.5 h-3.5 text-[#ea110d]" />
+              <span>Tax Invoice</span>
+            </button>
+          ) : booking.bookingStatus === 'cancelled' ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-xs font-semibold">
+              Cancelled • No Invoice
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+              Unpaid • Invoice on Payment
+            </span>
+          )}
 
           {/* Print Button */}
           <button
@@ -262,21 +298,24 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
             </div>
 
             <div className="flex items-center gap-4">
-              <img
-                src={
-                  booking.guestAvatar ||
-                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
-                }
-                alt={booking.guestName}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-100 dark:border-slate-800 shadow-sm"
-              />
+              {booking.guestAvatar ? (
+                <img
+                  src={booking.guestAvatar}
+                  alt={booking.guestName}
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-100 dark:border-slate-800 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-bold text-2xl shadow-sm">
+                  {booking.guestName ? booking.guestName[0].toUpperCase() : 'G'}
+                </div>
+              )}
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   {booking.guestName}
                 </h3>
                 <p className="text-xs font-semibold text-[#F05353]">{guestCode}</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  {booking.nationality || 'Indonesia'} &bull; {booking.dateOfBirth || '14 May 1989'}
+                  {booking.nationality || 'Guest'}
                 </p>
               </div>
             </div>
@@ -284,22 +323,22 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
             <div className="mt-5 space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                 <Phone className="w-3.5 h-3.5 text-slate-400" />
-                <span>{booking.guestPhone}</span>
+                <span>{booking.guestPhone || 'Not provided'}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                 <Mail className="w-3.5 h-3.5 text-slate-400" />
-                <span>{booking.guestEmail}</span>
+                <span>{booking.guestEmail || 'Not provided'}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                 <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                <span>ID Card: {booking.idCardNumber || 'IDN-8829-0192'}</span>
+                <span>ID Card: {booking.idCardNumber || 'Not provided'}</span>
               </div>
             </div>
           </div>
 
           {/* Link to Full Guest Lifetime History */}
           <Link
-            href={`/dashboard/guests/${booking.userId || 'usr_cahyadi_01'}`}
+            href={booking.userId ? `/dashboard/guests/${booking.userId}` : '/dashboard/guests'}
             className="mt-5 w-full py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#134E4A] dark:text-emerald-400 flex items-center justify-center gap-2 transition-colors shadow-2xs"
           >
             <User className="w-3.5 h-3.5" />
@@ -319,14 +358,17 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-5">
-            <img
-              src={
-                booking.roomImage ||
-                'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800'
-              }
-              alt={booking.roomName}
-              className="w-full sm:w-48 h-32 rounded-xl object-cover border border-slate-100 dark:border-slate-800"
-            />
+            {booking.roomImage ? (
+              <img
+                src={booking.roomImage}
+                alt={booking.roomName}
+                className="w-full sm:w-48 h-32 rounded-xl object-cover border border-slate-100 dark:border-slate-800"
+              />
+            ) : (
+              <div className="w-full sm:w-48 h-32 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                No room image
+              </div>
+            )}
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
                 <Building className="w-4 h-4 text-slate-400" />
@@ -579,11 +621,17 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
                 key={n.id}
                 className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-start gap-3.5"
               >
-                <img
-                  src={n.avatar}
-                  alt={n.authorName}
-                  className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5"
-                />
+                {n.avatar ? (
+                  <img
+                    src={n.avatar}
+                    alt={n.authorName}
+                    className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xs shrink-0 mt-0.5">
+                    {n.authorName ? n.authorName[0].toUpperCase() : 'U'}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-bold text-slate-900 dark:text-white">

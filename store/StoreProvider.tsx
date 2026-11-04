@@ -18,7 +18,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     // Purge any stale client mock data from previous sessions
     if (typeof window !== 'undefined') {
-      const dummyMarkers = ['prop_01', '0006789', 'pkg_01', 'exp_01', 'ad_01'];
+      const dummyMarkers = [
+        'prop_01',
+        '0006789',
+        'pkg_01',
+        'exp_01',
+        'ad_01',
+        'ABCDE1234F',
+        '27ABCDE1234F1Z5',
+        'MTDC/2026/089',
+        'photo-1507003211169-0a1dd7228f2d',
+        'vnd_resort_01',
+      ];
       ['mahastays_db_properties', 'mahastays_db_packages', 'mahastays_db_experiences', 'mahastays_db_bookings', 'mahastays_db_guests', 'mahastays_db_ads', 'mahastays_db_vendors'].forEach((key) => {
         const val = localStorage.getItem(key);
         if (val && dummyMarkers.some((m) => val.includes(m))) {

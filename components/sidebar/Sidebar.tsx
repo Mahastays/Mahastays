@@ -82,12 +82,17 @@ export default function Sidebar({
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
-                  alt={user?.name}
-                  className="w-10 h-10 rounded-full object-cover ring-2 ring-rose-100 dark:ring-rose-950"
-                />
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-rose-100 dark:ring-rose-950"
+                  />
+                ) : (
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white ${isAdmin ? 'bg-rose-600' : 'bg-[#134E4A]'}`}>
+                    {(user?.name || (isAdmin ? 'Admin' : 'Vendor'))[0].toUpperCase()}
+                  </div>
+                )}
                 <span
                   className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 ${
                     isAdmin ? 'bg-rose-500' : 'bg-emerald-500'
@@ -136,6 +141,17 @@ export default function Sidebar({
               </div>
 
               <div className="pt-1">
+                <button
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    router.push('/dashboard/vendors');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 rounded-xl font-medium transition cursor-pointer mb-1"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{isAdmin ? 'Vendor Verification Desk' : 'My Full KYC & Profile'}</span>
+                </button>
+
                 <button
                   onClick={() => {
                     setProfileDropdownOpen(false);
@@ -334,19 +350,17 @@ export default function Sidebar({
               Others
             </div>
             <nav className="space-y-1">
-              {isAdmin && (
-                <button
-                  onClick={() => onSelectTab('vendors')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                    currentTab === 'vendors'
-                      ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-semibold shadow-xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4 shrink-0" />
-                  <span>Vendors & KYC</span>
-                </button>
-              )}
+              <button
+                onClick={() => onSelectTab('vendors')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                  currentTab === 'vendors'
+                    ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <Building2 className="w-4 h-4 shrink-0" />
+                <span>{isAdmin ? 'Vendors & KYC' : 'My KYC & Documents'}</span>
+              </button>
 
               {isAdmin && (
                 <button

@@ -28,6 +28,7 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams?.get('redirect') || '/dashboard';
+  const isSessionExpired = searchParams?.get('session_expired') === 'true';
 
   const { login, verifyOtp, resendOtp } = useAuth();
 
@@ -296,6 +297,15 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
               </button>
             </div>
 
+            {isSessionExpired && !error && (
+              <div className="p-3.5 rounded-xl bg-amber-50 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-900 text-xs flex items-start gap-2.5 animate-in fade-in">
+                <RotateCcw className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                <div className="flex-1 leading-relaxed">
+                  <span className="font-bold">Session Expired:</span> Your previous session has timed out. Please sign in again with your credentials.
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="p-3.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs flex items-start gap-2 animate-in fade-in">
                 <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -321,7 +331,7 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={
                       activePersona === 'admin'
-                        ? 'e.g. bookingmahastays@gmail.com'
+                        ? 'e.g. mail@domain.com'
                         : 'e.g. host@yourdomain.com'
                     }
                     className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-[#ea110d] transition"

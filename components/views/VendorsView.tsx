@@ -92,7 +92,7 @@ export default function VendorsView() {
         password: password.trim(),
         businessName: businessName.trim(),
         displayName: displayName.trim() || businessName.trim(),
-        phone: phone.trim() || '+91 98200 ' + Math.floor(10000 + Math.random() * 90000),
+        phone: phone.trim() || '',
         category,
         businessType,
       });
@@ -302,12 +302,17 @@ export default function VendorsView() {
                 {/* Header with avatar & category */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={v.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}
-                      alt={v.displayName}
-                      className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-800 shrink-0"
-                    />
+                    {v.avatarUrl && !v.avatarUrl.includes('photo-1507003211169-0a1dd7228f2d') && !v.avatarUrl.includes('pravatar.cc') ? (
+                      <img
+                        src={v.avatarUrl}
+                        alt={v.displayName}
+                        className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-800 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-base flex items-center justify-center shrink-0 border border-rose-200/60 dark:border-rose-900/40">
+                        {(v.businessName || v.displayName || 'V')[0].toUpperCase()}
+                      </div>
+                    )}
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 group-hover:text-rose-600 transition">
                         <span>{v.businessName}</span>
@@ -336,7 +341,7 @@ export default function VendorsView() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300">
                     <Phone className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span className="truncate">{v.phone}</span>
+                    <span className="truncate">{v.phone || 'Phone not set'}</span>
                   </div>
                   <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300">
                     <Mail className="w-3.5 h-3.5 text-rose-500 shrink-0" />

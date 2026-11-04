@@ -8,16 +8,10 @@ import {
   verifyAdminOtp as verifyAdminOtpThunk,
   resendAdminOtp as resendAdminOtpThunk,
   logoutUser,
-  ADMIN_DEMO_CREDENTIALS,
-  VENDOR_DEMO_CREDENTIALS,
 } from '../store/slices/authSlice';
 
-export { ADMIN_DEMO_CREDENTIALS, VENDOR_DEMO_CREDENTIALS };
 
-export const DEMO_CREDENTIALS = {
-  admin: ADMIN_DEMO_CREDENTIALS,
-  vendor: VENDOR_DEMO_CREDENTIALS,
-};
+
 
 interface AuthContextType {
   user: CurrentUser | null;

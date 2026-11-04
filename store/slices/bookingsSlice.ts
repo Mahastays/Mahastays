@@ -74,18 +74,18 @@ const saveGuests = (guests: GuestProfile[]) => {
 
 export const normalizeBooking = (raw: any): AnyBooking => {
   const type = raw.type || (raw.packageId ? 'package' : raw.experienceId ? 'experience' : 'stay');
-  const bookingRef = raw.bookingReference || raw.code || raw.id?.slice(-7).toUpperCase() || 'REF-1001';
-  const customerName = raw.customer?.fullName || raw.guestName || 'Cahyadi Purnomo';
-  const customerEmail = raw.customer?.email || raw.guestEmail || 'cahyadi.purnomo@gmail.com';
-  const customerPhone = raw.customer?.phone || raw.guestPhone || '+62 812 3456 7890';
-  const customerAvatar = raw.customer?.avatar || raw.guestAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+  const bookingRef = raw.bookingReference || raw.code || raw.id?.slice(-7).toUpperCase() || 'REF-BOOKING';
+  const customerName = raw.customer?.fullName || raw.guestName || 'Guest User';
+  const customerEmail = raw.customer?.email || raw.guestEmail || '';
+  const customerPhone = raw.customer?.phone || raw.guestPhone || '';
+  const customerAvatar = raw.customer?.avatar || raw.guestAvatar || '';
 
   if (type === 'package') {
     const pkgBooking: PackageBookingItem = {
       id: raw.id || raw._id,
       type: 'package',
       bookingReference: bookingRef,
-      userId: raw.userId || raw.customer?.id || 'usr_01',
+      userId: raw.userId || raw.customer?.id || '',
       guestName: customerName,
       guestEmail: customerEmail,
       guestPhone: customerPhone,
@@ -93,14 +93,14 @@ export const normalizeBooking = (raw: any): AnyBooking => {
       packageId: raw.packageId || raw.package?.id || '',
       packageTitle: raw.package?.title || raw.packageTitle || raw.title || 'Tour Package',
       vendorId: raw.vendorId || '',
-      vendorName: raw.vendorName || 'Hospitality Partner',
-      tierName: raw.tier?.tierName || raw.tierName || raw.selectedTier?.name || 'All-Inclusive',
+      vendorName: raw.vendorName || '',
+      tierName: raw.tier?.tierName || raw.tierName || raw.selectedTier?.name || '',
       startDate: raw.startDate || '',
       endDate: raw.endDate || '',
-      travelers: raw.travelers?.totalTravelers || raw.travelers || 2,
-      grandTotalInr: raw.pricing?.grandTotalInr || 0,
-      paymentStatus: raw.paymentStatus || 'paid',
-      bookingStatus: raw.bookingStatus || 'confirmed',
+      travelers: raw.travelers?.totalTravelers || raw.travelers || 1,
+      grandTotalInr: raw.pricing?.grandTotalInr || raw.amount || 0,
+      paymentStatus: raw.paymentStatus || 'pending',
+      bookingStatus: raw.bookingStatus || 'pending',
       specialRequests: raw.specialRequests || '',
       createdAt: raw.createdAt || new Date().toISOString(),
     };
@@ -120,13 +120,13 @@ export const normalizeBooking = (raw: any): AnyBooking => {
       experienceId: raw.experienceId || raw.experience?.id || '',
       experienceTitle: raw.experience?.title || raw.experienceTitle || raw.title || 'Experience Tour',
       vendorId: raw.vendorId || '',
-      vendorName: raw.vendorName || 'Sahyadri Adventure & Treks',
-      slotTime: raw.selectedSlot?.time || raw.slotTime || '6:00 AM – 8:00 AM',
-      activityDate: raw.activityDate || '2026-11-05',
-      participants: raw.participants?.totalParticipants || raw.participants || 2,
-      grandTotalInr: raw.pricing?.grandTotalInr || 545,
-      paymentStatus: raw.paymentStatus || 'paid',
-      bookingStatus: raw.bookingStatus || 'reserved',
+      vendorName: raw.vendorName || '',
+      slotTime: raw.selectedSlot?.time || raw.slotTime || '',
+      activityDate: raw.activityDate || '',
+      participants: raw.participants?.totalParticipants || raw.participants || 1,
+      grandTotalInr: raw.pricing?.grandTotalInr || raw.amount || 0,
+      paymentStatus: raw.paymentStatus || 'pending',
+      bookingStatus: raw.bookingStatus || 'pending',
       specialRequests: raw.specialRequests || '',
       createdAt: raw.createdAt || new Date().toISOString(),
     };
@@ -138,41 +138,36 @@ export const normalizeBooking = (raw: any): AnyBooking => {
     id: raw.id || raw._id,
     type: 'stay',
     bookingReference: bookingRef,
-    userId: raw.userId || raw.customer?.id || 'usr_01',
+    userId: raw.userId || raw.customer?.id || '',
     guestName: customerName,
     guestEmail: customerEmail,
     guestPhone: customerPhone,
     guestAvatar: customerAvatar,
     vipStatus: !!raw.vipStatus,
     propertyId: raw.propertyId || raw.property?.id || '',
-    propertyName: raw.property?.name || raw.propertyName || raw.title || 'HillView Luxury Resort & Spa',
-    vendorId: raw.vendorId || '6adeef17f4597150f0c199a4',
-    vendorName: raw.vendorName || 'HillView Hospitality Pvt Ltd',
-    roomId: raw.room?.roomId || raw.roomId || 'r501',
-    roomName: raw.room?.roomName || raw.roomName || 'St. Double Room',
-    roomImage: raw.image || raw.property?.images?.[0]?.url || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800',
-    bedType: raw.bedType || 'King Bed',
-    features: raw.features || ['Free WiFi', 'Valley View Balcony', 'Air Conditioning', 'Breakfast Included'],
-    checkInDate: raw.schedule?.checkInDate || raw.checkInDate || '2026-09-01',
-    checkOutDate: raw.schedule?.checkOutDate || raw.checkOutDate || '2026-09-07',
-    nights: raw.schedule?.nights || raw.nights || 6,
-    adults: raw.guests?.adults || raw.adults || 2,
+    propertyName: raw.property?.name || raw.propertyName || raw.title || 'Stay Accommodation',
+    vendorId: raw.vendorId || '',
+    vendorName: raw.vendorName || '',
+    roomId: raw.room?.roomId || raw.roomId || '',
+    roomName: raw.room?.roomName || raw.roomName || 'Selected Room',
+    roomImage: raw.image || raw.property?.images?.[0]?.url || raw.property?.images?.[0] || '',
+    bedType: raw.bedType || '',
+    features: raw.features || [],
+    checkInDate: raw.schedule?.checkInDate || raw.checkInDate || '',
+    checkOutDate: raw.schedule?.checkOutDate || raw.checkOutDate || '',
+    nights: raw.schedule?.nights || raw.nights || 1,
+    adults: raw.guests?.adults || raw.adults || 1,
     children: raw.guests?.children || raw.children || 0,
-    roomPricePerNight: raw.pricing?.roomPricePerNight || 1600,
+    roomPricePerNight: raw.pricing?.roomPricePerNight || 0,
     cleaningFee: raw.pricing?.cleaningFee || 0,
     memberDiscount: raw.pricing?.memberDiscount || 0,
-    taxesGst: raw.pricing?.taxesGst || 1200,
-    grandTotalInr: raw.pricing?.grandTotalInr || 10800,
-    paymentStatus: raw.paymentStatus || 'paid',
-    bookingStatus: raw.bookingStatus || 'checked_out',
+    taxesGst: raw.pricing?.taxesGst || 0,
+    grandTotalInr: raw.pricing?.grandTotalInr || raw.amount || 0,
+    paymentStatus: raw.paymentStatus || 'pending',
+    bookingStatus: raw.bookingStatus || 'pending',
     specialRequests: raw.specialRequests || '',
-    charges: Array.isArray(raw.charges) && raw.charges.length > 0 ? raw.charges : [
-      { id: 'ch_01', category: 'Restaurant', title: 'Buffet Dinner & Beverage Room Service', date: '02 Sep 2026', amount: 2450, selected: true },
-      { id: 'ch_02', category: 'Spa', title: 'Ayurvedic Aromatherapy Treatment (60m)', date: '04 Sep 2026', amount: 3200, selected: true },
-    ],
-    notes: Array.isArray(raw.notes) && raw.notes.length > 0 ? raw.notes : [
-      { id: 'nt_01', authorName: 'Ariana Davis', authorRole: 'Admin', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', date: '01 Sep 2026, 14:15', text: 'Guest requested early check-in at 12:30 PM. Room inspected and keys prepared.' },
-    ],
+    charges: Array.isArray(raw.charges) ? raw.charges : [],
+    notes: Array.isArray(raw.notes) ? raw.notes : [],
     createdAt: raw.createdAt || new Date().toISOString(),
   };
   return stayBooking;
@@ -188,19 +183,19 @@ export const extractGuestsFromBookings = (bookings: AnyBooking[]): GuestProfile[
         id: b.userId || `gst_${Math.random().toString(36).substring(7)}`,
         guestCode: `GST-${(b.userId || '1001').slice(-4).toUpperCase()}`,
         name: b.guestName || 'Valued Guest',
-        email: b.guestEmail || 'guest@mahastays.com',
-        phone: b.guestPhone || '+91 98200 12345',
-        avatar: b.guestAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        email: b.guestEmail || '',
+        phone: b.guestPhone || '',
+        avatar: b.guestAvatar || '',
         vipStatus: (b as any).vipStatus || false,
         vipTier: (b as any).vipStatus ? 'Gold' : 'Standard',
         nationality: (b as any).nationality || 'Indian',
-        dateOfBirth: '1988-06-14',
-        idCardNumber: 'XXXX-XXXX-4819',
-        idCardType: 'Aadhaar',
+        dateOfBirth: (b as any).dateOfBirth || '',
+        idCardNumber: (b as any).idCardNumber || '',
+        idCardType: (b as any).idCardType || 'ID',
         isVerified: true,
-        memberSince: 'Mar 2024',
-        address: 'Bandung / Mumbai',
-        city: 'Mumbai',
+        memberSince: (b as any).memberSince || 'Recent',
+        address: (b as any).address || '',
+        city: (b as any).city || '',
         stats: {
           totalBookings: 1,
           totalSpent: b.grandTotalInr,
@@ -208,15 +203,7 @@ export const extractGuestsFromBookings = (bookings: AnyBooking[]): GuestProfile[
           cancelledBookings: b.bookingStatus === 'cancelled' ? 1 : 0,
           averageRating: 5.0,
         },
-        notes: [
-          {
-            id: `gn_${Date.now()}`,
-            authorName: 'Front Desk Lead',
-            authorRole: 'Host / Operations',
-            date: 'Live System Sync',
-            text: `Registered guest with live active booking reference: ${b.bookingReference}`,
-          },
-        ],
+        notes: (b as any).notes || [],
       });
     } else {
       const existing = map.get(key)!;
@@ -248,9 +235,16 @@ const initialState: BookingsState = {
 export const fetchBookings = createAsyncThunk('bookings/fetchBookings', async () => {
   try {
     const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+    const requestConfig = {
+      params: { _t: Date.now(), limit: 100 },
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    };
     const res = isVendor
-      ? await api.get('/vendor/bookings').catch(() => api.get('/admin/bookings')).catch(() => api.get('/bookings'))
-      : await api.get('/admin/bookings').catch(() => api.get('/bookings'));
+      ? await api.get('/vendor/bookings', requestConfig).catch(() => api.get('/admin/bookings', requestConfig))
+      : await api.get('/admin/bookings', requestConfig).catch(() => api.get('/vendor/bookings', requestConfig));
 
     const rawList = Array.isArray(res.data?.data)
       ? res.data.data
@@ -273,8 +267,8 @@ export const fetchBookings = createAsyncThunk('bookings/fetchBookings', async ()
 
       return { bookings: normalized, guests: realGuests };
     }
-  } catch {
-    // Offline fallback
+  } catch (err) {
+    console.error('Failed to fetch bookings from server:', err);
   }
   return { bookings: getStoredBookings(), guests: getStoredGuests() };
 });

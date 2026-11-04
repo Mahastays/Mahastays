@@ -25,10 +25,38 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: Normalize backend ApiError responses
+// Response interceptor: Normalize backend ApiError responses & auto-logout on expired session (401)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || '');
+
+    // Skip auto-redirect for explicit login or verification attempts to allow normal error messaging
+    const isAuthAttempt =
+      requestUrl.includes('/auth/admin/login') ||
+      requestUrl.includes('/auth/vendor/login') ||
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/verify-otp') ||
+      requestUrl.includes('/resend-otp');
+
+    if (status === 401 && !isAuthAttempt) {
+      if (typeof window !== 'undefined') {
+        // Clear all persistent session credentials
+        localStorage.removeItem('mahastays_admin_token');
+        localStorage.removeItem('mahastays_auth_token');
+        localStorage.removeItem('mahastays_token');
+        localStorage.removeItem('mahastays_auth_user');
+        localStorage.removeItem('mahastays_auth_view_mode');
+
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/login')) {
+          const redirectParam = encodeURIComponent(currentPath + (window.location.search || ''));
+          window.location.href = `/login?session_expired=true&redirect=${redirectParam}`;
+        }
+      }
+    }
+
     const errorData = error.response?.data?.error;
     let message = errorData?.message || error.response?.data?.message;
 

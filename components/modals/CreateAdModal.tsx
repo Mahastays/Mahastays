@@ -49,15 +49,13 @@ export default function CreateAdModal({
   const [subHeadline, setSubHeadline] = useState('');
   const [badgeText, setBadgeText] = useState('Sponsored');
   const [buttonText, setButtonText] = useState('Explore Stays');
-  const [price, setPrice] = useState('8,999');
+  const [price, setPrice] = useState('');
   const [priceUnit, setPriceUnit] = useState('/ night');
-  const [features, setFeatures] = useState('Private Pool • Fine Dining • Curated Experiences');
-  const [imageUrl, setImageUrl] = useState(
-    'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=80'
-  );
-  const [totalBudget, setTotalBudget] = useState('25000');
-  const [dailyBudget, setDailyBudget] = useState('1500');
-  const [costPerClick, setCostPerClick] = useState('12');
+  const [features, setFeatures] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [totalBudget, setTotalBudget] = useState('10000');
+  const [dailyBudget, setDailyBudget] = useState('1000');
+  const [costPerClick, setCostPerClick] = useState('10');
 
   // Sync state whenever modal opens or defaultPlacement changes
   useEffect(() => {
@@ -69,26 +67,18 @@ export default function CreateAdModal({
         setTargetType('package');
         setButtonText('Explore Packages');
         setPriceUnit('/ package');
-        setFeatures('Lake-View Suite • Candle-Light Dinner • Curated Photoshoot');
-        setImageUrl('https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80');
       } else if (pl === 'experiences') {
         setTargetType('activity');
         setButtonText('Explore Experiences');
         setPriceUnit('/ person');
-        setFeatures('450m Elevation • Certified Master Pilot • 4K GoPro Video');
-        setImageUrl('https://images.unsplash.com/photo-1504276048855-f58379e20788?auto=format&fit=crop&w=1200&q=80');
       } else if (pl === 'stays') {
         setTargetType('property');
         setButtonText('Explore Stays');
         setPriceUnit('/ night');
-        setFeatures('Private Pool • Fine Dining • Curated Experiences');
-        setImageUrl('https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=80');
       } else {
         setTargetType('property');
         setButtonText('Book Now');
         setPriceUnit('/ night');
-        setFeatures('Luxury Villas • Infinity Pool • Mountain View');
-        setImageUrl('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80');
       }
     }
   }, [isOpen, defaultPlacement]);

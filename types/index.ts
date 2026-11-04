@@ -111,6 +111,7 @@ export interface PropertyItem {
     avatar?: string;
     verified?: boolean;
     staysCount?: string;
+    confirmationBadge?: string;
   };
   keyAmenities?: Array<{
     name: string;
@@ -134,6 +135,8 @@ export interface PropertyItem {
     coupleFriendly?: boolean;
     suitabilityRules?: string[];
     guidelines?: string[];
+    quietHours?: string;
+    guidelinesNote?: string;
     fullAddress?: string;
   };
   address?: {
@@ -142,8 +145,26 @@ export interface PropertyItem {
     lng?: number;
     mapLink?: string;
   };
+  nearbyAttractions?: Array<{
+    name: string;
+    distance: string;
+    desc?: string;
+  }>;
   videoUrl?: string;
   idealFor?: string;
+  pricingRules?: PricingBreakdownConfig;
+}
+
+export interface PricingBreakdownConfig {
+  memberDiscountPercent?: number;
+  customDiscountAmount?: number;
+  discountType?: 'percentage' | 'flat' | 'none';
+  cleaningFee?: number;
+  includeCleaningFee?: boolean;
+  gstPercent?: number;
+  includeGst?: boolean;
+  otherFeeName?: string;
+  otherFeeAmount?: number;
 }
 
 export interface PackageTierItem {
@@ -186,6 +207,27 @@ export interface PackageItem {
   itinerary?: Array<{ day: number; title: string; desc?: string; activities?: string[]; meals?: string; stay?: string }>;
   tiers: PackageTierItem[];
   cancellationPolicy?: string;
+  host?: {
+    name: string;
+    role?: string;
+    experience?: string;
+    avatar?: string;
+    verified?: boolean;
+    staysCount?: string;
+    confirmationBadge?: string;
+  };
+  keyHighlights?: Array<{
+    name: string;
+    desc: string;
+    icon?: string;
+  }>;
+  videoUrl?: string;
+  idealFor?: string;
+  destinations?: string;
+  policies?: {
+    cancellationPolicy?: string;
+    rules?: string[];
+  };
   rating: number;
   reviewsCount: number;
   featured: boolean;
@@ -195,6 +237,7 @@ export interface PackageItem {
   approvedAt?: string;
   approvedByAdminId?: string;
   createdAt: string;
+  pricingRules?: PricingBreakdownConfig;
 }
 
 export interface ExperienceSlotItem {
@@ -246,7 +289,28 @@ export interface ExperienceItem {
     name: string;
     role?: string;
     avatar?: string;
+    experience?: string;
+    staysCount?: string;
+    verified?: boolean;
+    confirmationBadge?: string;
   };
+  host?: {
+    name: string;
+    role?: string;
+    avatar?: string;
+    experience?: string;
+    staysCount?: string;
+    verified?: boolean;
+    confirmationBadge?: string;
+  };
+  keyHighlights?: Array<{
+    name: string;
+    desc: string;
+    icon?: string;
+  }>;
+  videoUrl?: string;
+  idealFor?: string;
+  groupSizeText?: string;
   rating: number;
   reviewsCount: number;
   featured: boolean;
@@ -256,6 +320,7 @@ export interface ExperienceItem {
   approvedAt?: string;
   approvedByAdminId?: string;
   createdAt: string;
+  pricingRules?: PricingBreakdownConfig;
 }
 
 export interface BookingChargeItem {
@@ -457,6 +522,7 @@ export interface VendorItem {
   displayName: string;
   displayRole: string;
   experienceSummary?: string;
+  businessType?: 'individual' | 'proprietorship' | 'private_limited' | 'partnership';
   category: 'property_host' | 'activity_operator' | 'integrated_resort';
   avatarUrl: string;
   email: string;
@@ -466,14 +532,34 @@ export interface VendorItem {
     panNumber: string;
     gstin?: string;
     tourismLicenseNumber?: string;
+    aadhaarNumber?: string;
+    identityProofUrl?: string;
+    businessProofUrl?: string;
+    bankProofUrl?: string;
+    tourismProofUrl?: string;
     verificationStatus: 'pending' | 'under_review' | 'approved' | 'rejected';
   };
   banking: {
     bankName: string;
     accountHolderName: string;
     accountNumberLast4: string;
+    accountNumber?: string;
     ifscCode: string;
+    branchName?: string;
+    upiId?: string;
     isAccountVerified: boolean;
+  };
+  contact?: {
+    primaryContactPerson?: string;
+    alternatePhone?: string;
+    registeredOfficeAddress?: {
+      addressLine1: string;
+      addressLine2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country?: string;
+    };
   };
   wallet: {
     availableInr: number;

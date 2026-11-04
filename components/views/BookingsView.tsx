@@ -31,6 +31,9 @@ import {
   Gift,
   Users,
   Trash2,
+  RotateCw,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import BookingInvoiceModal from '../modals/BookingInvoiceModal';
@@ -40,6 +43,7 @@ import {
   updatePaymentStatusAsync,
   deleteBookingAsync,
   addBookingNote,
+  fetchBookings,
 } from '../../store/slices/bookingsSlice';
 import {
   StayBookingItem,
@@ -75,6 +79,55 @@ export default function BookingsView() {
   const [actionMenuBooking, setActionMenuBooking] = useState<AnyBooking | null>(null);
   const [menuCoords, setMenuCoords] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<AnyBooking | null>(null);
+
+  // Live Sync & Manual Refresh States
+  const loading = useAppSelector((state) => state.bookings.loading);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
+  const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const handleManualRefresh = async () => {
+    try {
+      setIsManualRefreshing(true);
+      const resultAction = await dispatch(fetchBookings());
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+      setLastSyncedTime(timeStr);
+      const fetchedList = (resultAction.payload as any)?.bookings;
+      const count = Array.isArray(fetchedList) ? fetchedList.length : bookings.length;
+      setSyncToast({
+        message: `Bookings up to date! Loaded ${count} records directly from database.`,
+        type: 'success',
+      });
+      setTimeout(() => setSyncToast(null), 3500);
+    } catch {
+      setSyncToast({
+        message: 'Could not fetch live bookings from server. Showing cached data.',
+        type: 'error',
+      });
+      setTimeout(() => setSyncToast(null), 3500);
+    } finally {
+      setTimeout(() => setIsManualRefreshing(false), 500);
+    }
+  };
+
+  // Auto-sync on component mount + background interval every 30 seconds
+  useEffect(() => {
+    handleManualRefresh();
+    const interval = setInterval(() => {
+      dispatch(fetchBookings());
+      const now = new Date();
+      setLastSyncedTime(
+        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+      );
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   const handleToggleActionMenu = (booking: AnyBooking, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -425,31 +478,52 @@ export default function BookingsView() {
           </button>
         </div>
 
-        {/* Admin Vendor Filter Dropdown */}
-        {isAdmin && (
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-slate-500 font-medium">Partner:</span>
-            <select
-              value={selectedVendorFilter}
-              onChange={(e) => setSelectedVendorFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
-            >
-              <option value="all">All Vendors ({vendors.length} Partners)</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.businessName} ({v.displayName})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Admin Vendor Filter Dropdown & Live Sync Status */}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">Partner:</span>
+              <select
+                value={selectedVendorFilter}
+                onChange={(e) => setSelectedVendorFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+              >
+                <option value="all">All Vendors ({vendors.length} Partners)</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.businessName} ({v.displayName})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {/* Vendor Partner Active Badge */}
-        {!isAdmin && (
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800">
-            <span>Showing Bookings for: <strong className="text-slate-900 dark:text-white">{user?.businessName || user?.name}</strong></span>
+          {/* Vendor Partner Active Badge */}
+          {!isAdmin && (
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span>Showing Bookings for: <strong className="text-slate-900 dark:text-white">{user?.businessName || user?.name}</strong></span>
+            </div>
+          )}
+
+          {/* Live Sync Status indicator */}
+          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isManualRefreshing || loading}
+              title="Force sync latest bookings from database"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition active:scale-95 cursor-pointer disabled:opacity-60"
+            >
+              <RotateCw className={`w-3 h-3 text-[#ea110d] ${isManualRefreshing || loading ? 'animate-spin' : ''}`} />
+              <span>{isManualRefreshing || loading ? 'Syncing...' : 'Sync'}</span>
+            </button>
+            {lastSyncedTime && (
+              <span className="text-[11px] text-slate-400 font-mono">
+                {lastSyncedTime}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Status Tabs & Search Controls Bar ── */}
@@ -610,8 +684,52 @@ export default function BookingsView() {
               </div>
             )}
           </div>
+          {/* Manual Refresh Button */}
+          <button
+            type="button"
+            id="bookings-manual-refresh-btn"
+            onClick={handleManualRefresh}
+            disabled={isManualRefreshing || loading}
+            title="Force fetch latest bookings from database"
+            className="inline-flex items-center gap-2 bg-[#ea110d] hover:bg-[#d00f0c] active:bg-[#b00d0a] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-sm transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isManualRefreshing || loading ? 'animate-spin' : ''}`} />
+            <span>{isManualRefreshing || loading ? 'Fetching...' : 'Refresh'}</span>
+          </button>
         </div>
       </div>
+
+      {/* ── Real-Time Sync Feedback Toast ── */}
+      {syncToast && (
+        <div
+          className={`p-3 px-4 rounded-xl text-xs font-medium flex items-center justify-between gap-3 shadow-xs border transition-all animate-in fade-in slide-in-from-top-1 ${
+            syncToast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {syncToast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{syncToast.message}</span>
+            {lastSyncedTime && (
+              <span className="text-[11px] opacity-75 font-mono">
+                ({lastSyncedTime})
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncToast(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* ── Main Data Table ── */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
@@ -634,7 +752,17 @@ export default function BookingsView() {
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-              {sortedBookings.length === 0 ? (
+              {loading && sortedBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-16 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <RotateCw className="w-8 h-8 text-[#ea110d] animate-spin" />
+                      <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">Syncing live bookings...</p>
+                      <p className="text-xs text-slate-400">Retrieving confirmed and pending folios directly from database.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : sortedBookings.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -897,18 +1025,25 @@ export default function BookingsView() {
               <span>View Guest & History</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedInvoiceBooking(actionMenuBooking);
-                setActionMenuBooking(null);
-                setMenuCoords(null);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer text-left"
-            >
-              <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span>View / Download Invoice</span>
-            </button>
+            {actionMenuBooking.paymentStatus === 'paid' && actionMenuBooking.bookingStatus !== 'cancelled' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedInvoiceBooking(actionMenuBooking);
+                  setActionMenuBooking(null);
+                  setMenuCoords(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer text-left"
+              >
+                <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <span>View / Download Invoice</span>
+              </button>
+            ) : (
+              <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Invoice: {actionMenuBooking.bookingStatus === 'cancelled' ? 'Cancelled' : 'Pending Payment'}</span>
+              </div>
+            )}
 
             <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
 

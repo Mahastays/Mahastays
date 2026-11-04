@@ -63,10 +63,6 @@ export const normalizeProperty = (raw: any): PropertyItem => {
       if (url && !images.includes(url)) images.push(url);
     });
   }
-  if (images.length === 0) {
-    images.push('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200');
-  }
-
   const rooms = (raw.rooms || []).map((r: any, idx: number) => {
     const roomImgs = (r.images || []).map((img: any) => (typeof img === 'string' ? img : img?.url || ''));
     return {
@@ -79,9 +75,9 @@ export const normalizeProperty = (raw: any): PropertyItem => {
       maxGuests: r.maxGuests || r.capacity || 2,
       basePrice: r.basePrice || r.pricePerNight || raw.numericPrice || 6500,
       originalPrice: r.originalPrice,
-      count: r.count || 2,
-      images: roomImgs.length > 0 ? roomImgs : [images[0]],
-      amenities: r.amenities || ['Free WiFi', 'Air Conditioning', 'Valley View'],
+      count: r.count || 1,
+      images: roomImgs,
+      amenities: r.amenities || [],
     };
   });
 
@@ -89,121 +85,76 @@ export const normalizeProperty = (raw: any): PropertyItem => {
     id: raw.id || raw._id,
     code: raw.code || raw.slug || `PROP-${(raw.id || '').slice(-4)}`,
     slug: raw.slug || `prop-${raw.id}`,
-    vendorId: raw.vendorId || '6adeef17f4597150f0c199a4',
-    vendorName: raw.vendorName || raw.host?.name || 'HillView Hospitality Pvt Ltd',
+    vendorId: raw.vendorId || '',
+    vendorName: raw.vendorName || raw.host?.name || '',
     name: raw.name || raw.title || 'Resort Stay',
     propertyType: (raw.propertyType || raw.type?.toLowerCase() || 'hotel') as any,
     tagline: raw.tagline || '',
     badge: raw.badge || '',
     description: raw.description || '',
-    longDescription:
-      raw.longDescription ||
-      raw.description ||
-      'Commanding breathtaking clifftop vistas over the vast Panchgani valley, Sunset Ridge Private Villa is an exclusive standalone sanctuary tailored for celebrations, reunion weekends, and unforgettable group stays.',
-    location: raw.location || 'Mahabaleshwar',
+    longDescription: raw.longDescription || raw.description || '',
+    location: raw.location || '',
     city: raw.city || 'Mahabaleshwar',
-    numericPrice: raw.numericPrice || raw.inrPrice || 6500,
-    originalPrice: raw.originalPrice || (raw.numericPrice ? Math.round(raw.numericPrice * 1.25) : 8000),
-    rating: raw.ratingScore || raw.rating || 4.8,
-    reviewsCount: raw.reviewsCount || 40,
+    numericPrice: raw.numericPrice || raw.inrPrice || 0,
+    originalPrice: raw.originalPrice,
+    rating: raw.ratingScore || raw.rating || 0,
+    reviewsCount: raw.reviewsCount || 0,
     images,
     gallery: raw.gallery && raw.gallery.length > 0 ? raw.gallery : images,
     videos: raw.videos || [],
     videoUrl: raw.videoUrl || (raw.videos && raw.videos[0]) || '',
-    idealFor: raw.idealFor || 'Family, Group, Couples',
-    host: raw.host || {
-      name: 'Kunal & Caretaker Ramesh',
-      role: 'Property Owner & Manager',
-      experience: 'Host since 2019',
-      staysCount: '64+ Verified Group Stays',
-      verified: true,
-      avatar: '',
+    idealFor: raw.idealFor || '',
+    host: {
+      name: raw.host?.name || raw.vendorName || 'Kunal & Caretaker Ramesh',
+      role: raw.host?.role || 'Property Owner & Manager',
+      experience: raw.host?.experience || 'Host since 2019',
+      staysCount: raw.host?.staysCount || '64+ Verified Group Stays',
+      verified: raw.host?.verified ?? true,
+      avatar: raw.host?.avatar || '',
+      confirmationBadge: raw.host?.confirmationBadge || 'Instant Booking Confirmed',
     },
-    keyAmenities: raw.keyAmenities || [
-      { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
-      { name: 'Private Chef', desc: 'On-demand dining' },
-      { name: 'Butler Service', desc: 'Personalised assistance' },
-      { name: 'High-Speed Wi-Fi', desc: 'Stay connected' },
-    ],
+    keyAmenities: Array.isArray(raw.keyAmenities) && raw.keyAmenities.length > 0
+      ? raw.keyAmenities
+      : [
+          { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
+          { name: 'Private Chef', desc: 'On-demand dining & BBQ' },
+          { name: 'Butler Service', desc: 'Personalised assistance' },
+          { name: 'High-Speed Wi-Fi', desc: 'Stay connected 250 Mbps' },
+        ],
     highlights:
       raw.highlights && raw.highlights.length > 0
         ? raw.highlights.map((h: any) =>
             typeof h === 'string' ? { title: h, desc: '' } : { title: h.title, desc: h.desc || '' }
           )
-        : [
-            { title: 'Stunning valley & waterfall view' },
-            { title: 'Private infinity pool with heating' },
-            { title: 'Dedicated chef and butler service' },
-            { title: 'Perfect for family stays & celebrations' },
-          ],
+        : [],
     policies: {
       checkInTime: raw.policies?.checkInTime || '1:00 PM',
       checkOutTime: raw.policies?.checkOutTime || '10:00 AM',
-      earlyCheckInNote: raw.policies?.earlyCheckInNote || 'Early check-in subject to availability.',
-      cancellationPolicy:
-        raw.policies?.cancellationPolicy ||
-        'Full refund up to 48 hours before check-in. 50% refund thereafter.',
-      suitabilityRules:
-        raw.policies?.suitabilityRules || [
-          'Pets allowed (on request)',
-          'Smoking in outdoor areas',
-          'Group & bachelor friendly',
-          'Max 12 guests per estate',
-        ],
-      guidelines:
-        raw.policies?.guidelines || [
-          'Quiet hours: 10:00 PM - 7:00 AM',
-          'Government ID required',
-        ],
-      fullAddress:
-        raw.address?.fullAddress ||
-        raw.policies?.fullAddress ||
-        raw.location ||
-        'Plot 12, Venna Lake Road, Mahabaleshwar, Maharashtra',
-      petsAllowed: raw.policies?.petsAllowed ?? true,
+      earlyCheckInNote: raw.policies?.earlyCheckInNote || '',
+      cancellationPolicy: raw.policies?.cancellationPolicy || '',
+      suitabilityRules: raw.policies?.suitabilityRules || [],
+      guidelines: raw.policies?.guidelines || [],
+      fullAddress: raw.address?.fullAddress || raw.policies?.fullAddress || raw.location || '',
+      petsAllowed: raw.policies?.petsAllowed ?? false,
       smokingAllowed: raw.policies?.smokingAllowed ?? false,
       coupleFriendly: raw.policies?.coupleFriendly ?? true,
     },
-    address: raw.address || {
-      fullAddress: raw.location || 'Plot 12, Venna Lake Road, Mahabaleshwar, Maharashtra',
+    address: {
+      fullAddress: raw.address?.fullAddress || raw.location || '',
+      lat: typeof raw.address?.lat === 'number' ? raw.address.lat : typeof raw.mapCoordinates?.lat === 'number' ? raw.mapCoordinates.lat : 17.9237,
+      lng: typeof raw.address?.lng === 'number' ? raw.address.lng : typeof raw.mapCoordinates?.lng === 'number' ? raw.mapCoordinates.lng : 73.6586,
+      mapLink: raw.address?.mapLink || (raw.address?.lat && raw.address?.lng ? `https://www.google.com/maps?q=${raw.address.lat},${raw.address.lng}` : ''),
     },
-    rooms:
-      rooms.length > 0
-        ? rooms
-        : [
-            {
-              roomId: 'rm_deluxe_01',
-              name: 'Entire 4BHK Villa (Private Infinity Pool)',
-              badge: 'Exclusive Takeover',
-              tagline: 'Private Deck Overlooking Cascading Waterfall',
-              bedType: '4 King Beds',
-              roomSize: 2200,
-              maxGuests: 12,
-              basePrice: raw.numericPrice || 22000,
-              originalPrice: 28000,
-              count: 1,
-              images: [images[0]],
-              amenities: ['Private Infinity Pool', 'Billiards Room', 'Projector Room', 'BBQ Grill'],
-            },
-          ],
+    nearbyAttractions: Array.isArray(raw.nearbyAttractions) ? raw.nearbyAttractions : undefined,
+    rooms,
     amenities:
       raw.amenities && raw.amenities.length > 0
         ? raw.amenities.map((a: any) => (typeof a === 'string' ? a : a.name || ''))
-        : [
-            'Heated Infinity Pool',
-            'Private Chef & Butler',
-            'High-Speed Wi-Fi',
-            'Landscaped Lawn & BBQ',
-            'Valley View Gazebo',
-            'Private Balcony',
-            'Smart TV',
-            'Bathtub with View',
-            'In-House Parking',
-            'Daily Housekeeping',
-          ],
+        : [],
     featured: !!raw.featured,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
+    pricingRules: raw.pricingRules || undefined,
     createdAt: raw.createdAt || new Date().toISOString(),
   };
 };
@@ -214,9 +165,16 @@ export const fetchProperties = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+      const requestConfig = {
+        params: { limit: 100, _t: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      };
       const res = isVendor
-        ? await api.get('/vendor/properties').catch(() => api.get('/properties'))
-        : await api.get('/admin/properties').catch(() => api.get('/properties'));
+        ? await api.get('/vendor/properties', requestConfig).catch(() => api.get('/admin/properties', requestConfig)).catch(() => api.get('/properties', requestConfig))
+        : await api.get('/admin/properties', requestConfig).catch(() => api.get('/vendor/properties', requestConfig)).catch(() => api.get('/properties', requestConfig));
 
       const rawList = Array.isArray(res.data?.data)
         ? res.data.data
@@ -244,10 +202,17 @@ export const fetchPropertyById = createAsyncThunk(
   'properties/fetchPropertyById',
   async (id: string, { getState, rejectWithValue }) => {
     try {
+      const config = {
+        params: { _t: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      };
       const res = await api
-        .get(`/admin/properties/${id}`)
-        .catch(() => api.get(`/vendor/properties/${id}`))
-        .catch(() => api.get(`/properties/${id}`));
+        .get(`/admin/properties/${id}`, config)
+        .catch(() => api.get(`/vendor/properties/${id}`, config))
+        .catch(() => api.get(`/properties/${id}`, config));
 
       if (res.data?.data) {
         return normalizeProperty(res.data.data);
@@ -378,42 +343,79 @@ export const createPropertyAsync = createAsyncThunk(
       code: propData.code || `PRP-${Math.floor(100 + Math.random() * 900)}`,
       slug: (propData.name || 'new-property').toLowerCase().replace(/\s+/g, '-'),
       vendorId: propData.vendorId || 'vnd_resort_01',
-      vendorName: propData.vendorName || 'HillView Hospitality Pvt Ltd',
-      name: propData.name || 'New Property',
+      vendorName: propData.vendorName || '',
+      name: propData.name || '',
       propertyType: propData.propertyType || 'resort',
-      tagline: propData.tagline || 'Experience luxury stay in Mahabaleshwar',
-      badge: propData.badge || 'Partner Listing',
-      description: propData.description || 'Spacious property with state-of-the-art amenities.',
-      location: propData.location || 'Venna Lake Road, Mahabaleshwar',
+      tagline: propData.tagline || '',
+      badge: propData.badge || '',
+      description: propData.description || '',
+      location: propData.location || '',
       city: propData.city || 'Mahabaleshwar',
-      numericPrice: propData.numericPrice || 7500,
-      originalPrice: propData.originalPrice || 9000,
+      numericPrice: propData.numericPrice || 0,
+      originalPrice: propData.originalPrice || 0,
       rating: 0,
       reviewsCount: 0,
-      images: propData.images?.length
-        ? propData.images
-        : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop&q=80'],
-      rooms: propData.rooms || [
-        {
-          roomId: `rm_${Date.now()}`,
-          name: 'Deluxe Valley Suite',
-          maxGuests: 2,
-          basePrice: propData.numericPrice || 7500,
-          count: 5,
-          images: ['https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80'],
-          amenities: ['Breakfast included', 'Valley View', 'WiFi', 'AC'],
-        },
-      ],
-      amenities: propData.amenities || ['Free WiFi', 'Breakfast Included', 'Swimming Pool', 'Parking'],
+      images: propData.images?.length ? propData.images : [],
+      rooms: propData.rooms || [],
+      amenities: propData.amenities || [],
+      pricingRules: propData.pricingRules || undefined,
       featured: false,
       status: 'pending_approval',
       createdAt: new Date().toISOString(),
     };
 
     try {
-      await api.post('/properties', newProp).catch(() => api.post('/vendor/properties', newProp));
-    } catch {
-      // Offline fallback
+      const payload = {
+        name: newProp.name,
+        propertyType: newProp.propertyType,
+        tagline: newProp.tagline,
+        badge: newProp.badge,
+        description: newProp.description,
+        location: newProp.location,
+        city: newProp.city,
+        numericPrice: newProp.numericPrice,
+        vendorId: newProp.vendorId,
+        address: {
+          fullAddress: newProp.location || 'Venna Lake Road, Mahabaleshwar',
+          lat: 17.9237,
+          lng: 73.6586,
+        },
+        images: newProp.images.map((url, i) => ({ url, isCover: i === 0 })),
+        rooms: newProp.rooms.map((r, idx) => ({
+          roomId: r.roomId || `rm_${Date.now()}_${idx}`,
+          name: r.name,
+          basePrice: r.basePrice,
+          count: r.count || 1,
+          maxGuests: r.maxGuests || 2,
+          capacity: { adults: r.maxGuests || 2, children: 1 },
+          images: r.images?.length ? r.images : newProp.images,
+          amenities: r.amenities?.length ? r.amenities : ['Breakfast included'],
+        })),
+        amenities: newProp.amenities?.map((name) => ({ name })) || [{ name: 'Free WiFi' }],
+        highlights: newProp.highlights?.length ? newProp.highlights : [
+          { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
+          { title: 'Private infinity pool with heating', desc: 'Heated luxury pool deck' },
+        ],
+        policies: {
+          checkInTime: '14:00',
+          checkOutTime: '11:00',
+        },
+        pricingRules: newProp.pricingRules,
+        status: 'pending_approval',
+      };
+
+      const res = await api.post('/admin/properties', payload)
+        .catch(() => api.post('/vendor/properties', payload));
+
+      if (res?.data?.data) {
+        const normalized = normalizeProperty(res.data.data);
+        const state = getState() as { properties: PropertiesState };
+        const next = [normalized, ...state.properties.items.filter((p) => p.id !== normalized.id)];
+        saveProperties(next);
+        return normalized;
+      }
+    } catch (err) {
+      console.warn('Backend property create error, falling back locally:', err);
     }
 
     const state = getState() as { properties: PropertiesState };

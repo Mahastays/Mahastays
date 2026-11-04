@@ -43,9 +43,12 @@ import {
   UploadCloud,
   Loader2,
   Layers,
+  RotateCw,
 } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import LocationMapPicker from '../maps/LocationMapPicker';
+import { VideoPlayerModal, getYouTubeThumbnailUrl } from '../modals/VideoPlayerModal';
 import { useAuth } from '@/context/AuthContext';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -103,7 +106,21 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
   const [isWishlist, setIsWishlist] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadSuccessToast, setUploadSuccessToast] = useState<string | null>(null);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleRefresh = async () => {
+    if (!id) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchPropertyById(id)).unwrap();
+    } catch (err) {
+      console.error('Refresh property error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Booking Preview calculation states
   const [checkInDate, setCheckInDate] = useState('2026-10-15');
@@ -113,6 +130,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
   // Modal for editing room
   const [editingRoomIndex, setEditingRoomIndex] = useState<number | null>(null);
+  const [showPricingEdit, setShowPricingEdit] = useState(false);
 
   // Frontend-matching Detail Tabs State
   const [activeDetailTab, setActiveDetailTab] = useState<string>('rooms');
@@ -197,24 +215,24 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
   // Photos
   const allPhotos = property.images && property.images.length > 0
     ? property.images
-    : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200'];
+    : [];
 
   const rooms = property.rooms && property.rooms.length > 0
     ? property.rooms
     : [
         {
           roomId: 'rm_default',
-          name: 'Entire 4BHK Villa (Private Infinity Pool)',
-          badge: 'Exclusive Takeover',
-          tagline: 'Private Deck Overlooking Cascading Waterfall',
-          bedType: '4 King Beds',
-          roomSize: 2200,
-          maxGuests: 12,
-          basePrice: 22000,
-          originalPrice: 28000,
+          name: property.name || 'Standard Accommodation',
+          badge: 'Standard',
+          tagline: 'Comfortable Room',
+          bedType: 'Double Bed',
+          roomSize: 350,
+          maxGuests: 2,
+          basePrice: property.numericPrice || 2500,
+          originalPrice: property.originalPrice || 3000,
           count: 1,
-          images: [allPhotos[0]],
-          amenities: ['Private Infinity Pool', 'Billiards Room', 'Projector Room', 'BBQ Grill'],
+          images: allPhotos.length > 0 ? [allPhotos[0]] : [],
+          amenities: property.amenities?.slice(0, 4) || [],
         },
       ];
 
@@ -228,18 +246,47 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       return diffDays > 0 ? diffDays : 1;
     } catch {
-      return 3;
+      return 1;
     }
   }, [checkInDate, checkOutDate]);
 
-  const roomPricePerNight = selectedRoom.basePrice || property.numericPrice || 22000;
-  const originalRate = selectedRoom.originalPrice || property.originalPrice || Math.round(roomPricePerNight * 1.25);
+  const roomPricePerNight = selectedRoom.basePrice || property.numericPrice || 0;
+  const originalRate = selectedRoom.originalPrice || property.originalPrice || roomPricePerNight;
   const savingsPerNight = Math.max(0, originalRate - roomPricePerNight);
   const subtotal = roomPricePerNight * nights;
-  const memberDiscount = Math.round(subtotal * 0.08);
-  const cleaningFee = 445;
-  const taxesGst = Math.round((subtotal - memberDiscount + cleaningFee) * 0.18);
+
+  // Custom Pricing, Discounts & GST Rules
+  const pricingRules = property.pricingRules || {};
+  const discountPercent = typeof pricingRules.memberDiscountPercent === 'number' ? pricingRules.memberDiscountPercent : 8;
+  const discountType = pricingRules.discountType || 'percentage';
+  const customDiscountAmount = typeof pricingRules.customDiscountAmount === 'number' ? pricingRules.customDiscountAmount : 0;
+  const includeCleaningFee = pricingRules.includeCleaningFee !== false;
+  const configuredCleaningFee = typeof pricingRules.cleaningFee === 'number' ? pricingRules.cleaningFee : 445;
+  const cleaningFee = includeCleaningFee ? configuredCleaningFee : 0;
+  const includeGst = pricingRules.includeGst !== false;
+  const gstPercent = typeof pricingRules.gstPercent === 'number' ? pricingRules.gstPercent : 18;
+
+  const memberDiscount =
+    discountType === 'flat'
+      ? customDiscountAmount
+      : discountType === 'none' || discountPercent === 0
+      ? 0
+      : Math.round(subtotal * (discountPercent / 100));
+
+  const taxableAmount = Math.max(0, subtotal - memberDiscount + cleaningFee);
+  const taxesGst = includeGst ? Math.round(taxableAmount * (gstPercent / 100)) : 0;
   const grandTotal = subtotal - memberDiscount + cleaningFee + taxesGst;
+
+  const handlePricingRuleChange = (key: string, value: any) => {
+    if (!property) return;
+    setProperty({
+      ...property,
+      pricingRules: {
+        ...(property.pricingRules || {}),
+        [key]: value,
+      },
+    });
+  };
 
   // Handlers for state updates
   const handleFieldChange = (field: keyof PropertyItem, value: any) => {
@@ -251,29 +298,68 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
     setProperty({
       ...property,
       host: {
-        name: property.host?.name || 'Kunal & Caretaker Ramesh',
-        role: property.host?.role || 'Property Owner & Manager',
-        experience: property.host?.experience || 'Host since 2019',
-        staysCount: property.host?.staysCount || '64+ Verified Group Stays',
+        name: property.host?.name || '',
+        role: property.host?.role || '',
+        experience: property.host?.experience || '',
+        staysCount: property.host?.staysCount || '',
         verified: property.host?.verified ?? true,
         avatar: property.host?.avatar || '',
+        confirmationBadge: property.host?.confirmationBadge || 'Instant Booking Confirmed',
         [field]: value,
       },
     });
   };
 
+  const handleAddRoomAmenity = (roomIndex: number, amenityText: string) => {
+    if (!property || !rooms[roomIndex]) return;
+    const current = rooms[roomIndex].amenities ? [...rooms[roomIndex].amenities] : [];
+    current.push(amenityText);
+    handleUpdateRoom(roomIndex, 'amenities', current);
+  };
+
+  const handleUpdateRoomAmenity = (roomIndex: number, amenityIndex: number, val: string) => {
+    if (!property || !rooms[roomIndex]) return;
+    const current = [...(rooms[roomIndex].amenities || [])];
+    current[amenityIndex] = val;
+    handleUpdateRoom(roomIndex, 'amenities', current);
+  };
+
+  const handleRemoveRoomAmenity = (roomIndex: number, amenityIndex: number) => {
+    if (!property || !rooms[roomIndex]) return;
+    const current = (rooms[roomIndex].amenities || []).filter((_, i) => i !== amenityIndex);
+    handleUpdateRoom(roomIndex, 'amenities', current);
+  };
+
+  const handleUpdateHighlight = (index: number, val: string) => {
+    if (!property || !property.highlights) return;
+    const current = [...property.highlights];
+    current[index] = { ...current[index], title: val };
+    setProperty({ ...property, highlights: current });
+  };
+
   const handleKeyAmenityChange = (index: number, field: 'name' | 'desc', val: string) => {
-    if (!property) return;
-    const current = property.keyAmenities ? [...property.keyAmenities] : [
-      { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
-      { name: 'Private Chef', desc: 'On-demand dining' },
-      { name: 'Butler Service', desc: 'Personalised assistance' },
-      { name: 'High-Speed Wi-Fi', desc: 'Stay connected' },
-    ];
+    if (!property || !property.keyAmenities) return;
+    const current = [...property.keyAmenities];
     if (current[index]) {
       current[index] = { ...current[index], [field]: val };
       setProperty({ ...property, keyAmenities: current });
     }
+  };
+
+  const handleRemoveKeyAmenity = (index: number) => {
+    if (!property || !property.keyAmenities) return;
+    const current = [...property.keyAmenities];
+    const filtered = current.filter((_, i) => i !== index);
+    setProperty({ ...property, keyAmenities: filtered });
+  };
+
+  const handleAddKeyAmenity = () => {
+    if (!property) return;
+    const current = property.keyAmenities ? [...property.keyAmenities] : [];
+    setProperty({
+      ...property,
+      keyAmenities: [...current, { name: 'New Feature', desc: 'Feature description' }],
+    });
   };
 
   const handlePolicyChange = (field: string, val: any) => {
@@ -283,6 +369,44 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       policies: {
         ...(property.policies || {}),
         [field]: val,
+      },
+    });
+  };
+
+  const handleAddSuitabilityRule = () => {
+    if (!property) return;
+    const currentRules = property.policies?.suitabilityRules ? [...property.policies.suitabilityRules] : [];
+    setProperty({
+      ...property,
+      policies: {
+        ...(property.policies || {}),
+        suitabilityRules: [...currentRules, 'New house rule'],
+      },
+    });
+  };
+
+  const handleRemoveSuitabilityRule = (index: number) => {
+    if (!property) return;
+    const currentRules = property.policies?.suitabilityRules ? [...property.policies.suitabilityRules] : [];
+    const filtered = currentRules.filter((_, i) => i !== index);
+    setProperty({
+      ...property,
+      policies: {
+        ...(property.policies || {}),
+        suitabilityRules: filtered,
+      },
+    });
+  };
+
+  const handleUpdateSuitabilityRule = (index: number, val: string) => {
+    if (!property) return;
+    const currentRules = property.policies?.suitabilityRules ? [...property.policies.suitabilityRules] : [];
+    currentRules[index] = val;
+    setProperty({
+      ...property,
+      policies: {
+        ...(property.policies || {}),
+        suitabilityRules: currentRules,
       },
     });
   };
@@ -437,18 +561,22 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !property) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !property) return;
 
     try {
       setIsUploadingImage(true);
-      const res = await uploadImageToCloudinary(file, 'listing_media');
-      if (res?.url) {
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const res = await uploadImageToCloudinary(file, 'listing_media');
+        if (res?.url) uploadedUrls.push(res.url);
+      }
+      if (uploadedUrls.length) {
         setProperty({
           ...property,
-          images: [...allPhotos, res.url],
+          images: [...allPhotos, ...uploadedUrls],
         });
-        setUploadSuccessToast(`Uploaded & converted to WebP (${Math.round((res.bytes || 0) / 1024)} KB)`);
+        setUploadSuccessToast(`Uploaded ${uploadedUrls.length} photo(s)`);
         setTimeout(() => setUploadSuccessToast(null), 4000);
       }
     } catch (err: any) {
@@ -545,6 +673,18 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Customer Frontend UI ↗</span>
           </a>
+
+          {/* Dedicated Refresh Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            title="Refetch Property from Database"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
 
           {/* Toggle between Customer View and Live Edit Mode */}
           <button
@@ -827,6 +967,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -844,40 +985,13 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 ) : (
                   <>
                     <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Upload WebP Photo</span>
+                    <span>Upload Photos</span>
                   </>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddImage(!showAddImage)}
-                className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Paste URL</span>
               </button>
             </div>
           )}
         </div>
-
-        {showAddImage && isEditMode && (
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-2 mb-3">
-            <input
-              type="url"
-              placeholder="Paste image URL (https://...)"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              className="flex-1 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-rose-500"
-            />
-            <button
-              type="button"
-              onClick={handleAddImage}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
-            >
-              Add
-            </button>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-auto sm:h-[420px] lg:h-[460px]">
           {/* Main Large Left Hero */}
@@ -984,188 +1098,188 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
               </div>
               <div className="flex-1 min-w-0">
                 {isEditMode ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500">Host Name:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Host:</span>
                       <input
                         type="text"
                         value={property.host?.name || ''}
                         onChange={(e) => handleHostChange('name', e.target.value)}
-                        className="text-xs font-bold text-slate-900 border border-slate-200 rounded-lg px-2 py-0.5 focus:outline-rose-500 flex-1"
+                        placeholder="Host Name"
+                        className="text-xs font-bold text-slate-900 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400">Role & Exp:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Role:</span>
                       <input
                         type="text"
                         value={property.host?.role || ''}
                         onChange={(e) => handleHostChange('role', e.target.value)}
                         placeholder="Property Owner & Manager"
-                        className="text-[11px] text-slate-600 border border-slate-200 rounded-lg px-2 py-0.5 focus:outline-rose-500 flex-1"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Exp:</span>
+                      <input
+                        type="text"
+                        value={property.host?.experience || 'Host since 2019'}
+                        onChange={(e) => handleHostChange('experience', e.target.value)}
+                        placeholder="e.g. Host since 2019"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Stays:</span>
+                      <input
+                        type="text"
+                        value={property.host?.staysCount || '64+ Verified Group Stays'}
+                        onChange={(e) => handleHostChange('staysCount', e.target.value)}
+                        placeholder="e.g. 64+ Verified Group Stays"
+                        className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
                     </div>
                   </div>
                 ) : (
                   <>
                     <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
-                      <span>Hosted by {property.host?.name || 'Kunal & Caretaker Ramesh'}</span>
-                      <span
-                        className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0"
-                        title="Verified Host"
-                      >
-                        ✓
-                      </span>
+                      <span>Hosted by {property.host?.name || property.vendorName || 'Property Host'}</span>
+                      {(property.host?.verified ?? true) && (
+                        <span
+                          className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0"
+                          title="Verified Host"
+                        >
+                          ✓
+                        </span>
+                      )}
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                      {property.host?.role || 'Property Owner & Manager'} •{' '}
-                      {property.host?.experience || 'Host since 2019'} •{' '}
-                      {property.host?.staysCount || '64+ Verified Group Stays'}
+                      {property.host?.role || 'Property Manager'}
+                      {property.host?.experience ? ` • ${property.host.experience}` : ''}
+                      {property.host?.staysCount ? ` • ${property.host.staysCount}` : ''}
                     </p>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-200/80 text-[#ea110d] text-xs font-semibold self-start sm:self-auto font-poppins shadow-2xs">
-              <span className="text-[#ea110d] font-bold">✓</span>
-              <span>Instant Booking Confirmed</span>
+            <div className="shrink-0 self-start sm:self-auto">
+              {isEditMode ? (
+                <div className="flex flex-col gap-1.5 items-end">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Badge:</span>
+                    <input
+                      type="text"
+                      value={property.host?.confirmationBadge || 'Instant Booking Confirmed'}
+                      onChange={(e) => handleHostChange('confirmationBadge', e.target.value)}
+                      placeholder="Badge"
+                      className="text-xs font-semibold text-[#ea110d] border border-red-200 rounded-lg px-2 py-1 w-44"
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={property.host?.verified ?? true}
+                      onChange={(e) => handleHostChange('verified', e.target.checked)}
+                      className="accent-[#ea110d]"
+                    />
+                    <span>Verified Host</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-200/80 text-[#ea110d] text-xs font-semibold font-poppins shadow-2xs">
+                  <span className="text-[#ea110d] font-bold">✓</span>
+                  <span>{property.host?.confirmationBadge || 'Instant Booking Confirmed'}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ─── Quick 4-Column Highlights Strip (Exact Screenshot 1) ─── */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {/* Pill 1 */}
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Waves className="w-4 h-4 text-slate-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[0]?.name || 'Infinity Pool Deck'}
-                    onChange={(e) => handleKeyAmenityChange(0, 'name', e.target.value)}
-                    className="text-xs font-bold text-slate-900 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                    {property.keyAmenities?.[0]?.name || 'Infinity Pool Deck'}
-                  </div>
-                )}
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[0]?.desc || 'Heated pool with valley view'}
-                    onChange={(e) => handleKeyAmenityChange(0, 'desc', e.target.value)}
-                    className="text-[10px] text-slate-500 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {property.keyAmenities?.[0]?.desc || 'Heated pool with valley view'}
-                  </div>
+          {/* ─── Quick Feature Cards Strip (Dynamic: Edit / Remove / Add) ─── */}
+          {((property.keyAmenities && property.keyAmenities.length > 0) || isEditMode) && (
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Key Feature Cards ({property.keyAmenities?.length || 0})
+                </span>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleAddKeyAmenity}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#ea110d] hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Feature Card</span>
+                  </button>
                 )}
               </div>
-            </div>
-
-            {/* Pill 2 */}
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Utensils className="w-4 h-4 text-slate-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[1]?.name || 'Private Chef'}
-                    onChange={(e) => handleKeyAmenityChange(1, 'name', e.target.value)}
-                    className="text-xs font-bold text-slate-900 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                    {property.keyAmenities?.[1]?.name || 'Private Chef'}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {(property.keyAmenities || []).length === 0 ? (
+                  <div className="col-span-full py-2 text-center text-xs text-slate-400 italic">
+                    No custom feature cards added. Click &quot;Add Feature Card&quot; to highlight amenities.
                   </div>
-                )}
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[1]?.desc || 'On-demand dining'}
-                    onChange={(e) => handleKeyAmenityChange(1, 'desc', e.target.value)}
-                    className="text-[10px] text-slate-500 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
                 ) : (
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {property.keyAmenities?.[1]?.desc || 'On-demand dining'}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Pill 3 */}
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <ShieldCheck className="w-4 h-4 text-slate-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[2]?.name || 'Butler Service'}
-                    onChange={(e) => handleKeyAmenityChange(2, 'name', e.target.value)}
-                    className="text-xs font-bold text-slate-900 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                    {property.keyAmenities?.[2]?.name || 'Butler Service'}
-                  </div>
-                )}
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[2]?.desc || 'Personalised assistance'}
-                    onChange={(e) => handleKeyAmenityChange(2, 'desc', e.target.value)}
-                    className="text-[10px] text-slate-500 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {property.keyAmenities?.[2]?.desc || 'Personalised assistance'}
-                  </div>
+                  (property.keyAmenities || []).map((amenity, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700 mt-0.5">
+                        {idx % 4 === 0 ? (
+                          <Waves className="w-4 h-4 text-slate-700" />
+                        ) : idx % 4 === 1 ? (
+                          <Utensils className="w-4 h-4 text-slate-700" />
+                        ) : idx % 4 === 2 ? (
+                          <ShieldCheck className="w-4 h-4 text-slate-700" />
+                        ) : (
+                          <Wifi className="w-4 h-4 text-slate-700" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        {isEditMode ? (
+                          <div className="space-y-1">
+                            <input
+                              type="text"
+                              value={amenity.name}
+                              onChange={(e) => handleKeyAmenityChange(idx, 'name', e.target.value)}
+                              placeholder="Card Title"
+                              className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                            />
+                            <input
+                              type="text"
+                              value={amenity.desc}
+                              onChange={(e) => handleKeyAmenityChange(idx, 'desc', e.target.value)}
+                              placeholder="Card Description"
+                              className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-xs font-bold text-slate-900 font-poppins truncate">
+                              {amenity.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 truncate">
+                              {amenity.desc}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveKeyAmenity(idx)}
+                          className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                          title="Remove this card (don't keep)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
             </div>
-
-            {/* Pill 4 */}
-            <div className="flex items-center gap-2.5 p-1">
-              <div className="w-10 h-10 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700">
-                <Wifi className="w-4 h-4 text-slate-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[3]?.name || 'High-Speed Wi-Fi'}
-                    onChange={(e) => handleKeyAmenityChange(3, 'name', e.target.value)}
-                    className="text-xs font-bold text-slate-900 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                    {property.keyAmenities?.[3]?.name || 'High-Speed Wi-Fi'}
-                  </div>
-                )}
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    value={property.keyAmenities?.[3]?.desc || 'Stay connected'}
-                    onChange={(e) => handleKeyAmenityChange(3, 'desc', e.target.value)}
-                    className="text-[10px] text-slate-500 border-b border-slate-200 w-full p-0 focus:outline-hidden"
-                  />
-                ) : (
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {property.keyAmenities?.[3]?.desc || 'Stay connected'}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* ─── Sticky Navigation Tabs Bar with Left/Right Slide Buttons & White Gradient (Exact Frontend UI) ─── */}
           <div
@@ -1315,6 +1429,34 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                           {room.badge}
                         </span>
                       )}
+                      {isEditMode && (
+                        <label className="absolute inset-0 bg-black/50 hover:bg-black/70 flex flex-col items-center justify-center gap-1 text-white text-[10px] font-bold cursor-pointer transition-all">
+                          <UploadCloud className="w-4 h-4 text-white" />
+                          <span>Change Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file || !property) return;
+                              try {
+                                const res = await uploadImageToCloudinary(file, 'listing_media');
+                                if (res?.url) {
+                                  const updatedRooms = [...property.rooms];
+                                  updatedRooms[idx] = {
+                                    ...updatedRooms[idx],
+                                    images: [res.url, ...(updatedRooms[idx].images || []).slice(1)],
+                                  };
+                                  setProperty({ ...property, rooms: updatedRooms });
+                                }
+                              } catch (err: any) {
+                                alert(`Failed to upload room photo: ${err?.message || 'Please try again'}`);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
                       <button
                         type="button"
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center text-xs"
@@ -1432,18 +1574,57 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                         </div>
                       )}
 
-                      {/* Amenities Chips */}
-                      {room.amenities && room.amenities.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                          {room.amenities.slice(0, 4).map((am, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium"
+                      {/* Amenities Chips / Bullet Points */}
+                      {isEditMode ? (
+                        <div className="flex flex-wrap gap-1.5 pt-1 items-center">
+                          {(room.amenities || []).map((am, amIdx) => (
+                            <div
+                              key={amIdx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px]"
                             >
-                              {am}
-                            </span>
+                              <input
+                                type="text"
+                                value={am}
+                                onChange={(e) => handleUpdateRoomAmenity(idx, amIdx, e.target.value)}
+                                className="bg-transparent border-0 p-0 text-[11px] text-slate-700 focus:outline-none min-w-[60px]"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveRoomAmenity(idx, amIdx);
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           ))}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddRoomAmenity(idx, 'Free Breakfast');
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-dashed border-red-300 bg-red-50/40 text-[10px] font-bold text-[#ea110d] hover:bg-red-50 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add Amenity</span>
+                          </button>
                         </div>
+                      ) : (
+                        room.amenities && room.amenities.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {room.amenities.slice(0, 4).map((am, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium"
+                              >
+                                {am}
+                              </span>
+                            ))}
+                          </div>
+                        )
                       )}
                     </div>
 
@@ -1613,22 +1794,40 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 </div>
               </div>
 
-              {/* Video Tour Banner (Right side of card) */}
-              <div className="relative rounded-2xl overflow-hidden h-44 sm:h-48 bg-slate-900 group cursor-pointer border border-slate-200">
-                <Image
-                  src={allPhotos[2] || allPhotos[0]}
-                  alt="Video Tour Preview"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 420px"
-                  className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <div className="absolute bottom-3 right-3">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform">
-                    <span className="text-[#ea110d] text-xs">▶</span>
-                    <span>Watch Video Tour</span>
+              {/* Video Tour Banner & YouTube Editor */}
+              <div className="flex flex-col gap-2">
+                <div
+                  onClick={() => setVideoModalOpen(true)}
+                  className="relative rounded-2xl overflow-hidden h-44 sm:h-48 bg-slate-900 group cursor-pointer border border-slate-200 shadow-sm"
+                >
+                  <Image
+                    src={getYouTubeThumbnailUrl(property.videoUrl, allPhotos[2] || allPhotos[0])}
+                    alt="Video Tour Preview"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 420px"
+                    className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors" />
+                  <div className="absolute bottom-3 right-3">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform">
+                      <span className="text-[#ea110d] text-xs">▶</span>
+                      <span>Watch Video Tour</span>
+                    </div>
                   </div>
                 </div>
+
+                {isEditMode && (
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                    <Video className="w-3.5 h-3.5 text-[#ea110d] shrink-0" />
+                    <input
+                      type="text"
+                      value={property.videoUrl || ''}
+                      onChange={(e) => handleFieldChange('videoUrl', e.target.value)}
+                      placeholder="YouTube Video URL (e.g. https://www.youtube.com/watch?v=...)"
+                      className="w-full text-xs bg-transparent border-0 focus:outline-none font-mono text-slate-800 placeholder-slate-400"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1664,15 +1863,24 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                     key={idx}
                     className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 last:border-b-0"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Sparkles className="w-4 h-4 text-slate-700 shrink-0" />
-                      <span className="text-xs font-medium text-slate-700 truncate">{hl.title}</span>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Sparkles className="w-4 h-4 text-[#ea110d] shrink-0" />
+                      {isEditMode ? (
+                        <input
+                          type="text"
+                          value={hl.title}
+                          onChange={(e) => handleUpdateHighlight(idx, e.target.value)}
+                          className="text-xs font-medium text-slate-700 bg-transparent border-b border-slate-300 w-full focus:outline-none"
+                        />
+                      ) : (
+                        <span className="text-xs font-medium text-slate-700 truncate">{hl.title}</span>
+                      )}
                     </div>
                     {isEditMode ? (
                       <button
                         type="button"
                         onClick={() => requestDeleteHighlight(idx)}
-                        className="text-slate-400 hover:text-rose-600"
+                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer shrink-0"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -1695,70 +1903,209 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         {/* ─── Tab 4: House Rules & Policies (4-Column Grid) ─── */}
         {(activeDetailTab === 'all' || activeDetailTab === 'rules') && (
         <div id="rules" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-          <h3 className="text-xl font-bold text-slate-900 font-poppins mb-4">
-            House Rules &amp; Policies
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 font-poppins">
+                House Rules &amp; Policies
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Check-in timings, cancellation terms, and stay suitability guidelines.
+              </p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Card 1: Check-in & Check-out */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 font-poppins">Check-in &amp; Check-out</div>
-              <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                <p>Check-in: {property.policies?.checkInTime || '1:00 PM'} onwards</p>
-                <p>Check-out: by {property.policies?.checkOutTime || '10:00 AM'}</p>
-                <p className="text-slate-400">
-                  {property.policies?.earlyCheckInNote || 'Early check-in subject to availability.'}
-                </p>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="text-xs font-bold text-slate-900 font-poppins">Check-in &amp; Check-out</div>
+                <div className="text-[11px] text-slate-600 mt-2 space-y-2">
+                  {isEditMode ? (
+                    <>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Check-in Time</label>
+                        <input
+                          type="text"
+                          value={property.policies?.checkInTime || '1:00 PM'}
+                          onChange={(e) => handlePolicyChange('checkInTime', e.target.value)}
+                          className="text-xs font-semibold text-slate-800 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Check-out Time</label>
+                        <input
+                          type="text"
+                          value={property.policies?.checkOutTime || '10:00 AM'}
+                          onChange={(e) => handlePolicyChange('checkOutTime', e.target.value)}
+                          className="text-xs font-semibold text-slate-800 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Early Check-in Note</label>
+                        <input
+                          type="text"
+                          value={property.policies?.earlyCheckInNote || 'Early check-in subject to availability.'}
+                          onChange={(e) => handlePolicyChange('earlyCheckInNote', e.target.value)}
+                          className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Check-in: {property.policies?.checkInTime || '1:00 PM'} onwards</p>
+                      <p>Check-out: by {property.policies?.checkOutTime || '10:00 AM'}</p>
+                      <p className="text-slate-400">
+                        {property.policies?.earlyCheckInNote || 'Early check-in subject to availability.'}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Card 2: Cancellation Policy */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
-              <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                <p className="font-semibold text-emerald-700">Free Cancellation</p>
-                <p>
-                  {property.policies?.cancellationPolicy ||
-                    'Full refund up to 48 hours before check-in. 50% refund thereafter.'}
-                </p>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
+                <div className="text-[11px] text-slate-600 mt-2 space-y-1.5">
+                  <p className="font-semibold text-emerald-700">Free Cancellation Option</p>
+                  {isEditMode ? (
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Cancellation Terms</label>
+                      <textarea
+                        rows={3}
+                        value={
+                          property.policies?.cancellationPolicy ||
+                          'Full refund up to 48 hours before check-in. 50% refund thereafter.'
+                        }
+                        onChange={(e) => handlePolicyChange('cancellationPolicy', e.target.value)}
+                        className="text-xs text-slate-700 border border-slate-200 rounded-lg p-2 w-full bg-white focus:outline-rose-500"
+                      />
+                    </div>
+                  ) : (
+                    <p>
+                      {property.policies?.cancellationPolicy ||
+                        'Full refund up to 48 hours before check-in. 50% refund thereafter.'}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Card 3: Suitability & Rules */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                <Users className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Rules</div>
-              <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                {(property.policies?.suitabilityRules || [
-                  'Pets allowed (on request)',
-                  'Smoking in outdoor areas',
-                  'Group & bachelor friendly',
-                  'Max 12 guests per estate',
-                ]).map((rule, idx) => (
-                  <p key={idx}>• {rule}</p>
-                ))}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Rules</div>
+                  </div>
+                  {isEditMode && (
+                    <button
+                      type="button"
+                      onClick={handleAddSuitabilityRule}
+                      className="text-[11px] font-bold text-[#ea110d] hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add Rule</span>
+                    </button>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-600 space-y-2 mt-2">
+                  {(property.policies?.suitabilityRules || [
+                    'Pets allowed (on request)',
+                    'Smoking in outdoor areas',
+                    'Group & bachelor friendly',
+                    'Max 12 guests per estate',
+                  ]).map((rule, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-1.5">
+                      {isEditMode ? (
+                        <>
+                          <input
+                            type="text"
+                            value={rule}
+                            onChange={(e) => handleUpdateSuitabilityRule(idx, e.target.value)}
+                            className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 flex-1 bg-white focus:outline-rose-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSuitabilityRule(idx)}
+                            className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors"
+                            title="Delete rule"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <p>• {rule}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Card 4: Guidelines & Address */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 font-poppins">Guidelines &amp; Address</div>
-              <div className="text-[11px] text-slate-600 mt-1 space-y-0.5">
-                <p>• Quiet hours: 10:00 PM - 7:00 AM</p>
-                <p>• Government ID required</p>
-                <p className="truncate">
-                  {property.address?.fullAddress || property.policies?.fullAddress || property.location}
-                </p>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+              <div>
+                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 mb-2.5">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="text-xs font-bold text-slate-900 font-poppins">Guidelines &amp; Address</div>
+                <div className="text-[11px] text-slate-600 mt-2 space-y-2">
+                  {isEditMode ? (
+                    <>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Quiet Hours</label>
+                        <input
+                          type="text"
+                          value={property.policies?.quietHours || '10:00 PM - 7:00 AM'}
+                          onChange={(e) => handlePolicyChange('quietHours', e.target.value)}
+                          placeholder="e.g. 10:00 PM - 7:00 AM"
+                          className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Guidelines Note</label>
+                        <input
+                          type="text"
+                          value={property.policies?.guidelinesNote || 'Government ID required at check-in'}
+                          onChange={(e) => handlePolicyChange('guidelinesNote', e.target.value)}
+                          className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Full Address</label>
+                        <input
+                          type="text"
+                          value={property.address?.fullAddress || property.policies?.fullAddress || property.location}
+                          onChange={(e) =>
+                            handleFieldChange('address', {
+                              ...(property.address || {}),
+                              fullAddress: e.target.value,
+                            })
+                          }
+                          className="text-xs text-slate-700 border border-slate-200 rounded-lg px-2 py-1 w-full bg-white focus:outline-rose-500"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>• Quiet hours: {property.policies?.quietHours || '10:00 PM - 7:00 AM'}</p>
+                      <p>• {property.policies?.guidelinesNote || 'Government ID required'}</p>
+                      <p className="truncate">
+                        {property.address?.fullAddress || property.policies?.fullAddress || property.location}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1834,61 +2181,39 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
         {/* ─── Tab 5: Location & Map ─── */}
         {(activeDetailTab === 'all' || activeDetailTab === 'location') && (
-        <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 font-poppins">
-                Location &amp; Nearby Attractions
-              </h3>
-              <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                {property.location || 'Panchgani & Old Mahabaleshwar, Maharashtra'}
-              </p>
-            </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.name + ' ' + (property.location || 'Panchgani'))}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-poppins transition"
-            >
-              <span>Open in Maps</span>
-              <span>↗</span>
-            </a>
-          </div>
-
-          {/* Map Preview Banner */}
-          <div className="relative rounded-2xl overflow-hidden h-56 sm:h-64 bg-slate-100 border border-slate-200">
-            <Image
-              src="/panchgani.jpg"
-              alt="Map Location View"
-              fill
-              className="object-cover opacity-90"
+          <div id="location">
+            <LocationMapPicker
+              propertyName={property.name}
+              locationArea={property.location || property.city}
+              initialCoordinates={{
+                lat: property.address?.lat,
+                lng: property.address?.lng,
+                fullAddress: property.address?.fullAddress || property.location,
+                mapLink: property.address?.mapLink,
+              }}
+              isEditMode={isEditMode}
+              nearbyAttractions={property.nearbyAttractions}
+              onChange={(coords) => {
+                setProperty((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    location: coords.fullAddress || prev.location,
+                    address: {
+                      ...(prev.address || { fullAddress: '' }),
+                      lat: coords.lat,
+                      lng: coords.lng,
+                      fullAddress: coords.fullAddress || prev.address?.fullAddress || prev.location || '',
+                      mapLink: coords.mapLink || `https://www.google.com/maps?q=${coords.lat},${coords.lng}`,
+                    },
+                  };
+                });
+              }}
+              onAttractionsChange={(attractions) => {
+                setProperty((prev) => (prev ? { ...prev, nearbyAttractions: attractions } : prev));
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-[#ea110d] text-white flex items-center justify-center shadow-xl animate-bounce">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <div className="mt-1 px-3 py-1 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-md backdrop-blur-sm">
-                {property.name}
-              </div>
-            </div>
           </div>
-
-          {/* Nearby Attractions */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-            {[
-              { name: 'Table Land Plateau', distance: '2.4 km • 7 mins drive', desc: "Asia's 2nd largest volcanic plateau" },
-              { name: 'Venna Lake & Boating', distance: '4.8 km • 12 mins drive', desc: 'Serene boat rides & strawberry stalls' },
-              { name: 'Mapro Garden', distance: '6.5 km • 15 mins drive', desc: 'Famous fresh strawberry cream & cafe' },
-            ].map((att, i) => (
-              <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-xs font-bold text-slate-900 font-poppins">{att.name}</div>
-                <div className="text-[11px] font-semibold text-[#ea110d] mt-0.5">{att.distance}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">{att.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
         )}
 
         {/* ─── Tab 6: Reviews & Ratings ─── */}
@@ -2086,6 +2411,164 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
             {/* Financial Calculation Breakdown / Ledger */}
             <div className="border-t border-slate-100 pt-3 flex flex-col gap-2 text-xs text-slate-600 font-medium">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Folio Breakdown</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPricingEdit(!showPricingEdit)}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline flex items-center gap-1 cursor-pointer"
+                >
+                  {showPricingEdit ? '✓ Close Edit Rates' : '⚙ Edit Fees & Discounts'}
+                </button>
+              </div>
+
+              {/* Inline Rates & Fees Customizer */}
+              {showPricingEdit && (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3 mb-2 text-xs">
+                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                    <span>Pricing, Fees &amp; GST Settings</span>
+                    <span className="text-[10px] text-amber-600 font-normal">Saves on &ldquo;Save to Backend&rdquo;</span>
+                  </div>
+
+                  {/* 1. Discount Percentage / Flat */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Mahastays / Vendor Discount (%)</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Currently {discountPercent}%</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={discountPercent}
+                        onChange={(e) => handlePricingRuleChange('memberDiscountPercent', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                        className="w-20 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        {[0, 8, 12, 15].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => handlePricingRuleChange('memberDiscountPercent', pct)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
+                              discountPercent === pct
+                                ? 'bg-rose-50 border-rose-300 text-rose-700'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {pct === 0 ? 'None' : `${pct}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Cleaning & Sanitization Fee */}
+                  <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Cleaning &amp; Sanitization Fee (₹)</span>
+                      <span className={`text-[10px] font-bold ${includeCleaningFee ? 'text-slate-700 dark:text-slate-300' : 'text-red-500 line-through'}`}>
+                        {includeCleaningFee ? `₹${cleaningFee}` : 'Fee Removed'}
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2.5 top-2 text-slate-400 text-xs">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={!includeCleaningFee}
+                          value={configuredCleaningFee}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                            handlePricingRuleChange('cleaningFee', val);
+                          }}
+                          className={`w-full pl-6 pr-2 py-1.5 rounded-xl border text-xs font-bold ${
+                            includeCleaningFee
+                              ? 'bg-white dark:bg-slate-900 border-slate-200 text-slate-900 dark:text-slate-100'
+                              : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed line-through'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Remove / Restore Fee Button */}
+                      {includeCleaningFee ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handlePricingRuleChange('includeCleaningFee', false);
+                            handlePricingRuleChange('cleaningFee', 0);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                          title="Remove cleaning fee from this property"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                          <span>Remove Fee</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handlePricingRuleChange('includeCleaningFee', true);
+                            handlePricingRuleChange('cleaningFee', 445);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                        >
+                          <Plus className="w-3 h-3 text-emerald-600" />
+                          <span>Restore (₹445)</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Taxes & GST Rate */}
+                  <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                      <span>Taxes &amp; GST Rate (%)</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">{includeGst ? `${gstPercent}% GST` : 'Exempt'}</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="28"
+                        disabled={!includeGst}
+                        value={gstPercent}
+                        onChange={(e) => handlePricingRuleChange('gstPercent', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                        className={`w-20 p-2 rounded-xl border text-xs font-bold ${
+                          includeGst
+                            ? 'bg-white dark:bg-slate-900 border-slate-200 text-slate-900 dark:text-slate-100'
+                            : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                        }`}
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+
+                      <div className="flex items-center gap-1 ml-auto">
+                        {[0, 5, 12, 18].map((g) => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => {
+                              handlePricingRuleChange('includeGst', g > 0);
+                              handlePricingRuleChange('gstPercent', g);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
+                              gstPercent === g && (g === 0 || includeGst)
+                                ? 'bg-rose-50 border-rose-300 text-rose-700'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {g === 0 ? '0% Ex' : `${g}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>
                   ₹{roomPricePerNight.toLocaleString('en-IN')} × {nights} nights
@@ -2093,20 +2576,41 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 <span className="text-slate-900 font-semibold">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
 
-              <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>Mahastays Member Discount (8%)</span>
-                <span>-₹{memberDiscount.toLocaleString('en-IN')}</span>
-              </div>
+              {memberDiscount > 0 ? (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Mahastays Member Discount ({discountPercent}%)</span>
+                  <span>-₹{memberDiscount.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Member Discount</span>
+                  <span>₹0 (None)</span>
+                </div>
+              )}
 
-              <div className="flex justify-between">
-                <span>Cleaning &amp; Sanitization Fee</span>
-                <span className="text-slate-900 font-semibold">₹{cleaningFee.toLocaleString('en-IN')}</span>
-              </div>
+              {includeCleaningFee && cleaningFee > 0 ? (
+                <div className="flex justify-between">
+                  <span>Cleaning &amp; Sanitization Fee</span>
+                  <span className="text-slate-900 font-semibold">₹{cleaningFee.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Cleaning &amp; Sanitization Fee</span>
+                  <span className="text-emerald-600 font-semibold">₹0 (Removed / Waived)</span>
+                </div>
+              )}
 
-              <div className="flex justify-between">
-                <span>Taxes &amp; GST (18%)</span>
-                <span className="text-slate-900 font-semibold">₹{taxesGst.toLocaleString('en-IN')}</span>
-              </div>
+              {includeGst && gstPercent > 0 ? (
+                <div className="flex justify-between">
+                  <span>Taxes &amp; GST ({gstPercent}%)</span>
+                  <span className="text-slate-900 font-semibold">₹{taxesGst.toLocaleString('en-IN')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-400 italic">
+                  <span>Taxes &amp; GST</span>
+                  <span>₹0 (GST Exempt)</span>
+                </div>
+              )}
 
               <div className="border-t border-slate-200 pt-2.5 flex items-baseline justify-between">
                 <span className="text-sm font-bold text-slate-900 font-poppins">Total (INR)</span>
@@ -2139,6 +2643,16 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         title={confirmDeleteState.title}
         itemName={confirmDeleteState.itemName}
         message={confirmDeleteState.message}
+      />
+
+      {/* Video Player Modal */}
+      <VideoPlayerModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        videoUrl={property.videoUrl}
+        title={`Video Walkthrough: ${property.name}`}
+        isEditMode={isEditMode}
+        onUpdateUrl={(newUrl) => handleFieldChange('videoUrl', newUrl)}
       />
     </div>
   );

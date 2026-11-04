@@ -47,17 +47,16 @@ export const normalizePackage = (raw: any): PackageItem => {
     });
   }
   if (raw.thumbnail && !images.includes(raw.thumbnail)) images.unshift(raw.thumbnail);
-  if (images.length === 0) {
-    images.push('https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1200');
-  }
-
   const rawTiers = Array.isArray(raw.tiers) ? raw.tiers : [];
   const tiers = rawTiers.map((t: any, idx: number) => ({
     tierId: t.tierId || t.id || `tier_${idx + 1}`,
     name: t.name || t.title || 'Standard Package',
-    pricePerPerson: t.pricePerPerson || t.price || raw.numericPrice || 11500,
+    badge: t.badge,
+    tagline: t.tagline,
+    hotelType: t.hotelType || '4-Star Valley View Resort Stay Included',
+    pricePerPerson: t.pricePerPerson || t.price || raw.numericPrice || 0,
     originalPrice: t.originalPrice || raw.originalPrice,
-    features: Array.isArray(t.features) ? t.features : ['Resort Accommodation', 'Guided Tour', 'Breakfast & Dinner'],
+    features: Array.isArray(t.features) && t.features.length > 0 ? t.features : ['Resort Room Included', 'All Meals Included', 'Private Sunset Boating', 'Spa Credit Voucher'],
   }));
 
   const rawInclusions = Array.isArray(raw.inclusions) ? raw.inclusions : [];
@@ -74,52 +73,57 @@ export const normalizePackage = (raw: any): PackageItem => {
     id: raw.id || raw._id,
     code: raw.code || raw.slug || `PKG-${(raw.id || '').slice(-4)}`,
     slug: raw.slug || `pkg-${raw.id}`,
-    vendorId: raw.vendorId || '6adeef17f4597150f0c199a4',
-    vendorName: raw.vendorName || 'HillView Hospitality Pvt Ltd',
+    vendorId: raw.vendorId || '',
+    vendorName: raw.vendorName || '',
     propertyId: raw.propertyId || raw.hostPropertyId || '',
-    propertyName: raw.propertyName || 'HillView Luxury Resort & Spa',
-    title: raw.title || raw.name || 'Curated Holiday Package',
+    propertyName: raw.propertyName || '',
+    title: raw.title || raw.name || 'Package',
     packageType: raw.packageType || 'couple',
-    category: raw.category || 'Luxury',
-    durationDays: raw.durationDays || 3,
-    durationNights: raw.durationNights || 2,
-    location: raw.location || 'Plot 12, Venna Lake Road, Mahabaleshwar',
+    category: raw.category || 'Standard',
+    durationDays: raw.durationDays || 1,
+    durationNights: raw.durationNights || 0,
+    location: raw.location || '',
     city: raw.city || 'Mahabaleshwar',
-    numericPrice: raw.numericPrice || 11500,
+    numericPrice: raw.numericPrice || 0,
     originalPrice: raw.originalPrice,
     shortDesc: raw.shortDesc || raw.description || '',
-    thumbnail: images[0],
+    thumbnail: images[0] || '',
     images,
-    highlights: Array.isArray(raw.highlights) && raw.highlights.length > 0 ? raw.highlights : [
-      'Resort stay with lake view',
-      'Daily breakfast & candlelight dinner',
-      'Complimentary sightseeing passes',
-    ],
-    inclusions: inclusions.length > 0 ? inclusions : [
-      { title: 'Deluxe Room Stay', desc: 'Lake view deluxe suite' },
-      { title: 'Complimentary Meals', desc: 'Breakfast & candlelight dinner' },
-      { title: 'Local Sightseeing', desc: 'Guided berry garden & viewpoint tour' },
-    ],
-    exclusions: Array.isArray(raw.exclusions) ? raw.exclusions : ['Personal expenses', 'Airfare/Flight tickets'],
-    itinerary: Array.isArray(raw.itinerary) && raw.itinerary.length > 0 ? raw.itinerary : [
-      { day: 1, title: 'Arrival & Welcome Dinner', desc: 'Check-in to resort, welcome drink, evening candlelight dinner by the pool.' },
-      { day: 2, title: 'Scenic Viewpoints & Strawberry Farm', desc: 'Guided visit to Arthur Seat, Kate\'s Point, and fresh berry harvesting.' },
-      { day: 3, title: 'Morning Spa & Departure', desc: 'Breakfast buffet, complimentary 30-min spa session, relaxed noon check-out.' },
-    ],
-    tiers: tiers.length > 0 ? tiers : [
-      {
-        tierId: 'tier_honeymoon',
-        name: 'Romantic Couple All-Inclusive',
-        pricePerPerson: raw.numericPrice || 11500,
-        originalPrice: raw.originalPrice || 15500,
-        features: ['Resort Room', 'All Meals Included', 'Private Sunset Boating', 'Spa Credit Voucher'],
-      },
-    ],
-    rating: raw.ratingScore || 4.9,
-    reviewsCount: raw.reviewsCount || 41,
+    highlights: Array.isArray(raw.highlights) ? raw.highlights : [],
+    inclusions,
+    exclusions: Array.isArray(raw.exclusions) ? raw.exclusions : [],
+    itinerary: Array.isArray(raw.itinerary) ? raw.itinerary : [],
+    tiers,
+    host: raw.host || {
+      name: raw.vendorName || 'Vikramaditya & Concierge Team',
+      role: 'Holiday Specialist & Concierge',
+      experience: '5 Years hosting',
+      staysCount: '1,200+ Verified Guests',
+      verified: true,
+      avatar: '',
+      confirmationBadge: 'Instant Booking Confirmed',
+    },
+    keyHighlights: Array.isArray(raw.keyHighlights) && raw.keyHighlights.length > 0
+      ? raw.keyHighlights
+      : [
+          { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+          { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+          { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+          { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+        ],
+    videoUrl: raw.videoUrl || raw.video || '',
+    idealFor: raw.idealFor || 'Families & Couples',
+    destinations: raw.destinations || raw.location || '',
+    policies: raw.policies || {
+      cancellationPolicy: raw.cancellationPolicy || 'Free cancellation up to 48 hours before start date.',
+      rules: ['Valid government photo ID required', 'Report 15 minutes prior to departure'],
+    },
+    rating: raw.ratingScore || raw.rating || 0,
+    reviewsCount: raw.reviewsCount || 0,
     featured: !!raw.featured,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
+    pricingRules: raw.pricingRules || undefined,
     createdAt: raw.createdAt || new Date().toISOString(),
   };
 };
@@ -138,9 +142,16 @@ const initialState: PackagesState = {
 export const fetchPackages = createAsyncThunk('packages/fetchPackages', async () => {
   try {
     const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+    const requestConfig = {
+      params: { limit: 100, _t: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    };
     const res = isVendor
-      ? await api.get('/vendor/packages').catch(() => api.get('/packages'))
-      : await api.get('/admin/packages').catch(() => api.get('/packages'));
+      ? await api.get('/vendor/packages', requestConfig).catch(() => api.get('/admin/packages', requestConfig)).catch(() => api.get('/packages', requestConfig))
+      : await api.get('/admin/packages', requestConfig).catch(() => api.get('/vendor/packages', requestConfig)).catch(() => api.get('/packages', requestConfig));
 
     const rawList = Array.isArray(res.data?.data)
       ? res.data.data
@@ -167,10 +178,17 @@ export const fetchPackageById = createAsyncThunk(
   'packages/fetchPackageById',
   async (id: string, { getState, rejectWithValue }) => {
     try {
+      const config = {
+        params: { _t: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      };
       const res = await api
-        .get(`/admin/packages/${id}`)
-        .catch(() => api.get(`/vendor/packages/${id}`))
-        .catch(() => api.get(`/packages/${id}`));
+        .get(`/admin/packages/${id}`, config)
+        .catch(() => api.get(`/vendor/packages/${id}`, config))
+        .catch(() => api.get(`/packages/${id}`, config));
 
       if (res.data?.data) {
         return normalizePackage(res.data.data);
@@ -300,37 +318,24 @@ export const createPackageAsync = createAsyncThunk(
       vendorId: pkgData.vendorId || '6adeef17f4597150f0c199a4',
       vendorName: pkgData.vendorName || 'HillView Hospitality Pvt Ltd',
       propertyId: pkgData.propertyId || '',
-      propertyName: pkgData.propertyName || 'HillView Heritage Resort & Spa',
-      title: pkgData.title || 'New Tour Package',
+      propertyName: pkgData.propertyName || '',
+      title: pkgData.title || '',
       packageType: pkgData.packageType || 'couple',
       category: pkgData.category || 'Luxury',
-      durationDays: pkgData.durationDays || 3,
-      durationNights: pkgData.durationNights || 2,
-      location: pkgData.location || 'Mahabaleshwar',
+      durationDays: pkgData.durationDays || 1,
+      durationNights: pkgData.durationNights || 1,
+      location: pkgData.location || '',
       city: pkgData.city || 'Mahabaleshwar',
-      numericPrice: pkgData.numericPrice || 18000,
-      originalPrice: pkgData.originalPrice || 22000,
-      shortDesc: pkgData.shortDesc || 'Curated holiday package with luxury accommodation and excursions.',
-      thumbnail:
-        pkgData.thumbnail ||
-        'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&auto=format&fit=crop&q=80',
-      images: pkgData.images?.length
-        ? pkgData.images
-        : ['https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&auto=format&fit=crop&q=80'],
-      highlights: pkgData.highlights || ['Luxury Stay Included', 'Sightseeing Transfers', 'All Meals'],
-      inclusions: pkgData.inclusions || [
-        { title: 'Accommodation', desc: 'Luxury resort room with breakfast' },
-        { title: 'Guided Excursions', desc: 'Viewpoint & berry garden passes' },
-      ],
-      exclusions: pkgData.exclusions || ['Airfare', 'Personal expenses'],
-      tiers: pkgData.tiers || [
-        {
-          tierId: 'tier_standard',
-          name: 'Standard Package',
-          pricePerPerson: pkgData.numericPrice || 18000,
-          features: ['Resort Room', 'Breakfast & Dinner', 'Free Activity Voucher'],
-        },
-      ],
+      numericPrice: pkgData.numericPrice || 0,
+      originalPrice: pkgData.originalPrice || 0,
+      shortDesc: pkgData.shortDesc || '',
+      thumbnail: pkgData.thumbnail || '',
+      images: pkgData.images?.length ? pkgData.images : [],
+      highlights: pkgData.highlights || [],
+      inclusions: pkgData.inclusions || [],
+      exclusions: pkgData.exclusions || [],
+      tiers: pkgData.tiers || [],
+      pricingRules: pkgData.pricingRules || undefined,
       rating: 0,
       reviewsCount: 0,
       featured: false,
