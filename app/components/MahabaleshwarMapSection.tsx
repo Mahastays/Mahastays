@@ -552,9 +552,9 @@ export default function MahabaleshwarMapSection() {
       </div>
 
       {/* ─── Stats Bar Row (Light and Clean Typography Matching Screenshot) ───── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-8">
+      {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 lg:gap-12 text-center md:text-left">
-          {/* Stat 1 */}
+        
           <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
             <span className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight font-poppins">
               ₹12Cr+
@@ -564,7 +564,7 @@ export default function MahabaleshwarMapSection() {
             </span>
           </div>
 
-          {/* Stat 2 */}
+         
           <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
             <span className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight font-poppins">
               45K+
@@ -574,7 +574,7 @@ export default function MahabaleshwarMapSection() {
             </span>
           </div>
 
-          {/* Stat 3 */}
+        
           <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
             <span className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight font-poppins">
               {properties.length > 0 ? `${properties.length}+` : "150+"}
@@ -584,7 +584,7 @@ export default function MahabaleshwarMapSection() {
             </span>
           </div>
 
-          {/* Stat 4 */}
+    
           <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
             <span className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight font-poppins">
               4.9★
@@ -594,7 +594,7 @@ export default function MahabaleshwarMapSection() {
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 }
