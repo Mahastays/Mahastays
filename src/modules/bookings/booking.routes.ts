@@ -162,7 +162,8 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
   let createdBooking: any = null;
   let vendorId: string = '';
   let grandTotal = b.pricing?.grandTotal || 0;
-  const invNumber = await generateInvoiceNumber();
+  // Invoice is NOT generated upfront — only generated after payment is captured and verified
+  const invNumber: string | null = null;
 
   if (b.bookingType === 'stay') {
     let property = await prisma.property.findFirst({
@@ -396,13 +397,13 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
   });
 
   if (b.paymentMethod === 'pay_at_property') {
-    void dispatchBookingConfirmationEmail(createdBooking, b.bookingType, user, grandTotal, invNumber);
+    void dispatchBookingConfirmationEmail(createdBooking, b.bookingType, user, grandTotal, undefined);
   }
 
   created(res, {
     success: true,
     bookingReference: createdBooking.bookingReference,
-    invoiceNumber: invNumber,
+    invoiceNumber: null,
     booking: {
       id: createdBooking.id,
       bookingReference: createdBooking.bookingReference,
@@ -416,7 +417,7 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
       method: payment.method,
       status: payment.status,
       amountInr: payment.amountInr,
-      invoiceNumber: invNumber,
+      invoiceNumber: null,
     },
     gatewayOrder: razorpayOrderData,
     user: {
@@ -451,12 +452,16 @@ bookingRouter.post('/verify-payment', optionalAuth, async (req, res) => {
     throw ApiError.notFound('Payment record');
   }
 
+  // Payment is successfully captured! Generate the official GST Tax Invoice Number
+  const invoiceNumber = await generateInvoiceNumber();
+
   await prisma.payment.update({
     where: { id: payment.id },
     data: {
       status: 'captured',
       gatewayPaymentId: b.paymentId,
       capturedAt: new Date(),
+      invoiceNumber,
     },
   });
 
@@ -464,17 +469,17 @@ bookingRouter.post('/verify-payment', optionalAuth, async (req, res) => {
   if (payment.bookingType === 'stay') {
     updatedBooking = await prisma.stayBooking.update({
       where: { id: payment.bookingId },
-      data: { paymentStatus: 'paid', bookingStatus: 'confirmed', confirmedAt: new Date() },
+      data: { paymentStatus: 'paid', bookingStatus: 'confirmed', confirmedAt: new Date(), invoiceNumber },
     });
   } else if (payment.bookingType === 'package') {
     updatedBooking = await prisma.packageBooking.update({
       where: { id: payment.bookingId },
-      data: { paymentStatus: 'paid', bookingStatus: 'confirmed', confirmedAt: new Date() },
+      data: { paymentStatus: 'paid', bookingStatus: 'confirmed', confirmedAt: new Date(), invoiceNumber },
     });
   } else if (payment.bookingType === 'experience') {
     updatedBooking = await prisma.experienceBooking.update({
       where: { id: payment.bookingId },
-      data: { paymentStatus: 'paid', bookingStatus: 'reserved', confirmedAt: new Date() },
+      data: { paymentStatus: 'paid', bookingStatus: 'reserved', confirmedAt: new Date(), invoiceNumber },
     });
   }
 

@@ -68,6 +68,7 @@ const packageBase = z.object({
   validFrom: v.isoDate.optional(),
   validTill: v.isoDate.optional(),
   cancellationPolicy: v.optionalTrimmed(500),
+  pricingRules: z.any().optional(),
 });
 
 const crossChecks = (p: Partial<z.infer<typeof packageBase>>, ctx: z.RefinementCtx) => {

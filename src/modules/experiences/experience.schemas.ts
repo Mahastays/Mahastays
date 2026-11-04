@@ -58,6 +58,7 @@ const experienceBase = z.object({
   schedule: scheduleSchema.optional(),
   slots: z.array(slotSchema).min(1).max(20),
   tiers: z.array(tierSchema).min(1).max(10),
+  pricingRules: z.any().optional(),
   guide: z.object({ name: v.trimmed(2, 100), role: v.optionalTrimmed(120), avatar: v.url.optional() }).optional(),
   cancellationPolicy: v.optionalTrimmed(500),
 });

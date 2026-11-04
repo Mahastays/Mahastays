@@ -182,6 +182,7 @@ export async function createExperience(vendorId: string, input: CreateExperience
       tiers,
       guide: input.guide ?? { name: vendor.displayName, role: vendor.displayRole, avatar: vendor.avatarUrl ?? undefined },
       cancellationPolicy: input.cancellationPolicy,
+      pricingRules: input.pricingRules ?? null,
       status: 'pending_approval',
     },
   });
@@ -219,6 +220,7 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   if (input.schedule !== undefined) data.schedule = input.schedule;
   if (input.guide !== undefined) data.guide = input.guide;
   if (input.cancellationPolicy !== undefined) data.cancellationPolicy = input.cancellationPolicy;
+  if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
 
   if (input.slots !== undefined) {
     const slots = normalizeSlots(input.slots);

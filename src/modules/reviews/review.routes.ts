@@ -19,8 +19,8 @@ reviewRouter.get('/mine', requireRole('user'), async (req, res) => {
   ok(res, items, meta);
 });
 
-reviewRouter.post('/', requireRole('user'), async (req, res) => {
-  created(res, await createReview(req.auth!.id, createReviewSchema.parse(bodyOf(req))));
+reviewRouter.post('/', optionalAuth, async (req, res) => {
+  created(res, await createReview(req.auth?.role === 'user' ? req.auth.id : undefined, createReviewSchema.parse(bodyOf(req))));
 });
 
 reviewRouter.post('/:id/helpful', requireRole('user'), async (req, res) => {

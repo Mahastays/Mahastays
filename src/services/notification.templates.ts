@@ -7,6 +7,17 @@ const esc = (value: string): string =>
 export const MAHASTAYS_CLOUDINARY_LOGO =
   'https://res.cloudinary.com/vxtop5jd/image/upload/v1793725764/mahastays/brand/mahastays-logo.png';
 
+// Inline SVGs for universal email client compatibility — 100% vector, solid colors, zero gradients
+const SVG_ICONS = {
+  lock: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea110d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+  shieldCheck: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>`,
+  bed: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;"><path d="M2 4v16"></path><path d="M2 8h18a2 2 0 0 1 2 2v10"></path><path d="M2 17h20"></path><path d="M6 8v9"></path></svg>`,
+  support: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>`,
+  instagram: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`,
+  linkedin: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>`,
+  youtube: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>`,
+};
+
 interface LayoutOptions {
   badge?: string;
   badgeType?: 'success' | 'danger' | 'neutral' | 'brand';
@@ -15,13 +26,13 @@ interface LayoutOptions {
 
 function layout(title: string, inner: string, options: LayoutOptions = {}): { html: string } {
   const badgeHtml = options.badge
-    ? `<span style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;border-radius:20px;${
+    ? `<span style="display:inline-block;padding:6px 14px;font-size:12px;font-weight:700;letter-spacing:0.3px;border-radius:8px;${
         options.badgeType === 'danger'
-          ? 'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;'
+          ? 'background:#fff1f1;color:#b91c1c;border:1px solid #ffd5d5;'
           : options.badgeType === 'success'
           ? 'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;'
           : options.badgeType === 'brand'
-          ? 'background:#fff1f1;color:#ea110d;border:1px solid #ffcdd2;'
+          ? 'background:#fff1f1;color:#ea110d;border:1px solid #ffd5d5;'
           : 'background:#f8fafc;color:#475569;border:1px solid #e2e8f0;'
       }">${esc(options.badge)}</span>`
     : '';
@@ -34,28 +45,23 @@ function layout(title: string, inner: string, options: LayoutOptions = {}): { ht
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${esc(title)}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
-  ${options.preheader ? `<div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${esc(options.preheader)}</div>` : ''}
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
+  ${options.preheader ? `<div style="display:none;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${esc(options.preheader)}</div>` : ''}
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;padding:40px 16px;">
     <tr>
       <td align="center">
-        <!-- Main Card Container (Max 600px) -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#ffffff;border-radius:18px;border:1px solid #e2e8f0;box-shadow:0 10px 25px rgba(0,0,0,0.04);overflow:hidden;">
+        <!-- Main Card Container (Max 580px) -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background-color:#ffffff;border-radius:16px;border:1px solid #edf2f7;box-shadow:0 4px 20px rgba(0,0,0,0.03);overflow:hidden;">
           
-          <!-- Red Brand Accent Bar -->
+          <!-- Header with Cloudinary Brand Logo & Badge -->
           <tr>
-            <td style="height:4px;background-color:#ea110d;line-height:4px;font-size:4px;">&nbsp;</td>
-          </tr>
-
-          <!-- Header with Cloudinary Brand Logo -->
-          <tr>
-            <td style="padding:28px 32px 20px;border-bottom:1px solid #f1f5f9;">
+            <td style="padding:28px 36px 20px 36px;border-bottom:1px solid #edf2f7;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="left" valign="middle">
                     <a href="${esc(env.APP_URL)}" target="_blank" style="text-decoration:none;display:inline-block;">
-                      <img src="${MAHASTAYS_CLOUDINARY_LOGO}" alt="Mahastays" width="155" height="38" style="display:block;width:155px;height:auto;max-height:40px;border:0;outline:none;" />
+                      <img src="${MAHASTAYS_CLOUDINARY_LOGO}" alt="Mahastays" width="160" height="38" style="display:block;width:160px;height:auto;max-height:40px;border:0;outline:none;" />
                     </a>
                   </td>
                   <td align="right" valign="middle">
@@ -68,54 +74,71 @@ function layout(title: string, inner: string, options: LayoutOptions = {}): { ht
 
           <!-- Content Body -->
           <tr>
-            <td style="padding:28px 32px 32px;">
-              <h1 style="color:#0f172a;font-size:22px;font-weight:700;line-height:1.3;letter-spacing:-0.3px;margin:0 0 16px;">
+            <td style="padding:32px 36px 36px 36px;">
+              <h1 style="color:#0f172a;font-size:25px;font-weight:800;line-height:1.25;letter-spacing:-0.4px;margin:0 0 10px 0;">
                 ${esc(title)}
               </h1>
+              <!-- Solid Red Accent Underline Bar (No Gradient) -->
+              <div style="width:44px;height:4px;background-color:#ea110d;border-radius:2px;margin:0 0 24px 0;"></div>
+
               <div style="font-size:14px;line-height:1.65;color:#334155;">
                 ${inner}
               </div>
             </td>
           </tr>
 
-          <!-- Trust & Safe Guarantee Strip -->
+          <!-- Trust & Quality Verification Strip (Solid Colors & Real Icons) -->
           <tr>
-            <td style="background-color:#f8fafc;padding:16px 32px;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;">
+            <td style="background-color:#ffffff;padding:18px 24px;border-top:1px solid #edf2f7;border-bottom:1px solid #edf2f7;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="font-size:12px;color:#475569;line-height:1.5;">
-                    <span style="display:inline-block;margin-right:16px;">
-                      <strong style="color:#0f172a;">&#10003; 100% Verified Quality</strong>
-                    </span>
-                    <span style="display:inline-block;margin-right:16px;">
-                      <strong style="color:#0f172a;">&#10003; Safe Stay Guarantee</strong>
-                    </span>
-                    <span style="display:inline-block;">
-                      <strong style="color:#0f172a;">&#10003; 24x7 Local Concierge</strong>
-                    </span>
+                  <td align="center" valign="middle" style="width:33.33%;border-right:1px solid #edf2f7;padding:4px 8px;">
+                    ${SVG_ICONS.shieldCheck}
+                    <span style="font-size:13px;font-weight:600;color:#1e293b;vertical-align:middle;">Verified Stays</span>
+                  </td>
+                  <td align="center" valign="middle" style="width:33.33%;border-right:1px solid #edf2f7;padding:4px 8px;">
+                    ${SVG_ICONS.bed}
+                    <span style="font-size:13px;font-weight:600;color:#1e293b;vertical-align:middle;">Quality Properties</span>
+                  </td>
+                  <td align="center" valign="middle" style="width:33.33%;padding:4px 8px;">
+                    ${SVG_ICONS.support}
+                    <span style="font-size:13px;font-weight:600;color:#1e293b;vertical-align:middle;">24&times;7 Support</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer with Address & Social Icons -->
           <tr>
-            <td style="background-color:#ffffff;padding:24px 32px;text-align:center;">
-              <p style="color:#64748b;font-size:12px;line-height:1.6;margin:0 0 8px;">
-                <strong>Mahastays Hospitality Platform</strong><br>
-                Venna Lake Road, Mahabaleshwar &amp; Panchgani, Maharashtra 412806, India
-              </p>
-              <p style="color:#94a3b8;font-size:11px;margin:0;">
-                &copy; ${new Date().getFullYear()} Mahastays. All rights reserved. Direct transparent rates with zero hidden markups.
-              </p>
+            <td style="background-color:#ffffff;padding:26px 36px 24px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" valign="top" style="line-height:1.5;">
+                    <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:4px;">Mahastays Hospitality Platform</div>
+                    <div style="font-size:12px;color:#64748b;">Venna Lake Road, Mahabaleshwar &amp; Panchgani, Maharashtra 412806, India</div>
+                  </td>
+                  <td align="right" valign="middle" style="white-space:nowrap;padding-left:16px;">
+                    <a href="https://instagram.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.instagram}</a>
+                    <a href="https://linkedin.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.linkedin}</a>
+                    <a href="https://youtube.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.youtube}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Bottom Copyright Bar -->
+          <tr>
+            <td align="center" style="background-color:#f8fafc;padding:16px 24px;border-top:1px solid #edf2f7;font-size:12px;color:#64748b;font-weight:500;">
+              &copy; ${new Date().getFullYear()} Mahastays. All rights reserved.
             </td>
           </tr>
 
         </table>
 
-        <!-- Small unsubscribe/help text below card -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin-top:16px;">
+        <!-- Small transactional note below card -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;margin-top:16px;">
           <tr>
             <td align="center" style="font-size:11px;color:#94a3b8;">
               This is an official transactional notification sent to your registered account.
@@ -132,29 +155,41 @@ function layout(title: string, inner: string, options: LayoutOptions = {}): { ht
 }
 
 const button = (href: string, label: string) =>
-  `<div style="margin:26px 0;">
-    <a href="${esc(href)}" target="_blank" style="background-color:#ea110d;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 26px;border-radius:10px;display:inline-block;letter-spacing:0.2px;box-shadow:0 4px 12px rgba(234,17,13,0.22);text-align:center;">
+  `<div style="margin:24px 0;">
+    <a href="${esc(href)}" target="_blank" style="background-color:#ea110d;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 26px;border-radius:10px;display:inline-block;letter-spacing:0.2px;text-align:center;">
       ${esc(label)} &rarr;
     </a>
   </div>`;
 
 export const templates = {
   adminLoginOtp(name: string, otp: string) {
+    const spacedOtp = otp.split('').join(' ');
     return {
       subject: `Your Mahastays Admin Verification Code: ${otp}`,
       ...layout(
         'Admin Portal Verification',
-        `<p style="margin:0 0 12px;">Dear <strong>${esc(name)}</strong>,</p>
-        <p style="margin:0 0 16px;">A sign-in attempt was initiated for your Mahastays Admin Operations account. Use the one-time verification code below to complete your authentication:</p>
+        `<p style="margin:0 0 12px;font-size:14px;color:#0f172a;">Dear <strong>${esc(name)}</strong>,</p>
+        <p style="margin:0 0 22px;font-size:14px;color:#475569;line-height:1.6;">A sign-in attempt was initiated for your Mahastays Admin Operations account. Use the one-time verification code below to complete your authentication.</p>
         
-        <div style="background:#f8fafc;border:2px dashed #ea110d;border-radius:14px;padding:24px;margin:22px 0;text-align:center;">
-          <div style="font-size:12px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Your 6-Digit One-Time Code</div>
-          <div style="font-size:38px;font-weight:900;letter-spacing:8px;color:#ea110d;font-family:monospace;padding:6px 0;">${otp}</div>
-          <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Valid for 10 minutes &bull; Do not share this code with anyone</div>
+        <!-- Code Box (Solid Colors, Zero Gradient) -->
+        <div style="background-color:#fff5f5;border:1px solid #fed7d7;border-radius:14px;padding:26px 20px 22px;margin:22px 0;text-align:center;">
+          <div style="font-size:13px;font-weight:600;color:#4a5568;margin-bottom:12px;letter-spacing:0.2px;">Your 6-Digit One-Time Code</div>
+          <div style="font-size:38px;font-weight:900;letter-spacing:14px;color:#c53030;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:4px 0 14px 0;padding-left:14px;line-height:1;">${spacedOtp}</div>
+          <div style="font-size:12px;color:#718096;font-weight:500;">Valid for 10 minutes &nbsp;|&nbsp; Do not share this code with anyone.</div>
         </div>
 
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin:20px 0;font-size:12px;color:#991b1b;">
-          <strong>Security Warning:</strong> If you did not initiate this login request, your account password may be compromised. Please change your password immediately or contact technical operations.
+        <!-- Security Warning Box with Lock Icon and Divider (No Gradient) -->
+        <div style="background-color:#fff5f5;border:1px solid #fed7d7;border-radius:10px;margin:22px 0;overflow:hidden;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td align="center" valign="middle" style="width:54px;padding:14px 0;border-right:1px solid #fed7d7;">
+                ${SVG_ICONS.lock}
+              </td>
+              <td valign="middle" style="padding:14px 18px;font-size:12px;line-height:1.55;">
+                <strong style="color:#c53030;">Security Warning:</strong> <span style="color:#4a5568;">If you did not initiate this login request, your account password may be compromised. Please change your password immediately or contact support.</span>
+              </td>
+            </tr>
+          </table>
         </div>`,
         { badge: 'Admin Security 2FA', badgeType: 'danger', preheader: `Your one-time login verification code is ${otp}` }
       ),

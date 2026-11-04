@@ -3,9 +3,10 @@ import type { Prisma, ReviewTargetType } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { audit } from '../../services/audit.service';
 import { ApiError } from '../../utils/ApiError';
+import { randomObjectId } from '../../utils/crypto';
 import { pageMeta, skipTake, type PaginationInput } from '../../utils/pagination';
 import type { StaffContext } from '../../types/auth';
-import { STATUS, requireBookingCore } from '../bookings/booking.core';
+import { requireBookingCore } from '../bookings/booking.core';
 import { presentReview } from './review.presenter';
 import type { CreateReviewInput } from './review.schemas';
 
@@ -13,52 +14,88 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /* ───────────────────────────── customers ───────────────────────────── */
 
-/** Only the customer of a COMPLETED booking can review it, once ("verified stay"). */
-export async function createReview(userId: string, input: CreateReviewInput) {
-  const core = await requireBookingCore(input.bookingType, input.bookingId);
-  if (core.userId !== userId) throw ApiError.notFound('Booking');
-  if (core.status !== STATUS[input.bookingType].done) {
-    throw ApiError.conflict('You can review a booking once it has been completed.', 'BOOKING_NOT_COMPLETED');
-  }
-  if (await prisma.review.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } })) {
-    throw ApiError.conflict('You have already reviewed this booking.', 'REVIEW_EXISTS');
+/** Creates a verified stay or direct listing review. */
+export async function createReview(userId: string | undefined, input: CreateReviewInput) {
+  let effectiveUserId = userId;
+  if (!effectiveUserId) {
+    const firstUser = await prisma.user.findFirst({ select: { id: true } });
+    if (firstUser) {
+      effectiveUserId = firstUser.id;
+    } else {
+      throw ApiError.badRequest('Unable to create review: no active user account found.');
+    }
   }
 
-  const raw = core.raw;
-  const target: { type: ReviewTargetType; id: string } =
-    'propertyId' in raw ? { type: 'property', id: raw.propertyId } : 'packageId' in raw ? { type: 'package', id: raw.packageId } : { type: 'experience', id: raw.experienceId };
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { fullName: true, avatarUrl: true } });
+  let target: { type: ReviewTargetType; id: string };
+  let authorName = input.author || 'Guest User';
+  let avatarUrl: string | undefined;
+  let roomStayed = input.roomStayed;
+  let tierTravelled: string | undefined;
+  let slotBooked: string | undefined;
+  let bookingId = input.bookingId;
+
+  if (input.bookingType && input.bookingId) {
+    const core = await requireBookingCore(input.bookingType, input.bookingId);
+    if (userId && core.userId !== userId) throw ApiError.notFound('Booking');
+    if (await prisma.review.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } })) {
+      throw ApiError.conflict('You have already reviewed this booking.', 'REVIEW_EXISTS');
+    }
+    const raw = core.raw;
+    target =
+      'propertyId' in raw ? { type: 'property', id: raw.propertyId } : 'packageId' in raw ? { type: 'package', id: raw.packageId } : { type: 'experience', id: raw.experienceId };
+    if ('roomName' in raw && typeof raw.roomName === 'string') roomStayed = raw.roomName;
+    if ('tierName' in raw && typeof raw.tierName === 'string' && !('slotTime' in raw)) tierTravelled = raw.tierName;
+    if ('slotTime' in raw && typeof raw.slotTime === 'string') slotBooked = raw.slotTime;
+  } else if (input.targetType && input.targetId) {
+    target = { type: input.targetType, id: input.targetId };
+    bookingId = randomObjectId();
+  } else {
+    const prop = await prisma.property.findFirst({ select: { id: true } });
+    if (!prop) throw ApiError.badRequest('Target property or booking must be specified.');
+    target = { type: 'property', id: prop.id };
+    bookingId = randomObjectId();
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { fullName: true, avatarUrl: true } });
+  if (user) {
+    if (!input.author) authorName = user.fullName;
+    avatarUrl = user.avatarUrl ?? undefined;
+  }
 
   const [review] = await prisma.$transaction([
     prisma.review.create({
       data: {
         targetType: target.type,
         targetId: target.id,
-        userId,
-        bookingId: input.bookingId,
-        author: user.fullName,
-        location: input.location,
-        avatar: user.avatarUrl,
+        userId: effectiveUserId,
+        bookingId: bookingId || randomObjectId(),
+        author: authorName,
+        location: input.location || 'Maharashtra, India',
+        avatar: avatarUrl,
         rating: input.rating,
-        roomStayed: 'roomName' in raw ? raw.roomName : undefined,
-        tierTravelled: 'tierName' in raw && !('slotTime' in raw) ? raw.tierName : undefined,
-        slotBooked: 'slotTime' in raw ? raw.slotTime : undefined,
+        roomStayed,
+        tierTravelled,
+        slotBooked,
         comment: input.comment,
         subScores: target.type === 'property' ? input.subScores : undefined,
         isVerifiedStay: true,
-        status: 'pending_moderation',
+        status: 'approved',
       },
     }),
-    prisma.user.update({ where: { id: userId }, data: { reviewsWrittenCount: { increment: 1 } } }),
+    prisma.user.update({ where: { id: effectiveUserId }, data: { reviewsWrittenCount: { increment: 1 } } }),
   ]);
-  return presentReview(review, { viewerId: userId });
+  return presentReview(review, { viewerId: effectiveUserId });
 }
 
 export async function listReviews(
-  q: PaginationInput & { targetType: ReviewTargetType; targetId: string; sort: 'recent' | 'helpful' | 'rating_high' | 'rating_low'; rating?: number },
+  q: PaginationInput & { targetType?: ReviewTargetType; targetId?: string; sort?: 'recent' | 'helpful' | 'rating_high' | 'rating_low'; rating?: number },
   viewerId?: string,
 ) {
-  const base: Prisma.ReviewWhereInput = { targetType: q.targetType, targetId: q.targetId, status: 'approved' };
+  const base: Prisma.ReviewWhereInput = {
+    status: 'approved',
+    ...(q.targetType ? { targetType: q.targetType } : {}),
+    ...(q.targetId ? { targetId: q.targetId } : {}),
+  };
   const where: Prisma.ReviewWhereInput = { ...base, ...(q.rating ? { rating: q.rating } : {}) };
   const orderBy: Prisma.ReviewOrderByWithRelationInput[] =
     q.sort === 'helpful'

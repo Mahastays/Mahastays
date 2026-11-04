@@ -51,9 +51,29 @@ function ledgerLines(kind: BookingKind, pricing: Record<string, number>): Line[]
 
 /** Streams a GST invoice PDF for a captured or confirmed payment. */
 export async function streamInvoicePdf(res: Response, payment: Payment): Promise<void> {
-  const invNumber = payment.invoiceNumber || `INV-${new Date().getFullYear()}-${payment.id.slice(-6).toUpperCase()}`;
   const kind = payment.bookingType as BookingKind;
   const core = await requireBookingCore(kind, payment.bookingId);
+
+  // Strict tax compliance: DO NOT generate invoice if booking was cancelled or is unpaid
+  if (core.status === 'cancelled') {
+    res.status(400).json({
+      success: false,
+      message: 'Invoice cannot be generated for cancelled bookings.',
+      code: 'BOOKING_CANCELLED',
+    });
+    return;
+  }
+
+  if (core.paymentStatus !== 'paid' && payment.status !== 'captured') {
+    res.status(400).json({
+      success: false,
+      message: 'Invoice is not available for unpaid bookings. Invoices are only generated after payment is completed and verified.',
+      code: 'PAYMENT_REQUIRED',
+    });
+    return;
+  }
+
+  const invNumber = payment.invoiceNumber || (core.raw as any)?.invoiceNumber || `INV-${new Date().getFullYear()}-${payment.id.slice(-6).toUpperCase()}`;
   const [user, vendor] = await Promise.all([
     prisma.user.findUnique({ where: { id: payment.userId }, select: { fullName: true, email: true } }),
     prisma.vendor.findUnique({ where: { id: payment.vendorId }, select: { businessName: true, compliance: true, contact: true } }),
@@ -162,7 +182,24 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
     include: { property: { select: { id: true, name: true, policies: true } } },
   });
   if (stay) {
-    let payment = await prisma.payment.findFirst({ where: { bookingType: 'stay', bookingId: stay.id }, orderBy: { createdAt: 'desc' } });
+    if (stay.bookingStatus === 'cancelled') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice cannot be generated for cancelled bookings.',
+        code: 'BOOKING_CANCELLED',
+      });
+      return;
+    }
+    if (stay.paymentStatus !== 'paid') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice is not available for unpaid bookings. Tax invoices are only generated after payment is completed.',
+        code: 'PAYMENT_REQUIRED',
+      });
+      return;
+    }
+
+    let payment = await prisma.payment.findFirst({ where: { bookingType: 'stay', bookingId: stay.id, status: 'captured' }, orderBy: { createdAt: 'desc' } });
     if (!payment) {
       const taxes = (stay.pricing as any).taxesGst || 0;
       payment = {
@@ -176,7 +213,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
         gatewayPaymentId: null,
         amountInr: stay.grandTotalInr,
         refundedAmountInr: 0,
-        status: stay.paymentStatus === 'paid' ? 'captured' : 'initiated',
+        status: 'captured',
         method: 'pay_at_property',
         invoiceNumber: stay.invoiceNumber || `INV-${new Date().getFullYear()}-${stay.id.slice(-6).toUpperCase()}`,
         gstDetails: {
@@ -185,7 +222,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
           sgstAmountInr: Math.round(taxes / 2),
           igstAmountInr: 0,
         },
-        capturedAt: stay.confirmedAt,
+        capturedAt: stay.confirmedAt || stay.updatedAt,
         failureReason: null,
         notes: {},
         refunds: [],
@@ -202,7 +239,24 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
     include: { package: { select: { id: true, title: true } } },
   });
   if (pkg) {
-    let payment = await prisma.payment.findFirst({ where: { bookingType: 'package', bookingId: pkg.id }, orderBy: { createdAt: 'desc' } });
+    if (pkg.bookingStatus === 'cancelled') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice cannot be generated for cancelled bookings.',
+        code: 'BOOKING_CANCELLED',
+      });
+      return;
+    }
+    if (pkg.paymentStatus !== 'paid') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice is not available for unpaid bookings. Tax invoices are only generated after payment is completed.',
+        code: 'PAYMENT_REQUIRED',
+      });
+      return;
+    }
+
+    let payment = await prisma.payment.findFirst({ where: { bookingType: 'package', bookingId: pkg.id, status: 'captured' }, orderBy: { createdAt: 'desc' } });
     if (!payment) {
       const taxes = (pkg.pricing as any).taxesGst || 0;
       payment = {
@@ -216,7 +270,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
         gatewayPaymentId: null,
         amountInr: pkg.grandTotalInr,
         refundedAmountInr: 0,
-        status: pkg.paymentStatus === 'paid' ? 'captured' : 'initiated',
+        status: 'captured',
         method: 'pay_at_property',
         invoiceNumber: pkg.invoiceNumber || `INV-${new Date().getFullYear()}-${pkg.id.slice(-6).toUpperCase()}`,
         gstDetails: {
@@ -225,7 +279,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
           sgstAmountInr: Math.round(taxes / 2),
           igstAmountInr: 0,
         },
-        capturedAt: pkg.confirmedAt,
+        capturedAt: pkg.confirmedAt || pkg.updatedAt,
         failureReason: null,
         notes: {},
         refunds: [],
@@ -242,7 +296,24 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
     include: { experience: { select: { id: true, title: true } } },
   });
   if (exp) {
-    let payment = await prisma.payment.findFirst({ where: { bookingType: 'experience', bookingId: exp.id }, orderBy: { createdAt: 'desc' } });
+    if (exp.bookingStatus === 'cancelled') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice cannot be generated for cancelled bookings.',
+        code: 'BOOKING_CANCELLED',
+      });
+      return;
+    }
+    if (exp.paymentStatus !== 'paid') {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice is not available for unpaid bookings. Tax invoices are only generated after payment is completed.',
+        code: 'PAYMENT_REQUIRED',
+      });
+      return;
+    }
+
+    let payment = await prisma.payment.findFirst({ where: { bookingType: 'experience', bookingId: exp.id, status: 'captured' }, orderBy: { createdAt: 'desc' } });
     if (!payment) {
       const taxes = (exp.pricing as any).taxesGst || 0;
       payment = {
@@ -256,7 +327,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
         gatewayPaymentId: null,
         amountInr: exp.grandTotalInr,
         refundedAmountInr: 0,
-        status: exp.paymentStatus === 'paid' ? 'captured' : 'initiated',
+        status: 'captured',
         method: 'pay_at_property',
         invoiceNumber: exp.invoiceNumber || `INV-${new Date().getFullYear()}-${exp.id.slice(-6).toUpperCase()}`,
         gstDetails: {
@@ -265,7 +336,7 @@ export async function streamBookingRefInvoicePdf(res: Response, reference: strin
           sgstAmountInr: Math.round(taxes / 2),
           igstAmountInr: 0,
         },
-        capturedAt: exp.confirmedAt,
+        capturedAt: exp.confirmedAt || exp.updatedAt,
         failureReason: null,
         notes: {},
         refunds: [],

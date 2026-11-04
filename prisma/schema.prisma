@@ -978,6 +978,7 @@ model Property {
   gradientOverlay   String?
   featured          Boolean          @default(false)
   acceptingBookings Boolean          @default(true)
+  pricingRules      Json?
   status            ListingStatus    @default(pending_approval)
   rejectionReason   String?
   approvedAt        DateTime?
@@ -1037,6 +1038,7 @@ model Package {
   totalBookings      Int                 @default(0)
   featured           Boolean             @default(false)
   acceptingBookings  Boolean             @default(true)
+  pricingRules       Json?
   status             ListingStatus       @default(pending_approval)
   rejectionReason    String?
   approvedAt         DateTime?
@@ -1092,6 +1094,7 @@ model Experience {
   reviewsCount       Int                @default(0)
   featured           Boolean            @default(false)
   acceptingBookings  Boolean            @default(true)
+  pricingRules       Json?
   status             ListingStatus      @default(pending_approval)
   rejectionReason    String?
   approvedAt         DateTime?

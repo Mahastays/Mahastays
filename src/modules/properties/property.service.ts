@@ -198,6 +198,7 @@ export async function createProperty(vendorId: string, input: CreatePropertyInpu
       ratingBreakdown: { cleanliness: 0, accuracy: 0, communication: 0, location: 0, checkIn: 0, value: 0 },
       bgColor: input.bgColor,
       gradientOverlay: input.gradientOverlay,
+      pricingRules: input.pricingRules ?? undefined,
       status: 'pending_approval',
     },
   });
@@ -231,6 +232,7 @@ export async function updateProperty(vendorId: string, id: string, input: Update
   if (input.policies !== undefined) data.policies = policiesSchema.parse(input.policies);
   if (input.bgColor !== undefined) data.bgColor = input.bgColor;
   if (input.gradientOverlay !== undefined) data.gradientOverlay = input.gradientOverlay;
+  if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
   if (input.amenities !== undefined) {
     data.amenities = input.amenities;
     data.amenityKeys = amenityKeysOf(input.amenities);

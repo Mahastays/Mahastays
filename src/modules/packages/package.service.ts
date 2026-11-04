@@ -162,6 +162,7 @@ export async function createPackage(vendorId: string, input: CreatePackageInput)
       validFrom: input.validFrom,
       validTill: input.validTill,
       cancellationPolicy: input.cancellationPolicy,
+      pricingRules: input.pricingRules ?? null,
       status: 'pending_approval',
     },
   });
@@ -207,6 +208,7 @@ export async function updatePackage(vendorId: string, id: string, input: UpdateP
   if (input.validFrom !== undefined) data.validFrom = input.validFrom;
   if (input.validTill !== undefined) data.validTill = input.validTill;
   if (input.cancellationPolicy !== undefined) data.cancellationPolicy = input.cancellationPolicy;
+  if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
 
   let tierPrices: { pricePerPerson: number; originalPrice?: number | null }[] = current.tiers;
   if (input.tiers !== undefined) {

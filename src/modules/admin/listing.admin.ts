@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getStaff, requireStaff } from '../../middlewares/staff';
 import { prisma } from '../../lib/prisma';
 import { audit } from '../../services/audit.service';
-import { ok } from '../../utils/apiResponse';
+import { ok, created } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/ApiError';
 import { pageMeta, paginationSchema, skipTake } from '../../utils/pagination';
 import { bodyOf, objectId, optionalTrimmed } from '../../utils/zod';
@@ -29,7 +29,7 @@ import { presentExperience } from '../experiences/experience.presenter';
 async function listRows(kind: ListingKind, q: z.infer<typeof listQuery>): Promise<{ total: number; rows: any[] }> {
   const contains = q.q ? { contains: q.q, mode: 'insensitive' as const } : undefined;
   const base = { ...(q.status ? { status: q.status } : {}), ...(q.vendorId ? { vendorId: q.vendorId } : {}) };
-  const orderBy = [{ status: 'asc' as const }, { createdAt: 'desc' as const }];
+  const orderBy = [{ createdAt: 'desc' as const }];
   if (kind === 'property') {
     const where = { ...base, ...(contains ? { name: contains } : {}) };
     const [total, rows] = await Promise.all([prisma.property.count({ where }), prisma.property.findMany({ where, orderBy, ...skipTake(q) })]);
@@ -61,6 +61,122 @@ export function adminListingRouter(kind: ListingKind): Router {
     const q = listQuery.parse(req.query);
     const { total, rows } = await listRows(kind, q);
     ok(res, rows, pageMeta(q, total));
+  });
+
+  r.post('/', read, async (req, res) => {
+    const body: any = bodyOf(req);
+    let vendorId = body.vendorId;
+    if (!vendorId || vendorId.startsWith('vnd_')) {
+      const v = await prisma.vendor.findFirst({ where: { status: 'active' } }) || await prisma.vendor.findFirst();
+      if (v) vendorId = v.id;
+    }
+
+    if (kind === 'property') {
+      const rawRooms = Array.isArray(body.rooms) && body.rooms.length > 0 ? body.rooms : [{
+        name: 'Executive Valley Suite',
+        maxGuests: 2,
+        capacity: { adults: 2, children: 1 },
+        basePrice: body.numericPrice || 7500,
+        count: 5,
+        images: Array.isArray(body.images) ? (typeof body.images[0] === 'string' ? body.images : [body.images[0]?.url]) : [],
+        amenities: ['Breakfast included', 'Valley View', 'WiFi', 'AC'],
+      }];
+      const rooms = rawRooms.map((r: any, idx: number) => ({
+        roomId: r.roomId || `rm_${Date.now()}_${idx}`,
+        name: r.name || 'Suite Room',
+        badge: r.badge || null,
+        tagline: r.tagline || null,
+        maxGuests: r.maxGuests || 2,
+        capacity: r.capacity || { adults: 2, children: 1 },
+        basePrice: r.basePrice || body.numericPrice || 7500,
+        originalPrice: r.originalPrice || Math.round((r.basePrice || 7500) * 1.25),
+        count: r.count || 1,
+        images: Array.isArray(r.images) ? r.images : [],
+        amenities: Array.isArray(r.amenities) ? r.amenities : ['Breakfast included'],
+      }));
+      const numericPrice = Math.min(...rooms.map((r: any) => r.basePrice));
+      const originalPrice = Math.min(...rooms.map((r: any) => r.originalPrice || r.basePrice));
+
+      const images = Array.isArray(body.images) && body.images.length > 0
+        ? body.images.map((img: any, i: number) => typeof img === 'string' ? { url: img, alt: body.name || 'Property', isCover: i === 0 } : { url: img.url, alt: img.alt || body.name || 'Property', isCover: !!img.isCover || i === 0 })
+        : [{ url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Cover', isCover: true }];
+
+      const property = await prisma.property.create({
+        data: {
+          vendorId: vendorId || '6adeef17f4597150f0c199a4',
+          name: body.name || 'New Property',
+          slug: ((body.name || 'new-property') + '-' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          propertyType: body.propertyType || 'resort',
+          tagline: body.tagline || null,
+          badge: body.badge || 'Partner Listing',
+          description: body.description || 'Spacious property with state-of-the-art amenities.',
+          longDescription: body.longDescription || body.description || null,
+          location: body.location || 'Venna Lake Road, Mahabaleshwar',
+          city: body.city || 'Mahabaleshwar',
+          country: body.country || 'India',
+          address: body.address || { fullAddress: body.location || 'Venna Lake Road, Mahabaleshwar', lat: 17.9237, lng: 73.6586 },
+          images,
+          highlights: Array.isArray(body.highlights) ? body.highlights : [
+            { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
+            { title: 'Private infinity pool with heating', desc: 'Heated luxury pool deck' },
+          ],
+          amenities: Array.isArray(body.amenities)
+            ? body.amenities.map((a: any) => typeof a === 'string' ? { name: a } : a)
+            : [{ name: 'Free WiFi' }, { name: 'Breakfast Included' }, { name: 'Swimming Pool' }],
+          policies: body.policies || { checkInTime: '14:00', checkOutTime: '11:00' },
+          rooms,
+          numericPrice,
+          originalPrice,
+          pricingRules: body.pricingRules || null,
+          status: 'pending_approval',
+        } as any,
+      });
+      created(res, presentProperty(property));
+      return;
+    }
+
+    if (kind === 'package') {
+      const pkg = await prisma.package.create({
+        data: {
+          vendorId: vendorId || '6adeef17f4597150f0c199a4',
+          title: body.title || 'New Tour Package',
+          slug: ((body.title || 'new-package') + '-' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          shortDesc: body.shortDesc || body.description?.slice(0, 200) || 'Exciting tour package',
+          description: body.description || 'Curated itinerary package.',
+          overview: body.overview || body.description || 'All-inclusive trip.',
+          city: body.city || 'Mahabaleshwar',
+          durationDays: body.durationDays || 3,
+          durationNights: body.durationNights || 2,
+          numericPrice: body.numericPrice || 12000,
+          originalPrice: body.originalPrice || 15000,
+          thumbnail: body.thumbnail || body.images?.[0] || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+          images: Array.isArray(body.images) ? body.images : [],
+          pricingRules: body.pricingRules || null,
+          status: 'pending_approval',
+        } as any,
+      });
+      created(res, presentPackage(pkg));
+      return;
+    }
+
+    const exp = await prisma.experience.create({
+      data: {
+        vendorId: vendorId || '6adeef17f4597150f0c199a4',
+        title: body.title || 'New Mountain Experience',
+        slug: ((body.title || 'new-experience') + '-' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description: body.description || 'Scenic mountain adventure.',
+        overview: body.overview || body.description || 'Guided trek and activities.',
+        city: body.city || 'Mahabaleshwar',
+        durationHours: body.durationHours || 3,
+        numericPrice: body.numericPrice || 999,
+        originalPrice: body.originalPrice || 1499,
+        image: body.image || body.images?.[0] || 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800',
+        images: Array.isArray(body.images) ? body.images : [],
+        pricingRules: body.pricingRules || null,
+        status: 'pending_approval',
+      } as any,
+    });
+    created(res, presentExperience(exp));
   });
 
   r.get('/:id', read, async (req, res) => {
@@ -176,6 +292,7 @@ export function adminListingRouter(kind: ListingKind): Router {
       }
       if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
       if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.property.update({ where: { id }, data });
       await audit({ actor: { id: staff.id, role: staff.role }, action: 'ADMIN_UPDATE_PROPERTY', targetEntity: 'Property', targetId: id, newState: { name: updated.name }, req });
@@ -209,6 +326,7 @@ export function adminListingRouter(kind: ListingKind): Router {
       }
       if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
       if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.package.update({ where: { id }, data });
       await audit({ actor: { id: staff.id, role: staff.role }, action: 'ADMIN_UPDATE_PACKAGE', targetEntity: 'Package', targetId: id, newState: { title: updated.title }, req });
@@ -242,6 +360,7 @@ export function adminListingRouter(kind: ListingKind): Router {
       }
       if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
       if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.experience.update({ where: { id }, data });
       await audit({ actor: { id: staff.id, role: staff.role }, action: 'ADMIN_UPDATE_EXPERIENCE', targetEntity: 'Experience', targetId: id, newState: { title: updated.title }, req });

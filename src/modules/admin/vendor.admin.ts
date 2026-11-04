@@ -83,9 +83,9 @@ adminVendorRouter.post('/', read, async (req, res) => {
     throw ApiError.conflict('A vendor account with this email already exists', 'EMAIL_TAKEN');
   }
 
-  const businessName = input.businessName || email.split('@')[0] + ' Hospitality';
+  const businessName = input.businessName || email.split('@')[0];
   const displayName = input.displayName || businessName;
-  const phone = input.phone || '+91 98200 ' + Math.floor(10000 + Math.random() * 90000);
+  const phone = input.phone || '';
   const vendorCode = await generateActorCode('VND');
   const passwordHash = await hashPassword(input.password);
   const config = await getPlatformConfig();
@@ -98,26 +98,24 @@ adminVendorRouter.post('/', read, async (req, res) => {
       businessName,
       displayName,
       displayRole: input.category === 'activity_operator' ? 'Activity Host' : 'Property Host & Owner',
-      experienceSummary: `Verified Mahastays Partner since ${new Date().getFullYear()}`,
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      experienceSummary: '',
+      avatarUrl: undefined,
       email,
       phone,
       passwordHash,
       contact: {
         primaryContactPerson: displayName,
         registeredOfficeAddress: {
-          addressLine1: 'Main Market Road',
-          city: 'Mahabaleshwar',
-          state: 'Maharashtra',
-          pincode: '412806',
+          addressLine1: '',
+          city: '',
+          state: '',
+          pincode: '',
           country: 'India',
         },
       },
       compliance: {
-        panNumber: 'ABCDE1234F',
-        verificationStatus: 'approved',
-        verifiedAt: new Date(),
-        verifiedByAdminId: staff.id,
+        panNumber: '',
+        verificationStatus: 'pending',
       },
       commissionTerms: {
         commissionType: 'percentage',
