@@ -140,6 +140,7 @@ export default function ExperienceDetailsPage() {
       status: e.status || "active",
       featured: e.featured,
       acceptingBookings: e.acceptingBookings !== false,
+      pricingRules: e.pricingRules || (selectedExperience as any)?.pricingRules || null,
     };
   }, [selectedExperience, experienceId]);
 

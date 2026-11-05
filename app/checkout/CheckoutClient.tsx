@@ -627,7 +627,7 @@ function CheckoutContent() {
       bookingReference: bookingResult.bookingReference,
       invoiceNumber: isPayAtProperty ? undefined : bookingResult.invoiceNumber,
       bookingType,
-      paymentStatus: isPayAtProperty ? "initiated" : "paid",
+      paymentStatus: isPayAtProperty ? "unpaid" : (bookingResult.paymentStatus || "paid"),
       bookingStatus: "confirmed",
       title,
       image:
@@ -646,13 +646,15 @@ function CheckoutContent() {
         children > 0 ? `, ${children} Child${children > 1 ? "ren" : ""}` : ""
       }`,
       roomOrTierText: tierOrRoomName,
-      amountPaid: finalGrandTotal,
+      totalAmount: finalGrandTotal,
+      amountPaid: isPayAtProperty ? 0 : finalGrandTotal,
+      amountDue: isPayAtProperty ? finalGrandTotal : 0,
       paymentMethod:
-        formData.paymentMethod === "pay_at_property"
+        isPayAtProperty
           ? "Pay at Property"
           : formData.paymentMethod === "upi"
-          ? "Razorpay UPI"
-          : "Razorpay Online",
+          ? "UPI"
+          : "Online Payment",
       guestName: formData.fullName,
       guestEmail: formData.email,
       pricing: {
@@ -668,9 +670,9 @@ function CheckoutContent() {
     };
 
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
+      <div className="min-h-screen bg-white flex flex-col justify-between">
         <Navbar />
-        <main className="flex-1 w-full pb-16">
+        <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white">
           <BookingConfirmationView data={confirmationData} />
         </main>
         <Footer />

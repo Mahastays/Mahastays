@@ -23,6 +23,17 @@ export interface WishlistItem {
 const STORAGE_KEY = "mahastays_favorites";
 const EVENT_NAME = "mahastays:wishlist_changed";
 
+// In-memory cache to prevent repeated synchronous localStorage disk I/O on every card render
+let favoritesMemoryCache: WishlistItem[] | null = null;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) {
+      favoritesMemoryCache = null;
+    }
+  });
+}
+
 /** Check if current visitor has an active authenticated session */
 export function isUserLoggedIn(): boolean {
   if (typeof window === "undefined") return false;
@@ -31,15 +42,21 @@ export function isUserLoggedIn(): boolean {
   return Boolean(token && user);
 }
 
-/** Get all saved items from localStorage cache */
+/** Get all saved items from fast memory cache / localStorage */
 export function getStoredFavorites(): WishlistItem[] {
   if (typeof window === "undefined") return [];
+  if (favoritesMemoryCache !== null) return favoritesMemoryCache;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      favoritesMemoryCache = [];
+      return [];
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    favoritesMemoryCache = Array.isArray(parsed) ? parsed : [];
+    return favoritesMemoryCache;
   } catch {
+    favoritesMemoryCache = [];
     return [];
   }
 }
@@ -53,6 +70,7 @@ export function isItemSaved(id: string, type?: WishlistTargetType): boolean {
 /** Save updated favorites list and notify all subscribers */
 function persistFavorites(items: WishlistItem[], changedItem?: { id: string; type: WishlistTargetType; isSaved: boolean }) {
   if (typeof window === "undefined") return;
+  favoritesMemoryCache = items;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     window.dispatchEvent(

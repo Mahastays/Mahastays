@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Link from "next/link";
 import { useWishlistItem } from "@/lib/wishlist";
 
@@ -30,7 +30,7 @@ interface StayCardProps {
   onBook?: (stay: Stay) => void;
 }
 
-export default function StayCard({ stay, onBook }: StayCardProps) {
+function StayCard({ stay, onBook }: StayCardProps) {
   const { isSaved, toggle } = useWishlistItem({
     id: stay.id,
     type: "property",
@@ -47,7 +47,7 @@ export default function StayCard({ stay, onBook }: StayCardProps) {
 
   return (
     <article
-      className="bg-white rounded-3xl overflow-hidden flex flex-col transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.12)] relative group h-full border border-slate-200/80 w-full max-w-[420px] mx-auto sm:mx-0 will-change-transform"
+      className="bg-white rounded-3xl overflow-hidden flex flex-col transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.12)] relative group h-full border border-slate-200/80 w-full max-w-[420px] mx-auto sm:mx-0 transform-gpu"
       id={`stay-card-${stay.id}`}
     >
       {/* Top Image Container */}
@@ -55,8 +55,10 @@ export default function StayCard({ stay, onBook }: StayCardProps) {
         <img
           src={imgSrc}
           alt={stay.name}
+          loading="lazy"
+          decoding="async"
           onError={() => setImgSrc("/hero-resort.jpg")}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
         />
 
         {/* Subtle top dark gradient for badge readability */}
@@ -203,3 +205,5 @@ export default function StayCard({ stay, onBook }: StayCardProps) {
     </article>
   );
 }
+
+export default memo(StayCard);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Link from "next/link";
 import { useWishlistItem } from "@/lib/wishlist";
 
@@ -28,7 +28,7 @@ interface PackageCardProps {
   onBook?: (pkg: PackageData) => void;
 }
 
-export default function PackageCard({ pkg, onBook }: PackageCardProps) {
+function PackageCard({ pkg, onBook }: PackageCardProps) {
   const { isSaved: isFav, toggle } = useWishlistItem({
     id: pkg.id,
     type: "package",
@@ -45,7 +45,7 @@ export default function PackageCard({ pkg, onBook }: PackageCardProps) {
 
   return (
     <article
-      className="bg-white rounded-[28px] overflow-hidden flex flex-col shadow-[0_8px_28px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] border border-slate-100 transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_18px_40px_rgba(0,0,0,0.09)] will-change-transform group h-full"
+      className="bg-white rounded-[28px] overflow-hidden flex flex-col shadow-[0_8px_28px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] border border-slate-100 transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1.5 hover:shadow-[0_18px_40px_rgba(0,0,0,0.09)] transform-gpu group h-full"
       id={`pkg-card-${pkg.id}`}
     >
       {/* Card Image Area with Inset Radius */}
@@ -56,7 +56,9 @@ export default function PackageCard({ pkg, onBook }: PackageCardProps) {
         <img
           src={pkg.images[0]}
           alt={pkg.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
         />
 
         {/* Top-Left Host / Badge */}
@@ -200,3 +202,5 @@ export default function PackageCard({ pkg, onBook }: PackageCardProps) {
     </article>
   );
 }
+
+export default memo(PackageCard);

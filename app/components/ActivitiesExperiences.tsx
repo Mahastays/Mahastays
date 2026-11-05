@@ -158,7 +158,7 @@ export default function ActivitiesExperiences() {
                     alt={item.title}
                     loading="lazy"
                     decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-104"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-104 transform-gpu"
                   />
 
                   {/* Dark Gradient Overlay */}

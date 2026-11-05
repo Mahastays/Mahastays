@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import StayCard, { Stay } from "./StayCard";
 import { StayCardSkeleton } from "./Skeletons";
@@ -16,27 +16,29 @@ export default function PopularHotels() {
   }, [dispatch]);
 
   // Transform backend API properties into StayCard format
-  const stays: Stay[] = items.map((property) => ({
-    id: property.id,
-    name: property.name,
-    price: property.price || (property.numericPrice ? `₹${property.numericPrice?.toLocaleString("en-IN")}` : ""),
-    numericPrice: property.numericPrice,
-    inrPrice: property.inrPrice || property.numericPrice,
-    rating: property.rating || "",
-    description: property.description || "",
-    tags: property.tags || [],
-    image:
-      typeof property.images?.[0] === "string"
-        ? property.images[0]
-        : property.images?.[0]?.url || property.gallery?.[0] || "",
-    type: (property.type as any) || (property.propertyType === "villa" ? "Villa" : "Resort"),
-    location: property.location || "",
-    city: property.city || "",
-    country: property.country || "India",
-    bgColor: property.bgColor || undefined,
-    gradientOverlay: property.gradientOverlay || undefined,
-    featured: property.featured,
-  }));
+  const stays: Stay[] = useMemo(() => {
+    return items.map((property) => ({
+      id: property.id,
+      name: property.name,
+      price: property.price || (property.numericPrice ? `₹${property.numericPrice?.toLocaleString("en-IN")}` : ""),
+      numericPrice: property.numericPrice,
+      inrPrice: property.inrPrice || property.numericPrice,
+      rating: property.rating || "",
+      description: property.description || "",
+      tags: property.tags || [],
+      image:
+        typeof property.images?.[0] === "string"
+          ? property.images[0]
+          : property.images?.[0]?.url || property.gallery?.[0] || "",
+      type: (property.type as any) || (property.propertyType === "villa" ? "Villa" : "Resort"),
+      location: property.location || "",
+      city: property.city || "",
+      country: property.country || "India",
+      bgColor: property.bgColor || undefined,
+      gradientOverlay: property.gradientOverlay || undefined,
+      featured: property.featured,
+    }));
+  }, [items]);
 
   return (
     <section className="max-w-7xl mx-auto mt-6 sm:mt-8 mb-16 px-6 w-full" id="popular">

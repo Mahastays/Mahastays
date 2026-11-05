@@ -124,6 +124,7 @@ export default function PackageDetailsPage() {
       totalBookings: p.totalBookings || 0,
       featured: p.featured,
       acceptingBookings: p.acceptingBookings !== false,
+      pricingRules: p.pricingRules || (selectedPackage as any)?.pricingRules || null,
     };
   }, [selectedPackage, packageId]);
 

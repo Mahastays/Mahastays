@@ -75,7 +75,18 @@ function SuccessClientContent() {
           guestsText = `${b.totalParticipants || b.participants?.totalParticipants || 1} Participants`;
         }
 
-        const amountPaid =
+        const isCancelled = b.bookingStatus === "cancelled";
+        const isPayAtProperty =
+          b.paymentMethod === "pay_at_property" ||
+          b.paymentMethod === "Pay at Property" ||
+          b.paymentStatus === "unpaid";
+
+        const isPaid =
+          !isCancelled &&
+          !isPayAtProperty &&
+          (payment.status === "captured" || b.paymentStatus === "paid");
+
+        const totalAmount =
           Number(
             b.grandTotalInr ??
             b.pricing?.grandTotalInr ??
@@ -83,8 +94,10 @@ function SuccessClientContent() {
             b.totalAmountInr ??
             payment.amountInr ??
             b.amount ??
-            18438
-          ) || 18438;
+            0
+          ) || 0;
+
+        const amountActuallyPaid = isPaid ? totalAmount : 0;
 
         const bookedOn = b.createdAt
           ? new Date(b.createdAt).toLocaleDateString("en-GB", {
@@ -94,14 +107,11 @@ function SuccessClientContent() {
             })
           : undefined;
 
-        const isPaid = (payment.status === "captured" || b.paymentStatus === "paid");
-        const isCancelled = b.bookingStatus === "cancelled";
-
         setConfirmationData({
           bookingReference: b.bookingReference || refCode,
           invoiceNumber: isPaid && !isCancelled ? (payment.invoiceNumber || b.invoiceNumber) : undefined,
           bookingType: type,
-          paymentStatus: b.paymentStatus || (payment.status === "captured" ? "paid" : "initiated"),
+          paymentStatus: isPaid ? "paid" : (b.paymentStatus || "unpaid"),
           bookingStatus: b.bookingStatus || "confirmed",
           title,
           image,
@@ -115,8 +125,14 @@ function SuccessClientContent() {
           nights,
           guestsText,
           roomOrTierText,
-          amountPaid,
-          paymentMethod: payment.method || b.paymentMethod || "Razorpay Online",
+          totalAmount,
+          amountPaid: amountActuallyPaid,
+          amountDue: isPaid ? 0 : totalAmount,
+          paymentMethod: isPayAtProperty
+            ? "Pay at Property"
+            : payment.method
+            ? payment.method.toUpperCase()
+            : b.paymentMethod || "Online Payment",
           bookedOnDate: bookedOn,
           pricing: b.pricing,
         });
@@ -130,10 +146,10 @@ function SuccessClientContent() {
   }, [refCode]);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
+    <div className="min-h-screen bg-white flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 w-full pb-16">
+      <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white">
         {loading ? (
           <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-9 h-9 text-[#ea110d] animate-spin" />

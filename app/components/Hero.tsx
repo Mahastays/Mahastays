@@ -20,34 +20,54 @@ export interface HeroSlideItem {
 
 const DEFAULT_HERO_SLIDES: HeroSlideItem[] = [
   {
-    id: "default-slide-1",
-    title: "Unwind in Stunning Resorts,",
-    subtitle: "Stay in Elegant Hotels.",
-    paragraph: "Handpicked luxury villas, beachfront retreats, and mountain estates across Maharashtra at exclusive member rates.",
-    image: "/hero-resort.jpg",
-    badge: "Curated Collection",
+    id: "maha-slide-venna-lake",
+    title: "Venna Lake Serenity &",
+    subtitle: "Scenic Lakeside Stays.",
+    paragraph: "Experience misty morning boating, tranquil waters, and luxury lakeside resorts in the heart of Mahabaleshwar.",
+    image: "/maha%20photos/Venna_Lake.webp",
+    badge: "Venna Lake Haven",
     ctaText: "Explore Stays",
     ctaLink: "/explore",
   },
   {
-    id: "default-slide-2",
-    title: "Private Pool Villas &",
-    subtitle: "Serene Mountain Escapes.",
-    paragraph: "Escape the city rush. Enjoy infinity pool suites, bonfire nights, and breathtaking cliffside views.",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&auto=format&fit=crop&q=80",
-    badge: "Boutique Living",
+    id: "maha-slide-lingmala",
+    title: "Lingmala Waterfall Retreats &",
+    subtitle: "Misty Cliff Escapes.",
+    paragraph: "Wake up to cascading waterfalls, fresh valley breeze, and private infinity pool villas in the Western Ghats.",
+    image: "/maha%20photos/Lingmala.webp",
+    badge: "Waterfall Retreats",
     ctaText: "Discover Villas",
     ctaLink: "/explore",
   },
   {
-    id: "default-slide-3",
-    title: "Immersive Experiences &",
-    subtitle: "Curated Holiday Packages.",
-    paragraph: "All-inclusive weekend stays crafted for couples, families, and celebrations with 100% verified hosts.",
-    image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1920&auto=format&fit=crop&q=80",
-    badge: "All Inclusive",
+    id: "maha-slide-pratapgad",
+    title: "Historic Pratapgad Living &",
+    subtitle: "Scenic Heritage Trails.",
+    paragraph: "Immerse yourself in legendary Maratha history, sunset trekking, and cliffside boutique resorts around iconic forts.",
+    image: "/maha%20photos/Pratapgad_Fort.webp",
+    badge: "Heritage & Culture",
     ctaText: "View Packages",
     ctaLink: "/packages",
+  },
+  {
+    id: "maha-slide-temple",
+    title: "Ancient Spiritual Calm &",
+    subtitle: "Mahabaleshwar Heritage.",
+    paragraph: "Find peace and rejuvenation near historic sacred temples, strawberry orchards, and pristine forest estates.",
+    image: "/maha%20photos/Mahabaleshwar_Temple.webp",
+    badge: "Spiritual Escapes",
+    ctaText: "Explore Stays",
+    ctaLink: "/explore",
+  },
+  {
+    id: "maha-slide-green-hills",
+    title: "Lush Green Valleys &",
+    subtitle: "Western Ghats Horizons.",
+    paragraph: "Escape to rolling misty hills, strawberry farm stays, and private infinity pool villas across Mahabaleshwar.",
+    image: "/maha%20photos/Green%20Hills.webp",
+    badge: "Green Horizons",
+    ctaText: "Explore Stays",
+    ctaLink: "/explore",
   },
 ];
 
@@ -67,7 +87,6 @@ interface AdOffer {
 }
 
 export default function Hero() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -98,28 +117,6 @@ export default function Hero() {
   const [slides, setSlides] = useState<HeroSlideItem[]>(DEFAULT_HERO_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-
-  // Throttled window scroll listener to smoothly shrink hero from full width
-  useEffect(() => {
-    let ticking = false;
-    const handleWindowScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentY = window.scrollY;
-          setIsScrolled((prev) => {
-            if (!prev && currentY > 45) return true;
-            if (prev && currentY < 15) return false;
-            return prev;
-          });
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    handleWindowScroll();
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleWindowScroll);
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -297,27 +294,15 @@ export default function Hero() {
   };
 
   return (
-    <section
-      className={`w-full transition-[padding] duration-500 ease-out mb-3 sm:mb-5 pt-0 ${
-        isScrolled ? "px-2 sm:px-5 lg:px-7" : "px-0"
-      }`}
-    >
-      {/* ─── Hero Main Background & Headline Auto Carousel (Smooth Scroll Shrink) ─── */}
+    <section className="w-full px-2 sm:px-4 lg:px-6 mb-3 sm:mb-5 pt-0">
+      {/* ─── Hero Main Background & Headline Auto Carousel ─── */}
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className={`relative w-full h-[520px] sm:h-[560px] lg:h-[590px] flex flex-col justify-end transition-[border-radius,box-shadow] duration-500 ease-out ${
-          isScrolled
-            ? "rounded-2xl sm:rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
-            : "rounded-none shadow-none"
-        }`}
+        className="relative w-full h-[520px] sm:h-[560px] lg:h-[590px] flex flex-col justify-end rounded-2xl sm:rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.14)] overflow-hidden"
       >
         {/* Layered Background Images (Crossfade Carousel) */}
-        <div
-          className={`absolute inset-0 overflow-hidden transition-[border-radius] duration-500 ease-out ${
-            isScrolled ? "rounded-2xl sm:rounded-3xl" : "rounded-none"
-          }`}
-        >
+        <div className="absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlideIndex;
             return (
@@ -330,7 +315,15 @@ export default function Hero() {
                 <img
                   src={slide.image}
                   alt={slide.title}
-                  className={`w-full h-full object-cover object-[center_42%] transition-transform duration-[6000ms] ease-out ${
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.includes(".webp")) {
+                      target.src = target.src.replace(".webp", ".png");
+                    }
+                  }}
+                  className={`w-full h-full object-cover object-[center_42%] transition-transform duration-[6000ms] ease-out transform-gpu ${
                     isActive ? "scale-105" : "scale-100"
                   }`}
                 />
@@ -499,14 +492,16 @@ export default function Hero() {
                   return (
                     <div
                       key={offer.id}
-                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all flex items-center gap-3 snap-start group relative"
+                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-[transform,box-shadow] duration-200 ease-out transform-gpu hover:-translate-y-0.5 flex items-center gap-3 snap-start group relative"
                     >
                       {/* Left Side: Image with badges */}
                       <div className="relative w-28 sm:w-30 h-full rounded-xl overflow-hidden shrink-0 bg-slate-100">
                         <img
                           src={offer.image}
                           alt={offer.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out transform-gpu"
                         />
 
                         {/* Top-Left Category Badge */}

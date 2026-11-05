@@ -134,6 +134,7 @@ export default function StayBookingDetailsPage() {
       reviews: p.reviews || [],
       curatedPackages: p.curatedPackages || [],
       status: p.status || "active",
+      pricingRules: p.pricingRules || (selectedProperty as any)?.pricingRules || null,
       bgColor: p.bgColor,
       gradientOverlay: p.gradientOverlay,
       featured: p.featured,
@@ -308,14 +309,17 @@ export default function StayBookingDetailsPage() {
   const pricingRules = (stay as any)?.pricingRules;
   const memberDiscountPercent = typeof pricingRules?.memberDiscountPercent === 'number'
     ? pricingRules.memberDiscountPercent
-    : 8;
-  const includeCleaningFee = pricingRules?.includeCleaningFee !== false && pricingRules?.cleaningFee !== 0;
+    : (pricingRules?.discountType === 'none' ? 0 : 8);
+  const includeCleaningFee = pricingRules
+    ? (pricingRules?.includeCleaningFee !== false && (typeof pricingRules?.cleaningFee === 'number' ? pricingRules.cleaningFee > 0 : true))
+    : true;
   const cleaningFee = includeCleaningFee
     ? (typeof pricingRules?.cleaningFee === 'number' ? pricingRules.cleaningFee : 445)
     : 0;
-  const gstPercent = typeof pricingRules?.gstPercent === 'number'
-    ? pricingRules.gstPercent
-    : (pricingRules?.includeGst === false ? 0 : 18);
+  const includeGst = pricingRules ? (pricingRules?.includeGst !== false && pricingRules?.gstPercent !== 0) : true;
+  const gstPercent = includeGst
+    ? (typeof pricingRules?.gstPercent === 'number' ? pricingRules.gstPercent : 18)
+    : 0;
   const gstRate = gstPercent / 100;
 
   const basePrice = roomPricePerNight * nights;
@@ -1593,10 +1597,12 @@ export default function StayBookingDetailsPage() {
                   </div>
                 )}
 
-                <div className="flex justify-between text-slate-600">
-                  <span>Taxes &amp; GST ({gstPercent}%)</span>
-                  <span className="font-semibold text-slate-900">₹{taxesAndGst.toLocaleString("en-IN")}</span>
-                </div>
+                {includeGst && gstPercent > 0 ? (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Taxes &amp; GST ({gstPercent}%)</span>
+                    <span className="font-semibold text-slate-900">₹{taxesAndGst.toLocaleString("en-IN")}</span>
+                  </div>
+                ) : null}
 
                 <div className="border-t border-slate-200/80 pt-2 flex justify-between items-baseline">
                   <span className="font-bold text-slate-900 text-sm font-poppins">Total (INR)</span>

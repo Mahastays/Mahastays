@@ -110,6 +110,7 @@ export interface PropertyItem {
   attractions?: PropertyAttraction[];
   ratingBreakdown?: Array<{ label: string; score: string }>;
   reviews?: any[];
+  pricingRules?: any;
 }
 
 interface PropertyFilters {

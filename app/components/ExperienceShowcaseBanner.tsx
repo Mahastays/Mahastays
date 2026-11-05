@@ -131,14 +131,16 @@ export default function ExperienceShowcaseBanner() {
                 <Link
                   key={card.id}
                   href={card.href}
-                  className={`group relative h-[220px] sm:h-[245px] lg:h-[265px] w-full overflow-hidden ${card.shapeStyle} shadow-[0_10px_26px_rgba(0,0,0,0.12)] border border-slate-200/60 hover:-translate-y-2 hover:shadow-[0_18px_36px_rgba(0,0,0,0.2)] transition-all duration-400 select-none block bg-slate-900 cursor-pointer`}
+                  className={`group relative h-[220px] sm:h-[245px] lg:h-[265px] w-full overflow-hidden ${card.shapeStyle} shadow-[0_10px_26px_rgba(0,0,0,0.12)] border border-slate-200/60 hover:-translate-y-1.5 hover:shadow-[0_18px_36px_rgba(0,0,0,0.2)] transition-[transform,box-shadow] duration-250 ease-out transform-gpu select-none block bg-slate-900 cursor-pointer`}
                   id={`home-category-${card.id}`}
                 >
                   {/* Background Photo */}
                   <img
                     src={card.image}
                     alt={card.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out transform-gpu"
                   />
 
                   {/* High Contrast Bottom Dark Gradient */}

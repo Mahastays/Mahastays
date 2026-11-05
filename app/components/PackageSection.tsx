@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import PackageCard, { PackageData } from "./PackageCard";
 import { PackageCardSkeleton } from "./Skeletons";
@@ -25,34 +25,36 @@ export default function PackageSection() {
   }, [dispatch]);
 
   // Transform backend API packages into PackageCard format
-  const mappedPackages: PackageData[] = items.map((pkg) => ({
-    id: pkg.id,
-    badge: pkg.badge || "Verified Package",
-    rating: pkg.rating || (pkg.ratingScore ? `${pkg.ratingScore}/5 ★` : "4.9/5 ★"),
-    title: pkg.title || pkg.name,
-    location: pkg.location,
-    shortDesc: pkg.shortDesc,
-    price: pkg.price || `From ₹${pkg.numericPrice?.toLocaleString("en-IN")}`,
-    numericPrice: pkg.numericPrice,
-    images: pkg.images && pkg.images.length > 0 ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
-    category: pkg.category,
-    city: pkg.city,
-    country: pkg.country,
-    durationDays: pkg.durationDays,
-    featured: pkg.featured,
-  }));
+  const mappedPackages: PackageData[] = useMemo(() => {
+    return items.map((pkg) => ({
+      id: pkg.id,
+      badge: pkg.badge || "Verified Package",
+      rating: pkg.rating || (pkg.ratingScore ? `${pkg.ratingScore}/5 ★` : "4.9/5 ★"),
+      title: pkg.title || pkg.name,
+      location: pkg.location,
+      shortDesc: pkg.shortDesc,
+      price: pkg.price || `From ₹${pkg.numericPrice?.toLocaleString("en-IN")}`,
+      numericPrice: pkg.numericPrice,
+      images: pkg.images && pkg.images.length > 0 ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
+      category: pkg.category,
+      city: pkg.city,
+      country: pkg.country,
+      durationDays: pkg.durationDays,
+      featured: pkg.featured,
+    }));
+  }, [items]);
 
-  const filteredPackages =
-    activeTab === "All"
-      ? mappedPackages
-      : mappedPackages.filter((item) => {
-          const cat = item.category.toLowerCase();
-          const tab = activeTab.toLowerCase();
-          if (tab === "honeymoon") {
-            return cat.includes("honeymoon") || cat.includes("couple") || cat.includes("romantic");
-          }
-          return cat.includes(tab);
-        });
+  const filteredPackages = useMemo(() => {
+    if (activeTab === "All") return mappedPackages;
+    return mappedPackages.filter((item) => {
+      const cat = item.category.toLowerCase();
+      const tab = activeTab.toLowerCase();
+      if (tab === "honeymoon") {
+        return cat.includes("honeymoon") || cat.includes("couple") || cat.includes("romantic");
+      }
+      return cat.includes(tab);
+    });
+  }, [mappedPackages, activeTab]);
 
   return (
     <section className="max-w-7xl mx-auto my-16 px-6 w-full" id="packages">
