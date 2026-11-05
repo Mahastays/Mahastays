@@ -9,6 +9,9 @@ import { bodyOf, objectId } from '../../utils/zod';
 import { auditPayoutSchema, failPayoutSchema, payoutListQuery } from '../payouts/payout.schemas';
 import { z } from 'zod';
 import { adminCompletePayout, auditPayout, failPayout, getPayout, listPayouts } from '../payouts/payout.service';
+import { generatePayoutReference } from '../../utils/codes';
+import { sendEmail } from '../../services/notification.service';
+import { presentPayout } from '../payouts/payout.presenter';
 
 export const adminFinanceRouter = Router();
 
@@ -82,6 +85,303 @@ adminFinanceRouter.post('/settlements/:id/process', finance, async (req, res) =>
     req
   );
   ok(res, payout);
+});
+
+const directSettlementInputSchema = z.object({
+  vendorId: objectId,
+  amountInr: z.number().int().positive('Amount must be greater than zero'),
+  transferMethod: z.enum(['NEFT', 'RTGS', 'IMPS', 'UPI', 'neft', 'rtgs', 'imps', 'upi']).optional(),
+  utrNumber: z.string().trim().min(2, 'Transaction / UTR number is required'),
+  notes: z.string().trim().optional(),
+});
+
+adminFinanceRouter.post('/direct-settlement', finance, async (req, res) => {
+  const body = directSettlementInputSchema.parse(bodyOf(req));
+  const staff = getStaff(req);
+
+  const vendor = await prisma.vendor.findUnique({
+    where: { id: body.vendorId },
+  });
+  if (!vendor) throw ApiError.notFound('Vendor');
+
+  const bankSnapshot = vendor.banking
+    ? {
+        accountHolderName: vendor.banking.accountHolderName,
+        accountNumberEnc: vendor.banking.accountNumberEnc,
+        accountNumberLast4: vendor.banking.accountNumberLast4,
+        bankName: vendor.banking.bankName,
+        ifscCode: vendor.banking.ifscCode,
+        branchName: vendor.banking.branchName || null,
+        upiId: vendor.banking.upiId || null,
+      }
+    : {
+        accountHolderName: vendor.displayName || vendor.businessName,
+        accountNumberEnc: '',
+        accountNumberLast4: '0000',
+        bankName: 'Direct Bank Settlement',
+        ifscCode: 'MANUAL',
+        branchName: null,
+        upiId: null,
+      };
+
+  const now = new Date();
+  const payoutRef = await generatePayoutReference();
+  const method = (body.transferMethod?.toUpperCase() as any) || 'NEFT';
+
+  const [payout] = await prisma.$transaction([
+    prisma.vendorPayout.create({
+      data: {
+        payoutReference: payoutRef,
+        vendorId: vendor.id,
+        periodFrom: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        periodTo: now,
+        lines: [],
+        grossBookingsAmountInr: body.amountInr,
+        vendorShareTotalInr: body.amountInr,
+        platformCommissionDeductedInr: 0,
+        tdsRatePercent: 0,
+        tdsDeductedInr: 0,
+        netPayableAmountInr: body.amountInr,
+        bank: bankSnapshot,
+        transferMethod: method,
+        utrNumber: body.utrNumber,
+        status: 'completed',
+        notes: body.notes || 'Direct bank settlement disbursed by Admin',
+        approvedBySuperAdminId: staff.id,
+        releasedAt: now,
+        completedAt: now,
+      },
+    }),
+    prisma.vendor.update({
+      where: { id: vendor.id },
+      data: {
+        walletLifetimeEarningsInr: { increment: body.amountInr },
+        walletAvailableInr: { decrement: Math.min(vendor.walletAvailableInr, body.amountInr) },
+        ...(vendor.banking && !vendor.banking.isAccountVerified
+          ? { banking: { set: { ...vendor.banking, isAccountVerified: true } } }
+          : {}),
+      },
+    }),
+  ]);
+
+  await audit({
+    actor: { id: staff.id, role: staff.role },
+    action: 'DIRECT_SETTLEMENT_PAYOUT',
+    targetEntity: 'VendorPayout',
+    targetId: payout.id,
+    newState: {
+      vendorId: vendor.id,
+      amountInr: body.amountInr,
+      utrNumber: body.utrNumber,
+      transferMethod: method,
+    },
+    req,
+  });
+
+  void sendEmail({
+    to: vendor.email,
+    subject: `Bank Settlement ${payoutRef} Disbursed (UTR: ${body.utrNumber})`,
+    html: `<p>Dear ${vendor.displayName || vendor.businessName},</p><p>A bank settlement transfer of <b>₹${body.amountInr.toLocaleString('en-IN')}</b> has been successfully processed and transferred to your bank account via ${method}.</p><p><b>Bank Transaction / UTR Number:</b> ${body.utrNumber}</p><p>Thank you for partnering with Mahastays.</p>`,
+  }).catch(() => {});
+
+  ok(res, presentPayout(payout));
+});
+
+/**
+ * GET /admin/finance/vendor-settlement-ledger
+ * Returns each vendor's earnings, gross revenue, platform commission, amount settled by admin,
+ * pending amount to be settled, bank snapshot, and all payout requests submitted by vendors.
+ */
+adminFinanceRouter.get('/vendor-settlement-ledger', finance, async (_req, res) => {
+  const [vendors, stays, packages, experiences, allPayouts] = await Promise.all([
+    prisma.vendor.findMany({
+      select: {
+        id: true,
+        vendorCode: true,
+        businessName: true,
+        displayName: true,
+        category: true,
+        email: true,
+        phone: true,
+        commissionTerms: true,
+        banking: true,
+        walletPendingInr: true,
+        walletAvailableInr: true,
+        walletLifetimeEarningsInr: true,
+        walletLifetimeCommissionInr: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.stayBooking.findMany({
+      where: { paymentStatus: { in: ['paid', 'partially_refunded'] } },
+      select: {
+        id: true,
+        vendorId: true,
+        grandTotalInr: true,
+        commissionAmountInr: true,
+        vendorShareInr: true,
+        commissionRatePercent: true,
+        paymentStatus: true,
+        bookingStatus: true,
+      },
+    }),
+    prisma.packageBooking.findMany({
+      where: { paymentStatus: { in: ['paid', 'partially_refunded'] } },
+      select: {
+        id: true,
+        vendorId: true,
+        grandTotalInr: true,
+        commissionAmountInr: true,
+        vendorShareInr: true,
+        commissionRatePercent: true,
+        paymentStatus: true,
+        bookingStatus: true,
+      },
+    }),
+    prisma.experienceBooking.findMany({
+      where: { paymentStatus: { in: ['paid', 'partially_refunded'] } },
+      select: {
+        id: true,
+        vendorId: true,
+        grandTotalInr: true,
+        commissionAmountInr: true,
+        vendorShareInr: true,
+        commissionRatePercent: true,
+        paymentStatus: true,
+        bookingStatus: true,
+      },
+    }),
+    prisma.vendorPayout.findMany({
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  const vendorMap = new Map<string, (typeof vendors)[0]>();
+  vendors.forEach((v) => vendorMap.set(v.id, v));
+
+  let totalGrossVolumeInr = 0;
+  let totalPlatformCommissionInr = 0;
+  let totalNetVendorShareInr = 0;
+  let totalSettledAmountInr = 0;
+  let totalPendingSettlementInr = 0;
+  let pendingRequestsCount = 0;
+  let pendingRequestsAmountInr = 0;
+
+  const vendorRows = vendors.map((v) => {
+    const vStays = stays.filter((s) => s.vendorId === v.id);
+    const vPackages = packages.filter((p) => p.vendorId === v.id);
+    const vExps = experiences.filter((e) => e.vendorId === v.id);
+
+    const totalBookingsCount = vStays.length + vPackages.length + vExps.length;
+
+    const grossRevenueInr =
+      vStays.reduce((s, b) => s + (b.grandTotalInr || 0), 0) +
+      vPackages.reduce((s, b) => s + (b.grandTotalInr || 0), 0) +
+      vExps.reduce((s, b) => s + (b.grandTotalInr || 0), 0);
+
+    const platformCommissionInr =
+      vStays.reduce((s, b) => s + (b.commissionAmountInr || 0), 0) +
+      vPackages.reduce((s, b) => s + (b.commissionAmountInr || 0), 0) +
+      vExps.reduce((s, b) => s + (b.commissionAmountInr || 0), 0);
+
+    const netRevenueInr = grossRevenueInr - platformCommissionInr;
+
+    // Completed payouts for this vendor (disbursed to their bank with UTR)
+    const vPayouts = allPayouts.filter((p) => p.vendorId === v.id);
+    const completedPayouts = vPayouts.filter((p) => p.status === 'completed');
+    const amountSettledInr = completedPayouts.reduce((s, p) => s + (p.netPayableAmountInr || 0), 0);
+
+    // Pending payout requests awaiting transfer
+    const pendingPayouts = vPayouts.filter(
+      (p) => p.status === 'requested' || p.status === 'audited_by_admin' || p.status === 'released_by_superadmin'
+    );
+    const pendingPayoutRequestsCount = pendingPayouts.length;
+    const pendingPayoutRequestsAmountInr = pendingPayouts.reduce((s, p) => s + (p.netPayableAmountInr || 0), 0);
+
+    // Remaining net balance pending to be settled
+    const pendingSettlementInr = Math.max(0, netRevenueInr - amountSettledInr);
+
+    totalGrossVolumeInr += grossRevenueInr;
+    totalPlatformCommissionInr += platformCommissionInr;
+    totalNetVendorShareInr += netRevenueInr;
+    totalSettledAmountInr += amountSettledInr;
+    totalPendingSettlementInr += pendingSettlementInr;
+    pendingRequestsCount += pendingPayoutRequestsCount;
+    pendingRequestsAmountInr += pendingPayoutRequestsAmountInr;
+
+    return {
+      vendorId: v.id,
+      vendorCode: v.vendorCode,
+      businessName: v.businessName,
+      displayName: v.displayName,
+      category: v.category,
+      email: v.email,
+      phone: v.phone,
+      commissionRatePercent: v.commissionTerms?.propertyCommissionRatePercent || 12,
+      banking: v.banking
+        ? {
+            accountHolderName: v.banking.accountHolderName,
+            bankName: v.banking.bankName,
+            accountNumberMasked: v.banking.accountNumberLast4
+              ? `•••• •••• •••• ${v.banking.accountNumberLast4}`
+              : 'Not provided',
+            ifscCode: v.banking.ifscCode,
+            branchName: v.banking.branchName || null,
+            upiId: v.banking.upiId || null,
+            isAccountVerified: !!v.banking.isAccountVerified,
+          }
+        : null,
+      totalBookingsCount,
+      grossRevenueInr,
+      platformCommissionInr,
+      netRevenueInr,
+      amountSettledInr,
+      pendingSettlementInr,
+      walletAvailableInr: v.walletAvailableInr,
+      walletPendingInr: v.walletPendingInr,
+      pendingPayoutRequestsCount,
+      pendingPayoutRequestsAmountInr,
+      recentPayouts: vPayouts.slice(0, 5).map((p) => ({
+        id: p.id,
+        payoutReference: p.payoutReference,
+        netPayableAmountInr: p.netPayableAmountInr,
+        status: p.status,
+        transferMethod: p.transferMethod,
+        utrNumber: p.utrNumber,
+        createdAt: p.createdAt.toISOString(),
+        completedAt: p.completedAt?.toISOString() || null,
+      })),
+    };
+  });
+
+  // Payout requests with vendor names attached
+  const payoutRequests = allPayouts.map((p) => {
+    const v = vendorMap.get(p.vendorId);
+    return {
+      ...presentPayout(p),
+      vendorName: v?.displayName || v?.businessName || 'Vendor Partner',
+      vendorEmail: v?.email || '',
+      vendorPhone: v?.phone || '',
+      vendorCode: v?.vendorCode || '',
+    };
+  });
+
+  ok(res, {
+    summary: {
+      totalVendorsCount: vendors.length,
+      totalGrossVolumeInr,
+      totalPlatformCommissionInr,
+      totalNetVendorShareInr,
+      totalSettledAmountInr,
+      totalPendingSettlementInr,
+      pendingRequestsCount,
+      pendingRequestsAmountInr,
+    },
+    vendors: vendorRows,
+    payoutRequests,
+  });
 });
 
 /** GET /admin/finance/summary?from=YYYY-MM-DD&to=YYYY-MM-DD */

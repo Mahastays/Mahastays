@@ -19,6 +19,9 @@ export async function isActiveClubMember(userId: string | undefined): Promise<bo
 export async function assertUserCanBook(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.status !== 'active') throw ApiError.forbidden('Your account cannot make bookings', 'ACCOUNT_INACTIVE');
+  if (!user.phone?.nationalNumber || user.phone.nationalNumber.replace(/\D/g, '').length < 10) {
+    throw ApiError.badRequest('A valid 10-digit mobile phone number is mandatory to book.', 'PHONE_REQUIRED');
+  }
   const now = new Date();
   const where = { userId, bookingStatus: 'pending' as const, holdExpiresAt: { gt: now } };
   const counts = await Promise.all([

@@ -147,6 +147,9 @@ export function createApp(): Express {
         error: {
           code: err?.code || 'WEBHOOK_FAILED',
           message: err?.message || 'Webhook verification or processing failed',
+          hint: err?.code === 'INVALID_SIGNATURE'
+            ? 'Ensure Secret in Razorpay Dashboard (Settings > Webhooks) matches RAZORPAY_WEBHOOK_SECRET in backend environment variables'
+            : undefined,
         },
       });
     }

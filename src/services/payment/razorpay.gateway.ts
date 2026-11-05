@@ -1,5 +1,6 @@
 import https from 'node:https';
 import { env } from '../../config/env';
+import { logger } from '../../config/logger';
 import { ApiError } from '../../utils/ApiError';
 import { hmacSha256Hex, safeEqual } from '../../utils/crypto';
 import { toPaise } from '../../utils/money';
@@ -79,13 +80,59 @@ export class RazorpayGateway implements PaymentGateway {
   }
 
   verifyPaymentSignature({ orderId, paymentId, signature }: { orderId: string; paymentId: string; signature: string }): boolean {
-    const expected = hmacSha256Hex(env.RAZORPAY_KEY_SECRET as string, `${orderId}|${paymentId}`);
-    return safeEqual(expected, signature);
+    const cleanSecret = (env.RAZORPAY_KEY_SECRET || '').trim().replace(/^["']|["']$/g, '');
+    const cleanSig = (signature || '').trim();
+    const payload = `${(orderId || '').trim()}|${(paymentId || '').trim()}`;
+    const expected = hmacSha256Hex(cleanSecret, payload);
+    return safeEqual(expected.toLowerCase(), cleanSig.toLowerCase());
   }
 
   verifyWebhookSignature(rawBody: Buffer, signature: string): boolean {
-    const expected = hmacSha256Hex(env.RAZORPAY_WEBHOOK_SECRET as string, rawBody);
-    return safeEqual(expected, signature);
+    const cleanSig = (signature || '').trim();
+    if (!cleanSig) {
+      logger.warn('[webhook] Razorpay webhook verification failed: signature is missing or empty');
+      return false;
+    }
+
+    const cleanBody = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody || '', 'utf8');
+    const primarySecret = (env.RAZORPAY_WEBHOOK_SECRET || '').trim().replace(/^["']|["']$/g, '');
+    const fallbackSecret = (env.RAZORPAY_KEY_SECRET || '').trim().replace(/^["']|["']$/g, '');
+
+    // 1. Primary verification: using RAZORPAY_WEBHOOK_SECRET
+    if (primarySecret) {
+      const expected = hmacSha256Hex(primarySecret, cleanBody);
+      if (safeEqual(expected.toLowerCase(), cleanSig.toLowerCase())) {
+        return true;
+      }
+    }
+
+    // 2. Fallback verification: Check if Razorpay Dashboard was configured with API Key Secret instead
+    if (fallbackSecret && fallbackSecret !== primarySecret) {
+      const expectedFallback = hmacSha256Hex(fallbackSecret, cleanBody);
+      if (safeEqual(expectedFallback.toLowerCase(), cleanSig.toLowerCase())) {
+        logger.warn(
+          '[webhook] Razorpay webhook signature verified using RAZORPAY_KEY_SECRET fallback! (Tip: enter your RAZORPAY_WEBHOOK_SECRET in Razorpay Dashboard -> Webhooks -> Secret for best practice)'
+        );
+        return true;
+      }
+    }
+
+    // 3. Diagnostic log for mismatch troubleshooting without exposing full secrets
+    const expectedPrimary = primarySecret ? hmacSha256Hex(primarySecret, cleanBody) : 'none';
+    logger.warn(
+      {
+        receivedSignatureLength: cleanSig.length,
+        receivedSignatureSample: `${cleanSig.slice(0, 6)}...${cleanSig.slice(-6)}`,
+        expectedSignatureSample: expectedPrimary !== 'none' ? `${expectedPrimary.slice(0, 6)}...${expectedPrimary.slice(-6)}` : 'none',
+        rawBodyByteLength: cleanBody.length,
+        isWebhookSecretConfigured: Boolean(primarySecret),
+        webhookSecretLength: primarySecret.length,
+        isKeySecretConfigured: Boolean(fallbackSecret),
+      },
+      '[webhook] Razorpay webhook signature verification failed: signature mismatch between Dashboard secret and server RAZORPAY_WEBHOOK_SECRET'
+    );
+
+    return false;
   }
 
   async fetchPayment(paymentId: string): Promise<GatewayPaymentInfo | null> {

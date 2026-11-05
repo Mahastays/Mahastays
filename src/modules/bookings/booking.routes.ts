@@ -63,6 +63,7 @@ async function dispatchBookingConfirmationEmail(
       when,
       totalInr,
       invoiceNumber,
+      phone: booking.guestPhone || (user as any).phone?.nationalNumber,
       guests: booking.adults ? `${booking.adults} Adults${booking.children ? `, ${booking.children} Child` : ''}` : undefined,
     });
 
@@ -112,9 +113,10 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
     slotTime: z.string().optional(),
     guestName: z.string().trim().min(2),
     guestEmail: z.string().trim().email(),
-    guestPhone: z.string().trim().min(7),
+    guestPhone: z.string().trim(),
     billingState: z.string().trim().default('Maharashtra'),
     specialRequests: z.string().max(500).optional(),
+    notes: z.string().max(500).optional(),
     paymentMethod: z.enum(['upi', 'card', 'netbanking', 'pay_at_property', 'online']).default('upi'),
     upiId: z.string().optional(),
     pricing: z
@@ -129,7 +131,14 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
   });
 
   const b = checkoutSchema.parse(bodyOf(req));
-  const cleanPhone = b.guestPhone.replace(/^\+91/, '').trim();
+  const rawPhone = b.guestPhone || '';
+  const cleanPhone = rawPhone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+  const notesText = (b.specialRequests || b.notes || '').trim() || null;
+
+  // STRICT REQUIREMENT: If user has not provided a valid 10-digit mobile number, reject booking
+  if (!cleanPhone || cleanPhone.length !== 10) {
+    throw ApiError.badRequest('A valid 10-digit mobile number is mandatory to book.', 'PHONE_REQUIRED');
+  }
 
   // Resolve user
   let user = req.auth?.role === 'user' ? await prisma.user.findUnique({ where: { id: req.auth.id } }) : null;
@@ -143,10 +152,38 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
           email: b.guestEmail.toLowerCase(),
           authProvider: 'local',
           phone: { countryCode: '+91', nationalNumber: cleanPhone, isVerified: false },
+          bio: notesText,
           membership: { isClubMember: false, tier: 'standard', joinedAt: null, expiresAt: null },
           preferences: { preferredLanguage: 'en', currency: 'INR', dietaryPreference: null },
           verification: { isEmailVerified: false, isPhoneVerified: false, governmentIdType: null, governmentIdNumberMasked: null, isIdVerified: false },
           status: 'active',
+        },
+      });
+    }
+  }
+
+  // Update user profile with phone, full name, and notes if missing or updated
+  if (user) {
+    const currentNational = user.phone?.nationalNumber ? String(user.phone.nationalNumber).replace(/\D/g, '').slice(-10) : '';
+    const shouldUpdatePhone = !currentNational || currentNational !== cleanPhone;
+    const shouldUpdateName = (!user.fullName || user.fullName === 'Guest') && Boolean(b.guestName);
+    const shouldUpdateBio = Boolean(notesText) && (!user.bio || user.bio.trim() === '');
+
+    if (shouldUpdatePhone || shouldUpdateName || shouldUpdateBio) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...(shouldUpdatePhone
+            ? {
+                phone: {
+                  countryCode: '+91',
+                  nationalNumber: cleanPhone,
+                  isVerified: user.phone?.isVerified ?? false,
+                },
+              }
+            : {}),
+          ...(shouldUpdateName ? { fullName: b.guestName } : {}),
+          ...(shouldUpdateBio ? { bio: notesText } : {}),
         },
       });
     }
@@ -217,7 +254,7 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
         guestName: b.guestName,
         guestPhone: cleanPhone,
         billingState: b.billingState,
-        specialRequests: b.specialRequests,
+        specialRequests: notesText,
         invoiceNumber: invNumber,
         confirmedAt: b.paymentMethod === 'pay_at_property' ? new Date() : null,
       },
@@ -276,7 +313,7 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
         guestName: b.guestName,
         guestPhone: cleanPhone,
         billingState: b.billingState,
-        specialRequests: b.specialRequests,
+        specialRequests: notesText,
         invoiceNumber: invNumber,
         confirmedAt: b.paymentMethod === 'pay_at_property' ? new Date() : null,
       },
@@ -336,7 +373,7 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
         guestName: b.guestName,
         guestPhone: cleanPhone,
         billingState: b.billingState,
-        specialRequests: b.specialRequests,
+        specialRequests: notesText,
         invoiceNumber: invNumber,
         confirmedAt: b.paymentMethod === 'pay_at_property' ? new Date() : null,
       },
@@ -408,6 +445,9 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
       id: createdBooking.id,
       bookingReference: createdBooking.bookingReference,
       guestName: b.guestName,
+      guestPhone: cleanPhone,
+      specialRequests: notesText,
+      notes: notesText,
       grandTotalInr: grandTotal,
       paymentStatus: createdBooking.paymentStatus,
       bookingStatus: createdBooking.bookingStatus,
@@ -424,6 +464,7 @@ bookingRouter.post('/checkout', optionalAuth, async (req, res) => {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      phone: user.phone,
     },
   });
 });
@@ -513,39 +554,39 @@ bookingRouter.get('/reference/:ref', optionalAuth, async (req, res) => {
 
   const stay = await prisma.stayBooking.findFirst({
     where: isHexId ? { id: ref } : { bookingReference: ref },
-    include: { property: true },
+    include: { property: true, user: { select: { id: true, fullName: true, email: true, phone: true } } },
   });
   if (stay) {
     const payment = await prisma.payment.findFirst({ where: { bookingType: 'stay', bookingId: stay.id }, orderBy: { createdAt: 'desc' } });
     return ok(res, {
       bookingType: 'stay',
-      booking: presentStayBooking(stay, { property: stay.property }),
+      booking: presentStayBooking(stay, { property: stay.property, customer: stay.user, contactMode: 'full' }),
       payment: payment ? { status: payment.status, method: payment.method, invoiceNumber: payment.invoiceNumber, amountInr: payment.amountInr, capturedAt: payment.capturedAt } : null,
     });
   }
 
   const pkg = await prisma.packageBooking.findFirst({
     where: isHexId ? { id: ref } : { bookingReference: ref },
-    include: { package: true },
+    include: { package: true, user: { select: { id: true, fullName: true, email: true, phone: true } } },
   });
   if (pkg) {
     const payment = await prisma.payment.findFirst({ where: { bookingType: 'package', bookingId: pkg.id }, orderBy: { createdAt: 'desc' } });
     return ok(res, {
       bookingType: 'package',
-      booking: presentPackageBooking(pkg, { package: pkg.package }),
+      booking: presentPackageBooking(pkg, { package: pkg.package, customer: pkg.user, contactMode: 'full' }),
       payment: payment ? { status: payment.status, method: payment.method, invoiceNumber: payment.invoiceNumber, amountInr: payment.amountInr, capturedAt: payment.capturedAt } : null,
     });
   }
 
   const exp = await prisma.experienceBooking.findFirst({
     where: isHexId ? { id: ref } : { bookingReference: ref },
-    include: { experience: true },
+    include: { experience: true, user: { select: { id: true, fullName: true, email: true, phone: true } } },
   });
   if (exp) {
     const payment = await prisma.payment.findFirst({ where: { bookingType: 'experience', bookingId: exp.id }, orderBy: { createdAt: 'desc' } });
     return ok(res, {
       bookingType: 'experience',
-      booking: presentExperienceBooking(exp, { experience: exp.experience }),
+      booking: presentExperienceBooking(exp, { experience: exp.experience, customer: exp.user, contactMode: 'full' }),
       payment: payment ? { status: payment.status, method: payment.method, invoiceNumber: payment.invoiceNumber, amountInr: payment.amountInr, capturedAt: payment.capturedAt } : null,
     });
   }

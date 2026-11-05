@@ -205,6 +205,7 @@ async function notifyConfirmed(core: BookingCore): Promise<void> {
       totalInr: core.grandTotalInr,
       guests,
       invoiceNumber,
+      phone: raw?.guestPhone || user.phone?.nationalNumber,
     });
     await sendEmail({ to: user.email, subject: mail.subject, html: mail.html });
     if (user.phone) await sendTransactionalSms(`${user.phone.countryCode}${user.phone.nationalNumber}`, `Mahastays: booking ${core.reference} confirmed. Total paid Rs ${core.grandTotalInr}.`);
@@ -238,8 +239,7 @@ export async function verifyClientPayment(userId: string, input: { orderId: stri
 export async function handleWebhook(rawBody: Buffer, signature: string | undefined) {
   const gateway = getPaymentGateway();
   if (!signature || !gateway.verifyWebhookSignature(rawBody, signature)) {
-    logger.warn({ hasSignature: Boolean(signature) }, '[webhook] Razorpay webhook signature verification failed');
-    throw ApiError.unauthorized('Invalid webhook signature', 'INVALID_SIGNATURE');
+    throw ApiError.unauthorized('Invalid webhook signature. Verify the Secret configured in Razorpay Dashboard matches RAZORPAY_WEBHOOK_SECRET.', 'INVALID_SIGNATURE');
   }
   let event: { event?: string; payload?: Record<string, { entity?: Record<string, unknown> }> };
   try {

@@ -75,7 +75,7 @@ export async function streamInvoicePdf(res: Response, payment: Payment): Promise
 
   const invNumber = payment.invoiceNumber || (core.raw as any)?.invoiceNumber || `INV-${new Date().getFullYear()}-${payment.id.slice(-6).toUpperCase()}`;
   const [user, vendor] = await Promise.all([
-    prisma.user.findUnique({ where: { id: payment.userId }, select: { fullName: true, email: true } }),
+    prisma.user.findUnique({ where: { id: payment.userId }, select: { fullName: true, email: true, phone: true } }),
     prisma.vendor.findUnique({ where: { id: payment.vendorId }, select: { businessName: true, compliance: true, contact: true } }),
   ]);
 
@@ -128,8 +128,15 @@ export async function streamInvoicePdf(res: Response, payment: Payment): Promise
   if (payment.gatewayPaymentId) doc.text(`Gateway Txn ID: ${payment.gatewayPaymentId}`);
   doc.moveDown();
 
+  const rawGuestPhone = (core.raw as any)?.guestPhone || user?.phone?.nationalNumber || '';
+  const cleanGuestPhone = String(rawGuestPhone).replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+  const phoneFormatted = cleanGuestPhone ? `+91 ${cleanGuestPhone}` : null;
+  const guestNotes = ((core.raw as any)?.specialRequests || (core.raw as any)?.notes || '').trim();
+
   doc.font('Helvetica-Bold').text('Billed To (Guest)');
-  doc.font('Helvetica').text(`${guestUser.fullName}\n${guestUser.email}${core.billingState ? `\nState of Supply: ${core.billingState}` : '\nState of Supply: Maharashtra'}`);
+  doc.font('Helvetica').text(
+    `${guestUser.fullName}\n${guestUser.email}${phoneFormatted ? `\nMobile: ${phoneFormatted}` : ''}${core.billingState ? `\nState of Supply: ${core.billingState}` : '\nState of Supply: Maharashtra'}`
+  );
   doc.moveDown(0.6);
   doc.font('Helvetica-Bold').text('Supplier / Operator');
   doc.font('Helvetica').text(`${supplierVendor.businessName}\n${addr.addressLine1}, ${addr.city}, ${addr.state} ${addr.pincode}\nGSTIN: ${supplierVendor.compliance.gstin ?? '27AABCM8921M1ZX'}   PAN: ${supplierVendor.compliance.panNumber ?? 'AABCM8921M'}`);
@@ -147,6 +154,10 @@ export async function streamInvoicePdf(res: Response, payment: Payment): Promise
   } else if (kind === 'experience') {
     const rawExp = core.raw as any;
     doc.text(`Scheduled Date: ${rawExp.activityDate} (${rawExp.slotTime || 'Scheduled Session'}) | Participants: ${rawExp.adults} Adults${rawExp.children ? `, ${rawExp.children} Children` : ''}`);
+  }
+  if (guestNotes) {
+    doc.moveDown(0.3);
+    doc.font('Helvetica-Oblique').fontSize(8.5).fillColor('#6b7280').text(`Special Requests / Notes: "${guestNotes}"`);
   }
   doc.moveDown(0.6);
 
