@@ -101,6 +101,10 @@ export function adminListingRouter(kind: ListingKind): Router {
         ? body.images.map((img: any, i: number) => typeof img === 'string' ? { url: img, alt: body.name || 'Property', isCover: i === 0 } : { url: img.url, alt: img.alt || body.name || 'Property', isCover: !!img.isCover || i === 0 })
         : [{ url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Cover', isCover: true }];
 
+      const rawAmenities = Array.isArray(body.amenities) && body.amenities.length > 0
+        ? body.amenities.map((a: any) => ({ name: typeof a === 'string' ? a : (a.name || ''), icon: typeof a === 'string' ? null : (a.icon || null) }))
+        : [{ name: 'Free WiFi', icon: null }, { name: 'Breakfast Included', icon: null }, { name: 'Swimming Pool', icon: null }];
+
       const property = await prisma.property.create({
         data: {
           vendorId: vendorId || '6adeef17f4597150f0c199a4',
@@ -114,19 +118,44 @@ export function adminListingRouter(kind: ListingKind): Router {
           location: body.location || 'Venna Lake Road, Mahabaleshwar',
           city: body.city || 'Mahabaleshwar',
           country: body.country || 'India',
-          address: body.address || { fullAddress: body.location || 'Venna Lake Road, Mahabaleshwar', lat: 17.9237, lng: 73.6586 },
+          address: body.address ? {
+            fullAddress: body.address.fullAddress || body.location || 'Venna Lake Road, Mahabaleshwar',
+            lat: typeof body.address.lat === 'number' ? body.address.lat : (Number(body.address.lat) || 17.9237),
+            lng: typeof body.address.lng === 'number' ? body.address.lng : (Number(body.address.lng) || 73.6586),
+            mapLink: body.address.mapLink || null,
+          } : { fullAddress: body.location || 'Venna Lake Road, Mahabaleshwar', lat: 17.9237, lng: 73.6586 },
+          host: body.host ? {
+            name: body.host.name || 'Host',
+            role: body.host.role || null,
+            experience: body.host.experience || null,
+            avatar: body.host.avatar || null,
+          } : undefined,
           images,
-          highlights: Array.isArray(body.highlights) ? body.highlights : [
+          highlights: (Array.isArray(body.highlights) && body.highlights.length > 0 ? body.highlights : [
             { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
             { title: 'Private infinity pool with heating', desc: 'Heated luxury pool deck' },
-          ],
-          amenities: Array.isArray(body.amenities)
-            ? body.amenities.map((a: any) => typeof a === 'string' ? { name: a } : a)
-            : [{ name: 'Free WiFi' }, { name: 'Breakfast Included' }, { name: 'Swimming Pool' }],
-          policies: body.policies || { checkInTime: '14:00', checkOutTime: '11:00' },
+          ]).map((h: any) => ({
+            title: typeof h === 'string' ? h : (h.title || ''),
+            desc: typeof h === 'string' ? '' : (h.desc || h.description || ''),
+            icon: typeof h === 'string' ? null : (h.icon || null),
+          })),
+          amenities: rawAmenities,
+          amenityKeys: rawAmenities.map((a: any) => a.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')),
+          policies: {
+            checkInTime: body.policies?.checkInTime || '14:00',
+            checkOutTime: body.policies?.checkOutTime || '11:00',
+            cancellationPolicy: body.policies?.cancellationPolicy || null,
+            freeCancellationHours: body.policies?.freeCancellationHours != null ? Number(body.policies.freeCancellationHours) : null,
+            lateCancellationFeePercent: body.policies?.lateCancellationFeePercent != null ? Number(body.policies.lateCancellationFeePercent) : null,
+            petsAllowed: Boolean(body.policies?.petsAllowed),
+            smokingAllowed: Boolean(body.policies?.smokingAllowed),
+            coupleFriendly: body.policies?.coupleFriendly !== undefined ? Boolean(body.policies?.coupleFriendly) : true,
+            maxGuestsPerRoom: body.policies?.maxGuestsPerRoom != null ? Number(body.policies.maxGuestsPerRoom) : null,
+          },
           rooms,
           numericPrice,
           originalPrice,
+          ratingBreakdown: { cleanliness: 0, accuracy: 0, communication: 0, location: 0, checkIn: 0, value: 0 },
           pricingRules: body.pricingRules || null,
           status: 'pending_approval',
         } as any,
@@ -240,47 +269,115 @@ export function adminListingRouter(kind: ListingKind): Router {
       if (body.propertyType !== undefined) data.propertyType = body.propertyType;
       if (body.tagline !== undefined) data.tagline = body.tagline;
       if (body.badge !== undefined) data.badge = body.badge;
-      if (body.tags !== undefined) data.tags = body.tags;
+      if (body.tags !== undefined) data.tags = { set: Array.isArray(body.tags) ? body.tags : [] };
       if (body.description !== undefined) data.description = body.description;
       if (body.longDescription !== undefined) data.longDescription = body.longDescription;
       if (body.location !== undefined) data.location = body.location;
+      if (body.locationId !== undefined) data.locationId = body.locationId;
       if (body.city !== undefined) data.city = body.city;
       if (body.country !== undefined) data.country = body.country;
-      if (body.address !== undefined) data.address = body.address;
-      if (body.images !== undefined) {
-        data.images = (body.images || []).map((img: any, i: number) =>
-          typeof img === 'string' ? { url: img, alt: '', isCover: i === 0 } : img
-        );
+      if (body.address !== undefined) {
+        data.address = {
+          set: {
+            fullAddress: body.address?.fullAddress || body.location || '',
+            lat: typeof body.address?.lat === 'number' ? body.address.lat : (Number(body.address?.lat) || 17.9237),
+            lng: typeof body.address?.lng === 'number' ? body.address.lng : (Number(body.address?.lng) || 73.6586),
+            mapLink: body.address?.mapLink || null,
+          },
+        };
       }
-      if (body.gallery !== undefined) data.gallery = body.gallery;
-      if (body.videos !== undefined) data.videos = body.videos;
-      if (body.host !== undefined) data.host = body.host;
-      if (body.highlights !== undefined) data.highlights = body.highlights;
-      if (body.attractions !== undefined) data.attractions = body.attractions;
-      if (body.policies !== undefined) data.policies = body.policies;
+      if (body.images !== undefined) {
+        data.images = {
+          set: (body.images || []).map((img: any, i: number) => ({
+            url: typeof img === 'string' ? img : (img.url || ''),
+            alt: typeof img === 'string' ? '' : (img.alt || null),
+            isCover: typeof img === 'string' ? i === 0 : Boolean(img.isCover),
+          })),
+        };
+      }
+      if (body.gallery !== undefined) data.gallery = { set: Array.isArray(body.gallery) ? body.gallery : [] };
+      if (body.videos !== undefined) data.videos = { set: Array.isArray(body.videos) ? body.videos : [] };
+      if (body.host !== undefined) {
+        if (body.host === null) {
+          data.host = { unset: true };
+        } else {
+          data.host = {
+            set: {
+              name: body.host.name || 'Host',
+              role: body.host.role || null,
+              experience: body.host.experience || null,
+              avatar: body.host.avatar || null,
+            },
+          };
+        }
+      }
+      if (body.highlights !== undefined) {
+        data.highlights = {
+          set: (body.highlights || []).map((h: any) => ({
+            title: typeof h === 'string' ? h : (h.title || ''),
+            desc: typeof h === 'string' ? '' : (h.desc || h.description || ''),
+            icon: typeof h === 'string' ? null : (h.icon || null),
+          })),
+        };
+      }
+      if (body.attractions !== undefined) {
+        data.attractions = {
+          set: (body.attractions || []).map((a: any) => ({
+            name: a.name || '',
+            distance: a.distance || null,
+            time: a.time || null,
+          })),
+        };
+      }
+      if (body.policies !== undefined) {
+        data.policies = {
+          set: {
+            checkInTime: body.policies?.checkInTime || '14:00',
+            checkOutTime: body.policies?.checkOutTime || '11:00',
+            cancellationPolicy: body.policies?.cancellationPolicy || null,
+            freeCancellationHours: body.policies?.freeCancellationHours != null ? Number(body.policies.freeCancellationHours) : null,
+            lateCancellationFeePercent: body.policies?.lateCancellationFeePercent != null ? Number(body.policies.lateCancellationFeePercent) : null,
+            petsAllowed: Boolean(body.policies?.petsAllowed),
+            smokingAllowed: Boolean(body.policies?.smokingAllowed),
+            coupleFriendly: body.policies?.coupleFriendly !== undefined ? Boolean(body.policies?.coupleFriendly) : true,
+            maxGuestsPerRoom: body.policies?.maxGuestsPerRoom != null ? Number(body.policies.maxGuestsPerRoom) : null,
+          },
+        };
+      }
       if (body.bgColor !== undefined) data.bgColor = body.bgColor;
       if (body.gradientOverlay !== undefined) data.gradientOverlay = body.gradientOverlay;
       if (body.amenities !== undefined) {
-        data.amenities = (body.amenities || []).map((a: any) => typeof a === 'string' ? { name: a, icon: '' } : a);
-        data.amenityKeys = (body.amenities || []).map((a: any) => (typeof a === 'string' ? a : a.name).toLowerCase().replace(/[^a-z0-9]+/g, '_'));
+        const amList = (body.amenities || []).map((a: any) => ({
+          name: typeof a === 'string' ? a : (a.name || ''),
+          icon: typeof a === 'string' ? null : (a.icon || null),
+        }));
+        data.amenities = { set: amList };
+        data.amenityKeys = {
+          set: amList.map((a: any) => a.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')),
+        };
       }
       if (body.rooms !== undefined) {
         const rooms = (body.rooms || []).map((r: any, idx: number) => ({
           roomId: r.roomId || `rm_${idx + 1}`,
-          name: r.name,
+          name: r.name || 'Room',
           badge: r.badge || null,
           tagline: r.tagline || null,
           roomSize: r.roomSize ? Number(r.roomSize) : null,
           bedType: r.bedType || 'King Bed',
           maxGuests: Number(r.maxGuests) || 2,
-          capacity: { adults: Number(r.maxGuests) || 2, children: 1 },
+          capacity: {
+            adults: Number(r.capacity?.adults ?? r.maxGuests) || 2,
+            children: Number(r.capacity?.children ?? 1) || 0,
+          },
           basePrice: Number(r.basePrice) || 6000,
           originalPrice: r.originalPrice ? Number(r.originalPrice) : null,
+          weekendPrice: r.weekendPrice ? Number(r.weekendPrice) : null,
+          holidayPrice: r.holidayPrice ? Number(r.holidayPrice) : null,
           count: Number(r.count) || 1,
-          images: r.images || [],
-          amenities: r.amenities || [],
+          images: Array.isArray(r.images) ? r.images : [],
+          amenities: Array.isArray(r.amenities) ? r.amenities : [],
         }));
-        data.rooms = rooms;
+        data.rooms = { set: rooms };
         const prices = rooms.map((r: any) => r.basePrice).filter(Boolean);
         if (prices.length > 0) {
           data.numericPrice = Math.min(...prices);
@@ -306,22 +403,50 @@ export function adminListingRouter(kind: ListingKind): Router {
       if (body.durationDays !== undefined) data.durationDays = Number(body.durationDays);
       if (body.durationNights !== undefined) data.durationNights = Number(body.durationNights);
       if (body.location !== undefined) data.location = body.location;
+      if (body.locationId !== undefined) data.locationId = body.locationId;
       if (body.city !== undefined) data.city = body.city;
       if (body.shortDesc !== undefined) data.shortDesc = body.shortDesc;
       if (body.description !== undefined) data.description = body.description;
       if (body.overview !== undefined) data.overview = body.overview;
       if (body.thumbnail !== undefined) data.thumbnail = body.thumbnail;
-      if (body.images !== undefined) data.images = body.images;
-      if (body.highlights !== undefined) data.highlights = body.highlights;
+      if (body.images !== undefined) data.images = { set: Array.isArray(body.images) ? body.images : [] };
+      if (body.highlights !== undefined) data.highlights = { set: Array.isArray(body.highlights) ? body.highlights : [] };
       if (body.inclusions !== undefined) {
-        data.inclusions = (body.inclusions || []).map((inc: any) => typeof inc === 'string' ? { title: inc, desc: '' } : inc);
+        data.inclusions = {
+          set: (body.inclusions || []).map((inc: any) => ({
+            title: typeof inc === 'string' ? inc : (inc.title || ''),
+            desc: typeof inc === 'string' ? null : (inc.desc || null),
+            icon: typeof inc === 'string' ? null : (inc.icon || null),
+          })),
+        };
       }
-      if (body.exclusions !== undefined) data.exclusions = body.exclusions;
-      if (body.itinerary !== undefined) data.itinerary = body.itinerary;
+      if (body.exclusions !== undefined) data.exclusions = { set: Array.isArray(body.exclusions) ? body.exclusions : [] };
+      if (body.itinerary !== undefined) {
+        data.itinerary = {
+          set: (body.itinerary || []).map((day: any, i: number) => ({
+            day: Number(day.day) || (i + 1),
+            title: day.title || `Day ${i + 1}`,
+            activities: Array.isArray(day.activities) ? day.activities : [],
+            meals: day.meals || null,
+            stay: day.stay || null,
+            image: day.image || null,
+          })),
+        };
+      }
       if (body.cancellationPolicy !== undefined) data.cancellationPolicy = body.cancellationPolicy;
       if (body.tiers !== undefined) {
-        data.tiers = body.tiers;
-        const prices = (body.tiers || []).map((t: any) => Number(t.pricePerPerson)).filter(Boolean);
+        const tiers = (body.tiers || []).map((t: any, i: number) => ({
+          tierId: t.tierId || `tier_${i + 1}`,
+          name: t.name || 'Standard Tier',
+          badge: t.badge || null,
+          tagline: t.tagline || null,
+          hotelType: t.hotelType || null,
+          pricePerPerson: Number(t.pricePerPerson) || 0,
+          originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
+          features: Array.isArray(t.features) ? t.features : [],
+        }));
+        data.tiers = { set: tiers };
+        const prices = tiers.map((t: any) => t.pricePerPerson).filter(Boolean);
         if (prices.length > 0) data.numericPrice = Math.min(...prices);
       }
       if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
@@ -341,21 +466,65 @@ export function adminListingRouter(kind: ListingKind): Router {
       if (body.description !== undefined) data.description = body.description;
       if (body.overview !== undefined) data.overview = body.overview;
       if (body.image !== undefined) data.image = body.image;
-      if (body.gallery !== undefined) data.gallery = body.gallery;
-      if (body.highlights !== undefined) data.highlights = body.highlights;
-      if (body.timeline !== undefined) data.timeline = body.timeline;
-      if (body.inclusions !== undefined) {
-        data.inclusions = (body.inclusions || []).map((inc: any) => typeof inc === 'string' ? { title: inc, desc: '' } : inc);
+      if (body.gallery !== undefined) data.gallery = { set: Array.isArray(body.gallery) ? body.gallery : [] };
+      if (body.highlights !== undefined) data.highlights = { set: Array.isArray(body.highlights) ? body.highlights : [] };
+      if (body.timeline !== undefined) {
+        data.timeline = {
+          set: (body.timeline || []).map((item: any) => ({
+            time: item.time || '',
+            title: item.title || '',
+            desc: item.desc || null,
+          })),
+        };
       }
-      if (body.exclusions !== undefined) data.exclusions = body.exclusions;
-      if (body.whatToBring !== undefined) data.whatToBring = body.whatToBring;
+      if (body.inclusions !== undefined) {
+        data.inclusions = {
+          set: (body.inclusions || []).map((inc: any) => ({
+            title: typeof inc === 'string' ? inc : (inc.title || ''),
+            desc: typeof inc === 'string' ? null : (inc.desc || null),
+            icon: typeof inc === 'string' ? null : (inc.icon || null),
+          })),
+        };
+      }
+      if (body.exclusions !== undefined) data.exclusions = { set: Array.isArray(body.exclusions) ? body.exclusions : [] };
+      if (body.whatToBring !== undefined) data.whatToBring = { set: Array.isArray(body.whatToBring) ? body.whatToBring : [] };
       if (body.meetingPoint !== undefined) data.meetingPoint = body.meetingPoint;
-      if (body.guide !== undefined) data.guide = body.guide;
+      if (body.guide !== undefined) {
+        if (body.guide === null) {
+          data.guide = { unset: true };
+        } else {
+          data.guide = {
+            set: {
+              name: body.guide.name || 'Guide',
+              role: body.guide.role || null,
+              avatar: body.guide.avatar || null,
+            },
+          };
+        }
+      }
       if (body.cancellationPolicy !== undefined) data.cancellationPolicy = body.cancellationPolicy;
-      if (body.slots !== undefined) data.slots = body.slots;
+      if (body.slots !== undefined) {
+        data.slots = {
+          set: (body.slots || []).map((s: any, i: number) => ({
+            slotId: s.slotId || `slot_${i + 1}`,
+            time: s.time || '',
+            label: s.label || '',
+            capacity: Number(s.capacity) || 10,
+            price: s.price ? Number(s.price) : null,
+          })),
+        };
+      }
       if (body.tiers !== undefined) {
-        data.tiers = body.tiers;
-        const prices = (body.tiers || []).map((t: any) => Number(t.pricePerPerson)).filter(Boolean);
+        const tiers = (body.tiers || []).map((t: any, i: number) => ({
+          tierId: t.tierId || `tier_${i + 1}`,
+          name: t.name || 'Standard Tier',
+          tagline: t.tagline || null,
+          pricePerPerson: Number(t.pricePerPerson) || 0,
+          originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
+          features: Array.isArray(t.features) ? t.features : [],
+        }));
+        data.tiers = { set: tiers };
+        const prices = tiers.map((t: any) => t.pricePerPerson).filter(Boolean);
         if (prices.length > 0) data.numericPrice = Math.min(...prices);
       }
       if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);

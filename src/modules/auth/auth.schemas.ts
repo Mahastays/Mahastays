@@ -38,8 +38,17 @@ export const googleLoginSchema = z.object({ idToken: z.string().min(20) });
 
 export const refreshSchema = z.object({ refreshToken: z.string().min(20).optional() });
 
+export const verifyEmailOtpSchema = z.object({
+  email: v.email,
+  code: z.string().trim().regex(/^\d{6}$/, 'OTP must be 6 digits'),
+});
+
+export const resendEmailOtpSchema = z.object({
+  email: v.email,
+});
+
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1).max(128),
+  currentPassword: z.string().max(128).optional().default(''),
   newPassword: v.password,
 });
 

@@ -117,6 +117,15 @@ async function buildPackageDetail(id: string) {
   return {
     ...presentPackage(pk, { property, experiences: new Map(experiences.map((e) => [e.id, e])) }),
     vendor: vendor ? presentVendorPublic(vendor) : null,
+    host: vendor
+      ? {
+          name: vendor.displayName,
+          role: vendor.displayRole,
+          experience: vendor.experienceSummary,
+          avatar: vendor.avatarUrl ?? null,
+          verified: true,
+        }
+      : null,
     reviews: reviews.map((r) => presentReview(r)),
   };
 }

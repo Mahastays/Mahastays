@@ -14,6 +14,7 @@ const SVG_ICONS = {
   bed: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;"><path d="M2 4v16"></path><path d="M2 8h18a2 2 0 0 1 2 2v10"></path><path d="M2 17h20"></path><path d="M6 8v9"></path></svg>`,
   support: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>`,
   instagram: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`,
+  facebook: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>`,
   linkedin: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>`,
   youtube: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>`,
 };
@@ -119,7 +120,8 @@ function layout(title: string, inner: string, options: LayoutOptions = {}): { ht
                     <div style="font-size:12px;color:#64748b;">Venna Lake Road, Mahabaleshwar &amp; Panchgani, Maharashtra 412806, India</div>
                   </td>
                   <td align="right" valign="middle" style="white-space:nowrap;padding-left:16px;">
-                    <a href="https://instagram.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.instagram}</a>
+                    <a href="https://www.instagram.com/maha_stays?xtok=MXB2bHB6Mmg0eXJ6Yw%3D%3D&amp;utm_source=qr" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.instagram}</a>
+                    <a href="https://www.facebook.com/share/1DYot11Nwx/?mibextid=wwXIfr" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.facebook}</a>
                     <a href="https://linkedin.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.linkedin}</a>
                     <a href="https://youtube.com" target="_blank" style="text-decoration:none;display:inline-block;margin-left:12px;">${SVG_ICONS.youtube}</a>
                   </td>
@@ -192,6 +194,65 @@ export const templates = {
           </table>
         </div>`,
         { badge: 'Admin Security 2FA', badgeType: 'danger', preheader: `Your one-time login verification code is ${otp}` }
+      ),
+    };
+  },
+
+  vendorLoginOtp(name: string, otp: string) {
+    const spacedOtp = (otp || '').split('').join(' ');
+    return {
+      subject: `Mahastays Partner Verification Code: ${otp}`,
+      ...layout(
+        'Host & Vendor Portal Verification',
+        `<p style="margin:0 0 12px;font-size:14px;color:#0f172a;">Dear <strong>${esc(name)}</strong>,</p>
+        <p style="margin:0 0 22px;font-size:14px;color:#475569;line-height:1.6;">A sign-in attempt was initiated for your Mahastays Host &amp; Vendor Partner account. Use the one-time verification code below to complete your authentication.</p>
+        
+        <!-- Code Box (Solid Colors, Zero Gradient) -->
+        <div style="background-color:#fff5f5;border:1px solid #fed7d7;border-radius:14px;padding:26px 20px 22px;margin:22px 0;text-align:center;">
+          <div style="font-size:13px;font-weight:600;color:#4a5568;margin-bottom:12px;letter-spacing:0.2px;">Your 6-Digit One-Time Code</div>
+          <div style="font-size:38px;font-weight:900;letter-spacing:14px;color:#c53030;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:4px 0 14px 0;padding-left:14px;line-height:1;">${spacedOtp}</div>
+          <div style="font-size:12px;color:#718096;font-weight:500;">Valid for 10 minutes &nbsp;|&nbsp; Do not share this code with anyone.</div>
+        </div>
+
+        <!-- Security Warning Box with Lock Icon and Divider -->
+        <div style="background-color:#fff5f5;border:1px solid #fed7d7;border-radius:10px;margin:22px 0;overflow:hidden;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td align="center" valign="middle" style="width:54px;padding:14px 0;border-right:1px solid #fed7d7;">
+                ${SVG_ICONS.lock}
+              </td>
+              <td valign="middle" style="padding:14px 18px;font-size:12px;line-height:1.55;">
+                <strong style="color:#c53030;">Security Warning:</strong> <span style="color:#4a5568;">If you did not initiate this login request, your account password may be compromised. Please change your password immediately or contact Mahastays support.</span>
+              </td>
+            </tr>
+          </table>
+        </div>`,
+        { badge: 'Vendor Security 2FA', badgeType: 'danger', preheader: `Your one-time vendor login verification code is ${otp}` }
+      ),
+    };
+  },
+
+  accountVerificationOtp(name: string, otp: string) {
+    const spacedOtp = (otp || '').split('').join(' ');
+    return {
+      subject: `Your Mahastays Verification Code: ${otp}`,
+      ...layout(
+        'Verify Your Account',
+        `<p style="margin:0 0 12px;font-size:14px;color:#0f172a;">Dear <strong>${esc(name)}</strong>,</p>
+        <p style="margin:0 0 22px;font-size:14px;color:#475569;line-height:1.6;">Thank you for registering with Mahastays. Please enter the 6-digit verification code below to verify your email address and activate your account.</p>
+        
+        <!-- Code Box (Solid Colors, Zero Gradient) -->
+        <div style="background-color:#fff5f5;border:1px solid #fed7d7;border-radius:14px;padding:26px 20px 22px;margin:22px 0;text-align:center;">
+          <div style="font-size:13px;font-weight:600;color:#4a5568;margin-bottom:12px;letter-spacing:0.2px;">Your 6-Digit Verification Code</div>
+          <div style="font-size:38px;font-weight:900;letter-spacing:14px;color:#c53030;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:4px 0 14px 0;padding-left:14px;line-height:1;">${spacedOtp}</div>
+          <div style="font-size:12px;color:#718096;font-weight:500;">Valid for 10 minutes &nbsp;|&nbsp; Do not share this code with anyone.</div>
+        </div>
+
+        <!-- Security Note Box -->
+        <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin:20px 0;font-size:12px;color:#64748b;line-height:1.5;">
+          <strong>Security Note:</strong> If you did not create an account on Mahastays, please ignore this email or contact support.
+        </div>`,
+        { badge: 'Account Verification', badgeType: 'brand', preheader: `Your Mahastays verification code is ${otp}` }
       ),
     };
   },

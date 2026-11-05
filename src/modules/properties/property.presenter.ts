@@ -43,6 +43,8 @@ export function presentProperty(p: Property, opts: { roomAvailability?: Map<stri
     hostName: p.host?.name ?? null,
     hostRole: p.host?.role ?? null,
     hostExperience: p.host?.experience ?? null,
+    hostAvatar: p.host?.avatar ?? null,
+    host: p.host ?? null,
     checkInTime: to12Hour(policies.checkInTime),
     checkOutTime: to12Hour(policies.checkOutTime),
     cancellationPolicy: policies.cancellationPolicy ?? null,

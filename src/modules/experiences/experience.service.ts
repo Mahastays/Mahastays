@@ -114,7 +114,25 @@ async function buildExperienceDetail(id: string) {
     prisma.vendor.findUnique({ where: { id: e.vendorId }, select: { id: true, displayName: true, displayRole: true, experienceSummary: true, avatarUrl: true } }),
     prisma.review.findMany({ where: { targetType: 'experience', targetId: e.id, status: 'approved' }, orderBy: { createdAt: 'desc' }, take: 6 }),
   ]);
-  return { ...presentExperience(e), vendor: vendor ? presentVendorPublic(vendor) : null, reviews: reviews.map((r) => presentReview(r)) };
+  const guide = e.guide
+    ? {
+        ...e.guide,
+        avatar: e.guide.avatar || vendor?.avatarUrl || null,
+      }
+    : vendor
+    ? {
+        name: vendor.displayName,
+        role: vendor.displayRole,
+        avatar: vendor.avatarUrl || null,
+      }
+    : null;
+
+  return {
+    ...presentExperience(e),
+    guide: guide ?? undefined,
+    vendor: vendor ? presentVendorPublic(vendor) : null,
+    reviews: reviews.map((r) => presentReview(r)),
+  };
 }
 
 export async function getSlotsForDate(idOrSlug: string, date: string) {

@@ -114,8 +114,74 @@ async function assertPassword(actor: LoginActor | null, password: string): Promi
   return actor;
 }
 
-export async function loginWithPassword(role: 'user' | 'vendor', email: string, password: string, meta: RequestMeta): Promise<Session> {
+export type UserAuthResult =
+  | { requiresVerification: true; requiresOtp: true; email: string; message: string }
+  | Session;
+
+export async function sendAccountVerificationOtp(user: { id: string; fullName: string; email: string }) {
+  const identifier = user.email.toLowerCase().trim();
+  const where = { identifier, purpose: 'email_verify' as const };
+  const recent = await prisma.oneTimeCode.findFirst({
+    where: { ...where, createdAt: { gt: new Date(Date.now() - 30_000) } },
+  });
+  if (recent) {
+    throw ApiError.tooMany('Please wait 30 seconds before requesting another verification code');
+  }
+
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  await prisma.oneTimeCode.create({
+    data: {
+      purpose: 'email_verify',
+      actorRole: 'user',
+      identifier,
+      codeHash: otpHash(identifier, otp),
+      expiresAt: minutesFromNow(10),
+    },
+  });
+
+  try {
+    const mail = templates.accountVerificationOtp(user.fullName, otp);
+    await sendEmail({
+      to: user.email,
+      subject: mail.subject,
+      html: mail.html,
+      text: `Your Mahastays verification code is: ${otp}. It expires in 10 minutes.`,
+    });
+  } catch (err) {
+    logger.error({ err, email: user.email }, '[user-auth] Failed to send verification OTP email');
+  }
+  logger.info({ email: user.email, otp: env.isProd ? '***' : otp }, '[user-auth] Sent email verification OTP');
+
+  return {
+    sent: true,
+    email: user.email,
+    expiresInSeconds: 600,
+    ...(env.isDev ? { devOtp: otp } : {}),
+  };
+}
+
+export function loginWithPassword(role: 'vendor', email: string, password: string, meta: RequestMeta): Promise<Session>;
+export function loginWithPassword(role: 'user', email: string, password: string, meta: RequestMeta): Promise<UserAuthResult>;
+export async function loginWithPassword(role: 'user' | 'vendor', email: string, password: string, meta: RequestMeta): Promise<UserAuthResult> {
   const actor = await assertPassword(await findLoginActor(role, email), password);
+
+  if (role === 'user') {
+    const user = await prisma.user.findUnique({ where: { id: actor.id } });
+    if (user && user.verification && !user.verification.isEmailVerified) {
+      try {
+        await sendAccountVerificationOtp({ id: user.id, fullName: user.fullName, email: user.email });
+      } catch {
+        /* rate limit if already sent recently */
+      }
+      return {
+        requiresVerification: true,
+        requiresOtp: true,
+        email: user.email,
+        message: 'Your account is not verified yet. We have sent a 6-digit verification code to your email.',
+      };
+    }
+  }
+
   return createSession({ id: actor.id, role }, meta);
 }
 
@@ -129,8 +195,9 @@ async function assertPhoneFree(phone: PhoneInput): Promise<void> {
   if (taken) throw ApiError.conflict('This phone number is already registered', 'PHONE_TAKEN');
 }
 
-export async function signupUser(input: SignupUserInput, meta: RequestMeta): Promise<Session> {
-  if (await prisma.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
+export async function signupUser(input: SignupUserInput, meta: RequestMeta): Promise<UserAuthResult> {
+  const email = input.email.trim().toLowerCase();
+  if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) {
     throw ApiError.conflict('An account with this email already exists', 'EMAIL_TAKEN');
   }
   if (input.phone) await assertPhoneFree(input.phone);
@@ -138,8 +205,8 @@ export async function signupUser(input: SignupUserInput, meta: RequestMeta): Pro
   const user = await prisma.user.create({
     data: {
       userCode: await generateActorCode('USR'),
-      fullName: input.fullName,
-      email: input.email,
+      fullName: input.fullName.trim(),
+      email,
       passwordHash: await hashPassword(input.password),
       authProvider: 'local',
       phone: input.phone ? { ...input.phone, isVerified: false } : undefined,
@@ -148,9 +215,70 @@ export async function signupUser(input: SignupUserInput, meta: RequestMeta): Pro
       verification: defaultVerification(),
     },
   });
-  void sendVerificationEmail(user.id, user.fullName, user.email);
-  void sendWelcomeEmail(user.fullName, user.email);
+
+  await sendAccountVerificationOtp({ id: user.id, fullName: user.fullName, email: user.email });
+
+  return {
+    requiresVerification: true,
+    requiresOtp: true,
+    email: user.email,
+    message: `A 6-digit verification code has been sent to ${user.email}. Please verify your account.`,
+  };
+}
+
+export async function verifyEmailOtp(email: string, code: string, meta: RequestMeta): Promise<Session> {
+  const identifier = email.trim().toLowerCase();
+  const trimmedCode = code.trim();
+
+  const record = await prisma.oneTimeCode.findFirst({
+    where: {
+      identifier,
+      purpose: 'email_verify',
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) {
+    throw ApiError.badRequest('Verification code has expired or was not requested. Please request a new code.', undefined, 'OTP_INVALID');
+  }
+
+  if (record.attempts >= 5) {
+    throw ApiError.tooMany('Too many wrong attempts. Please request a new verification code.');
+  }
+
+  if (!safeEqual(record.codeHash, otpHash(identifier, trimmedCode))) {
+    await prisma.oneTimeCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+    throw ApiError.badRequest('Incorrect verification code. Please check your email and try again.', undefined, 'OTP_INVALID');
+  }
+
+  await prisma.oneTimeCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+
+  const user = await prisma.user.findUnique({ where: { email: identifier } });
+  if (!user) throw ApiError.notFound('Account not found');
+
+  if (!user.verification?.isEmailVerified) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verification: { set: { ...user.verification, isEmailVerified: true } } },
+    });
+    void sendWelcomeEmail(user.fullName, user.email);
+  }
+
   return createSession({ id: user.id, role: 'user' }, meta);
+}
+
+export async function resendEmailOtp(email: string) {
+  const identifier = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email: identifier } });
+  if (!user) {
+    throw ApiError.notFound('No account found with this email');
+  }
+  if (user.verification?.isEmailVerified) {
+    throw ApiError.conflict('Your email is already verified. Please sign in.', 'ALREADY_VERIFIED');
+  }
+  return sendAccountVerificationOtp({ id: user.id, fullName: user.fullName, email: user.email });
 }
 
 export async function registerVendor(input: RegisterVendorInput, meta: RequestMeta): Promise<Session> {
@@ -183,6 +311,41 @@ export async function registerVendor(input: RegisterVendorInput, meta: RequestMe
     },
   });
   return createSession({ id: vendor.id, role: 'vendor' }, meta);
+}
+
+export async function vendorLogin(
+  input: { email: string; password: string },
+  meta: RequestMeta
+): Promise<StaffLoginResult> {
+  const actor = await assertPassword(await findLoginActor('vendor', input.email), input.password);
+
+  // Generate a secure 6-digit email OTP for 2-step verification
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = sha256(otp);
+
+  try {
+    const mail = templates.vendorLoginOtp(actor.fullName, otp);
+    await sendEmail({
+      to: actor.email,
+      subject: mail.subject,
+      html: mail.html,
+      text: `Your Mahastays Host & Vendor verification code is: ${otp}. It expires in 10 minutes.`,
+    });
+  } catch (err) {
+    logger.error({ err, email: actor.email }, '[vendor-auth] Failed to dispatch vendor login OTP email');
+  }
+  logger.info({ email: actor.email, otp: env.isProd ? '***' : otp }, '[vendor-auth] Dispatched vendor login OTP to email');
+
+  const challengeToken = signMfaChallenge(actor.id, 'vendor', { otpHash, email: actor.email });
+
+  return {
+    twoFactorRequired: true,
+    requiresOtp: true,
+    challengeToken,
+    expiresInSeconds: 600,
+    email: actor.email,
+    message: `A 6-digit verification code has been sent to ${actor.email}`,
+  };
 }
 
 /* ──────────────────────── staff (admin / sub-admin / super-admin) ──────────────────────── */
@@ -255,17 +418,21 @@ export async function resendStaffLoginOtp(
   const otpHash = sha256(otp);
 
   try {
-    const mail = templates.adminLoginOtp(actor.fullName, otp);
+    const isVendor = actor.role === 'vendor';
+    const mail = isVendor
+      ? templates.vendorLoginOtp(actor.fullName, otp)
+      : templates.adminLoginOtp(actor.fullName, otp);
+    const roleLabel = isVendor ? 'Host & Vendor' : 'Admin';
     await sendEmail({
       to: targetEmail,
       subject: mail.subject,
       html: mail.html,
-      text: `Your Mahastays Admin verification code is: ${otp}. It expires in 10 minutes.`,
+      text: `Your Mahastays ${roleLabel} verification code is: ${otp}. It expires in 10 minutes.`,
     });
   } catch (err) {
-    logger.error({ err, email: targetEmail }, '[admin-auth] Failed to resend admin login OTP');
+    logger.error({ err, email: targetEmail }, `[${actor.role}-auth] Failed to resend login OTP`);
   }
-  logger.info({ email: targetEmail, otp: env.isProd ? '***' : otp }, '[admin-auth] Resent admin login OTP to email');
+  logger.info({ email: targetEmail, otp: env.isProd ? '***' : otp }, `[${actor.role}-auth] Resent login OTP to email`);
 
   const newChallengeToken = signMfaChallenge(actor.id, actor.role, { otpHash, email: targetEmail });
   return { challengeToken: newChallengeToken, expiresInSeconds: 600, email: targetEmail };
@@ -507,8 +674,13 @@ async function consumeLinkToken(purpose: 'password_reset' | 'email_verify', toke
 
 export async function changePassword(role: Role, id: string, currentPassword: string, newPassword: string, meta: RequestMeta): Promise<Session> {
   const actor = await findLoginActorById(role, id);
-  if (!actor || !actor.passwordHash || !(await verifyPassword(currentPassword, actor.passwordHash))) {
-    throw ApiError.unauthorized('Current password is incorrect', 'INVALID_CREDENTIALS');
+  if (!actor) {
+    throw ApiError.unauthorized('Account not found', 'INVALID_CREDENTIALS');
+  }
+  if (actor.passwordHash) {
+    if (!currentPassword || !(await verifyPassword(currentPassword, actor.passwordHash))) {
+      throw ApiError.unauthorized('Current password is incorrect', 'INVALID_CREDENTIALS');
+    }
   }
   await patchActor(role, id, { passwordHash: await hashPassword(newPassword) });
   await revokeAllRefreshTokens(id, role); // sign out every other device

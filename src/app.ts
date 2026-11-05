@@ -31,7 +31,10 @@ export const RAZORPAY_WEBHOOK_PATHS = [
 export function createApp(): Express {
   const app = express();
   app.disable('x-powered-by');
-  if (env.TRUST_PROXY > 0) app.set('trust proxy', env.TRUST_PROXY); // correct client IPs behind a load balancer
+  const trustProxySetting = env.TRUST_PROXY > 0 ? env.TRUST_PROXY : (env.isProd ? 1 : false);
+  if (trustProxySetting) {
+    app.set('trust proxy', trustProxySetting); // correct client IPs behind a reverse proxy / serverless host
+  }
 
   app.use(requestId);
   app.use(
@@ -61,7 +64,20 @@ export function createApp(): Express {
       origin: (origin, callback) => callback(null, !origin || env.corsOrigins.includes(origin)),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type', 'x-master-pin', 'x-request-id', 'x-razorpay-signature', 'x-webhook-signature'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Cache-Control',
+        'Pragma',
+        'Expires',
+        'x-client-type',
+        'x-master-pin',
+        'x-request-id',
+        'x-razorpay-signature',
+        'x-webhook-signature',
+        'X-Requested-With',
+        'Accept',
+      ],
       exposedHeaders: ['x-request-id'],
       maxAge: 600,
     }),
