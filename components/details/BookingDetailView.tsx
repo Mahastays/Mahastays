@@ -323,7 +323,11 @@ export default function BookingDetailView({ id }: BookingDetailViewProps) {
             <div className="mt-5 space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                 <Phone className="w-3.5 h-3.5 text-slate-400" />
-                <span>{booking.guestPhone || 'Not provided'}</span>
+                <span>
+                  {booking.guestPhone
+                    ? `+91 ${booking.guestPhone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10)}`
+                    : ((booking as any).customer?.phone || (booking as any).phone || 'Not provided')}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                 <Mail className="w-3.5 h-3.5 text-slate-400" />

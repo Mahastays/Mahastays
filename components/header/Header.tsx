@@ -102,6 +102,11 @@ export default function Header({ currentTab, onOpenCreateModal, onNavigateTab }:
         ? 'Platform gross booking volume, commission splits, and tax logs'
         : 'Track your net share, pending escrow, and payout disbursement cycles',
     },
+    settlements: {
+      title: 'Vendor Settlements & Bank Payouts',
+      subtitle:
+        'Monitor vendor earnings, gross GMV, platform commission, settled bank transfers with UTRs, and process withdrawal requests',
+    },
     settings: {
       title: 'Platform Configurations',
       subtitle: 'GST rates, dynamic commission slabs, and system rules',

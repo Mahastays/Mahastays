@@ -26,6 +26,7 @@ export const TAB_ROUTES: Record<NavTab, string> = {
   vendors: '/dashboard/vendors',
   users: '/dashboard/users',
   finance: '/dashboard/finance',
+  settlements: '/dashboard/settlements',
   settings: '/dashboard/settings',
   support: '/dashboard/support',
 };
@@ -87,6 +88,7 @@ export default function DashboardClientShell({ children }: { children: React.Rea
     if (path.includes('/dashboard/vendors')) return 'vendors';
     if (path.includes('/dashboard/users')) return 'users';
     if (path.includes('/dashboard/finance')) return 'finance';
+    if (path.includes('/dashboard/settlements')) return 'settlements';
     if (path.includes('/dashboard/settings')) return 'settings';
     if (path.includes('/dashboard/support')) return 'support';
     return 'overview';

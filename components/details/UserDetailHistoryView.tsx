@@ -113,6 +113,9 @@ interface UserBookingItem {
   totalAmountInr: number;
   bookingStatus: string;
   paymentStatus?: string;
+  guestPhone?: string;
+  specialRequests?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -203,6 +206,9 @@ export default function UserDetailHistoryView({ id }: UserDetailHistoryViewProps
           totalAmountInr: b.grandTotalInr || b.pricing?.grandTotalInr || b.pricing?.totalInr || b.totalAmountInr || b.amount || 0,
           bookingStatus: b.bookingStatus || b.status || 'confirmed',
           paymentStatus: b.paymentStatus || b.payment?.status || 'paid',
+          guestPhone: b.guestPhone || b.phone || b.customer?.phone,
+          specialRequests: b.specialRequests || b.notes,
+          notes: b.notes || b.specialRequests,
           createdAt: b.createdAt || new Date().toISOString(),
         }));
         setBookings(mapped);
@@ -968,6 +974,12 @@ export default function UserDetailHistoryView({ id }: UserDetailHistoryViewProps
                           <span>•</span>
                           <span>{b.guestsCount} Guests</span>
                         </div>
+
+                        {(b.specialRequests || b.notes) && (
+                          <div className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 px-2.5 py-1 rounded-lg max-w-md truncate">
+                            <span className="font-bold">Guest Note:</span> &ldquo;{b.specialRequests || b.notes}&rdquo;
+                          </div>
+                        )}
                       </div>
                     </div>
 

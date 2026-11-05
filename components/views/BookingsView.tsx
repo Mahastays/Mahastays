@@ -842,9 +842,14 @@ export default function BookingsView() {
                           <div className="font-bold text-slate-900 dark:text-white text-[13px] leading-tight">
                             {b.guestName}
                           </div>
+                          {(b.guestPhone || (b as any).customer?.phone) && (
+                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+                              +91 {String(b.guestPhone || (b as any).customer?.phone).replace(/^\+91/, '').replace(/\D/g, '').slice(-10)}
+                            </span>
+                          )}
                           <Link
                             href={`/dashboard/guests/${b.userId || 'usr_cahyadi_01'}`}
-                            className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 hover:underline mt-0.5 inline-block"
+                            className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 hover:underline mt-0.5 inline-block"
                             title="View Guest Profile"
                           >
                             <span>{guestCode}</span>
@@ -1166,6 +1171,11 @@ export default function BookingsView() {
                   <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                     {notesModalBooking.guestName}
                   </h3>
+                  {(notesModalBooking.guestPhone || (notesModalBooking as any).customer?.phone) && (
+                    <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-0.5">
+                      Phone: +91 {String(notesModalBooking.guestPhone || (notesModalBooking as any).customer?.phone).replace(/^\+91/, '').replace(/\D/g, '').slice(-10)}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500">
                     Ref: #{notesModalBooking.bookingReference} &bull; Type: {notesModalBooking.type.toUpperCase()}
                   </p>

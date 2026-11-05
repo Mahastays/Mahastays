@@ -21,9 +21,11 @@ import {
   LogOut,
   UserCheck,
   Layers,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { useAppSelector } from '../../store/hooks';
 
 export type NavTab =
   | 'overview'
@@ -37,6 +39,7 @@ export type NavTab =
   | 'vendors'
   | 'users'
   | 'finance'
+  | 'settlements'
   | 'settings'
   | 'support';
 
@@ -60,6 +63,7 @@ export default function Sidebar({
   const router = useRouter();
   const { user, role, activeViewMode, logout } = useAuth();
   const { properties, packages, experiences, ads, bookings } = useData();
+  const payouts = useAppSelector((state) => state.payouts.items);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   // Pending counts for admin
@@ -68,6 +72,10 @@ export default function Sidebar({
   const pendingExps = experiences.filter((p) => p.status === 'pending_approval').length;
   const pendingAds = ads.filter((a) => !a.approvedByAdmin).length;
   const totalPending = pendingProps + pendingPkgs + pendingExps + pendingAds;
+
+  const pendingPayoutRequests = payouts.filter(
+    (p) => p.status === 'requested' || p.status === 'audited_by_admin'
+  ).length;
 
   const isAdmin = activeViewMode === 'admin';
 
@@ -387,6 +395,27 @@ export default function Sidebar({
                 <Wallet className="w-4 h-4 shrink-0" />
                 <span>{isAdmin ? 'Financial Ledger' : 'My Payouts & Wallet'}</span>
               </button>
+
+              {isAdmin && (
+                <button
+                  onClick={() => onSelectTab('settlements')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition ${
+                    currentTab === 'settlements'
+                      ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-semibold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Receipt className="w-4 h-4 shrink-0" />
+                    <span>Vendor Settlements</span>
+                  </div>
+                  {pendingPayoutRequests > 0 && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      {pendingPayoutRequests}
+                    </span>
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={() => onSelectTab('settings')}

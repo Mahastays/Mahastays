@@ -43,6 +43,7 @@ import {
   rejectAdminPayout,
   PayoutItem,
 } from '../../store/slices/payoutsSlice';
+import VendorSettlementsView from './VendorSettlementsView';
 
 type PeriodFilter = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'last_month' | 'custom';
 type LedgerTab = 'all' | 'realized' | 'escrow' | 'refunds';
@@ -58,6 +59,7 @@ export default function FinanceView() {
   );
 
   const isAdmin = activeViewMode === 'admin';
+  const [adminSubSection, setAdminSubSection] = useState<'platform_ledger' | 'vendor_settlements'>('platform_ledger');
 
   // Filters & Tabs
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
@@ -487,8 +489,61 @@ export default function FinanceView() {
     return <DashboardSkeleton type="table" />;
   }
 
+  if (isAdmin && adminSubSection === 'vendor_settlements') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl w-fit">
+          <button
+            onClick={() => setAdminSubSection('platform_ledger')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Platform Financial Ledger</span>
+          </button>
+          <button
+            onClick={() => setAdminSubSection('vendor_settlements')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs transition"
+          >
+            <Building className="w-4 h-4" />
+            <span>Vendor Settlements & Payouts</span>
+            {payoutMetrics.pendingCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+                {payoutMetrics.pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
+        <VendorSettlementsView />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl w-fit">
+          <button
+            onClick={() => setAdminSubSection('platform_ledger')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs transition"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Platform Financial Ledger</span>
+          </button>
+          <button
+            onClick={() => setAdminSubSection('vendor_settlements')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+          >
+            <Building className="w-4 h-4" />
+            <span>Vendor Settlements & Payouts</span>
+            {payoutMetrics.pendingCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+                {payoutMetrics.pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Top Banner & Control Bar */}
       <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
         <div>

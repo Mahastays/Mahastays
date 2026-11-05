@@ -41,10 +41,67 @@ export interface VendorWalletData {
   } | null;
 }
 
+export interface VendorSettlementItem {
+  vendorId: string;
+  vendorCode: string;
+  businessName: string;
+  displayName: string;
+  category: string;
+  email: string;
+  phone: string;
+  commissionRatePercent: number;
+  banking: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumberMasked: string;
+    ifscCode: string;
+    branchName?: string | null;
+    upiId?: string | null;
+    isAccountVerified: boolean;
+  } | null;
+  totalBookingsCount: number;
+  grossRevenueInr: number;
+  platformCommissionInr: number;
+  netRevenueInr: number;
+  amountSettledInr: number;
+  pendingSettlementInr: number;
+  walletAvailableInr: number;
+  walletPendingInr: number;
+  pendingPayoutRequestsCount: number;
+  pendingPayoutRequestsAmountInr: number;
+  recentPayouts: Array<{
+    id: string;
+    payoutReference: string;
+    netPayableAmountInr: number;
+    status: string;
+    transferMethod?: string;
+    utrNumber?: string;
+    createdAt: string;
+    completedAt?: string | null;
+  }>;
+}
+
+export interface VendorSettlementLedgerResponse {
+  summary: {
+    totalVendorsCount: number;
+    totalGrossVolumeInr: number;
+    totalPlatformCommissionInr: number;
+    totalNetVendorShareInr: number;
+    totalSettledAmountInr: number;
+    totalPendingSettlementInr: number;
+    pendingRequestsCount: number;
+    pendingRequestsAmountInr: number;
+  };
+  vendors: VendorSettlementItem[];
+  payoutRequests: PayoutItem[];
+}
+
 interface PayoutsState {
   items: PayoutItem[];
   wallet: VendorWalletData | null;
+  vendorLedger: VendorSettlementLedgerResponse | null;
   loading: boolean;
+  ledgerLoading: boolean;
   actionLoading: boolean;
   error: string | null;
 }
@@ -52,7 +109,9 @@ interface PayoutsState {
 const initialState: PayoutsState = {
   items: [],
   wallet: null,
+  vendorLedger: null,
   loading: false,
+  ledgerLoading: false,
   actionLoading: false,
   error: null,
 };
@@ -131,6 +190,43 @@ export const rejectAdminPayout = createAsyncThunk(
       return response.data?.data || response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.error?.message || err.message || 'Failed to reject payout');
+    }
+  }
+);
+
+export const fetchVendorSettlementLedger = createAsyncThunk(
+  'payouts/fetchVendorSettlementLedger',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/admin/finance/vendor-settlement-ledger');
+      return (response.data?.data || response.data) as VendorSettlementLedgerResponse;
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.error?.message || err.message || 'Failed to fetch vendor settlement ledger'
+      );
+    }
+  }
+);
+
+export const processDirectSettlement = createAsyncThunk(
+  'payouts/processDirectSettlement',
+  async (
+    payload: {
+      vendorId: string;
+      amountInr: number;
+      transferMethod?: string;
+      utrNumber: string;
+      notes?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.post('/admin/finance/direct-settlement', payload);
+      return response.data?.data || response.data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.error?.message || err.message || 'Failed to disburse direct settlement'
+      );
     }
   }
 );
@@ -214,6 +310,35 @@ const payoutsSlice = createSlice({
       .addCase(rejectAdminPayout.rejected, (state, action) => {
         state.actionLoading = false;
         state.error = (action.payload as string) || 'Failed to reject payout';
+      })
+      // fetchVendorSettlementLedger
+      .addCase(fetchVendorSettlementLedger.pending, (state) => {
+        state.ledgerLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchVendorSettlementLedger.fulfilled, (state, action: PayloadAction<VendorSettlementLedgerResponse>) => {
+        state.ledgerLoading = false;
+        state.vendorLedger = action.payload;
+        if (action.payload.payoutRequests) {
+          state.items = action.payload.payoutRequests;
+        }
+      })
+      .addCase(fetchVendorSettlementLedger.rejected, (state, action) => {
+        state.ledgerLoading = false;
+        state.error = (action.payload as string) || 'Failed to load vendor settlement ledger';
+      })
+      // processDirectSettlement
+      .addCase(processDirectSettlement.pending, (state) => {
+        state.actionLoading = true;
+        state.error = null;
+      })
+      .addCase(processDirectSettlement.fulfilled, (state, action: PayloadAction<PayoutItem>) => {
+        state.actionLoading = false;
+        state.items.unshift(action.payload);
+      })
+      .addCase(processDirectSettlement.rejected, (state, action) => {
+        state.actionLoading = false;
+        state.error = (action.payload as string) || 'Failed to disburse direct settlement';
       });
   },
 });
