@@ -10,6 +10,8 @@ import {
   loginWithEmail,
   loginWithGoogle,
   signupUser,
+  verifyEmailOtp,
+  resendEmailOtp,
   clearAuthError,
   clearSuccessMessage,
 } from "../../store/authSlice";
@@ -103,6 +105,25 @@ function AuthPageContent({
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
 
+  // Email OTP verification state
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpCountdown, setOtpCountdown] = useState(60);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+
+  // OTP Countdown Timer
+  useEffect(() => {
+    let timer: any;
+    if (showOtpVerification && otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showOtpVerification, otpCountdown]);
+
   // Auto advance carousel every 6s
   useEffect(() => {
     const timer = setInterval(() => {
@@ -165,6 +186,15 @@ function AuthPageContent({
         })
       ).unwrap();
 
+      if (response?.requiresVerification) {
+        setVerificationEmail(loginEmail.trim().toLowerCase());
+        setShowOtpVerification(true);
+        setOtpCode("");
+        setOtpCountdown(60);
+        toast.info(response.message || "Please enter the verification code sent to your email.", "Verification Required");
+        return;
+      }
+
       const userName = response?.user?.fullName || "Back";
       const successMsg = `Welcome back, ${userName}! Redirecting...`;
       setLocalFeedback({
@@ -180,6 +210,19 @@ function AuthPageContent({
         typeof err === "string"
           ? err
           : err?.message || "Invalid email or password.";
+
+      if (
+        errorMsg.toLowerCase().includes("verify") ||
+        errorMsg.toLowerCase().includes("verification")
+      ) {
+        setVerificationEmail(loginEmail.trim().toLowerCase());
+        setShowOtpVerification(true);
+        setOtpCode("");
+        setOtpCountdown(60);
+        toast.info(errorMsg, "Account Verification Required");
+        return;
+      }
+
       setLocalFeedback({
         type: "error",
         message: errorMsg,
@@ -239,6 +282,18 @@ function AuthPageContent({
         })
       ).unwrap();
 
+      if (response?.requiresVerification || !response?.accessToken) {
+        setVerificationEmail(signupEmail.trim().toLowerCase());
+        setShowOtpVerification(true);
+        setOtpCode("");
+        setOtpCountdown(60);
+        toast.success(
+          response.message || "A 6-digit verification code has been sent to your email.",
+          "Verify Your Email"
+        );
+        return;
+      }
+
       const userName = response?.user?.fullName || "there";
       const successMsg = `Welcome ${userName}! Account created successfully. Redirecting...`;
       setLocalFeedback({
@@ -259,6 +314,61 @@ function AuthPageContent({
         message: errorMsg,
       });
       toast.error(errorMsg, "Registration Failed");
+    }
+  };
+
+  // Submit Email Verification OTP
+  const handleOtpVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      toast.warning("Please enter all 6 digits of the verification code.", "Invalid Code");
+      return;
+    }
+    setIsVerifyingOtp(true);
+    setLocalFeedback(null);
+    try {
+      const res = await dispatch(
+        verifyEmailOtp({
+          email: verificationEmail,
+          code: otpCode,
+        })
+      ).unwrap();
+
+      const userName = res?.user?.fullName || "there";
+      const successMsg = `Welcome, ${userName}! Email verified successfully. Redirecting...`;
+      setLocalFeedback({ type: "success", message: successMsg });
+      toast.success(successMsg, "Account Activated");
+      setTimeout(() => {
+        router.replace(redirectUrl || "/profile");
+      }, 500);
+    } catch (err: any) {
+      const errorMsg =
+        typeof err === "string"
+          ? err
+          : err?.message || "Verification code is invalid or has expired.";
+      setLocalFeedback({ type: "error", message: errorMsg });
+      toast.error(errorMsg, "Verification Failed");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Resend Email Verification OTP
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0 || isResendingOtp) return;
+    setIsResendingOtp(true);
+    try {
+      await dispatch(resendEmailOtp(verificationEmail)).unwrap();
+      setOtpCountdown(60);
+      toast.success("A fresh verification code has been sent to your email.", "Code Resent");
+    } catch (err: any) {
+      const errorMsg =
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to resend code.";
+      toast.error(errorMsg, "Resend Failed");
+    } finally {
+      setIsResendingOtp(false);
     }
   };
 
@@ -637,25 +747,147 @@ function AuthPageContent({
 
         {/* Center Container: Main Form Body */}
         <div className="w-full max-w-[440px] mx-auto my-auto py-6 sm:py-8 relative z-10">
-          {/* Header Texts */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[11px] font-bold text-red-600 tracking-[0.25em] uppercase font-poppins">
-                {mode === "signup" ? "JOIN MAHASTAYS" : "WELCOME BACK"}
-              </span>
-              <span className="w-5 h-[1.5px] bg-red-600 opacity-60 inline-block"></span>
+          {showOtpVerification ? (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Header Texts */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[11px] font-bold text-red-600 tracking-[0.25em] uppercase font-poppins">
+                    EMAIL VERIFICATION
+                  </span>
+                  <span className="w-5 h-[1.5px] bg-red-600 opacity-60 inline-block"></span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight font-poppins">
+                  Verify your account
+                </h2>
+
+                <p className="text-xs sm:text-sm text-neutral-500 font-normal leading-relaxed mt-2 font-roboto">
+                  We have sent a 6-digit one-time verification code to{" "}
+                  <strong className="text-neutral-900 font-semibold">{verificationEmail}</strong>.
+                  Please enter the code to complete verification.
+                </p>
+              </div>
+
+              {/* Feedback Messages */}
+              {activeSuccess && (
+                <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 shadow-xs">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-600 shrink-0">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{activeSuccess}</span>
+                </div>
+              )}
+
+              {activeError && (
+                <div className="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 shadow-xs">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-red-600 shrink-0">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{activeError}</span>
+                </div>
+              )}
+
+              {/* OTP Form */}
+              <form onSubmit={handleOtpVerifySubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-800 mb-2 font-roboto">
+                    Enter 6-Digit Verification Code
+                  </label>
+                  <div className="relative flex items-center rounded-2xl border border-neutral-200 bg-neutral-50/60 focus-within:border-red-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100 transition p-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      autoFocus
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="• • • • • •"
+                      className="w-full text-center tracking-[12px] sm:tracking-[16px] text-2xl sm:text-3xl font-black py-2.5 px-3 bg-transparent text-neutral-900 outline-none font-poppins placeholder-neutral-300"
+                    />
+                  </div>
+                  <span className="text-[11px] text-neutral-400 mt-1.5 block">
+                    Code is valid for 10 minutes. Check your spam/junk folder if not found.
+                  </span>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={otpCode.length !== 6 || isVerifyingOtp}
+                    className="w-full py-3.5 px-6 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-sm sm:text-base shadow-lg shadow-red-600/25 hover:shadow-red-600/35 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 font-poppins"
+                  >
+                    {isVerifyingOtp ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Verifying Code...
+                      </span>
+                    ) : (
+                      <>
+                        <span>Verify &amp; Log In</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Resend and Switch options */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 text-xs font-roboto border-t border-neutral-100">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={otpCountdown > 0 || isResendingOtp}
+                    className="font-bold text-red-600 hover:underline disabled:text-neutral-400 disabled:no-underline disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    {isResendingOtp
+                      ? "Sending code..."
+                      : otpCountdown > 0
+                      ? `Resend code (${otpCountdown}s)`
+                      : "Resend Code"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowOtpVerification(false);
+                      setOtpCode("");
+                    }}
+                    className="text-neutral-500 hover:text-neutral-800 transition cursor-pointer"
+                  >
+                    ← Change Email / Back
+                  </button>
+                </div>
+              </form>
             </div>
+          ) : (
+            <>
+              {/* Header Texts */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[11px] font-bold text-red-600 tracking-[0.25em] uppercase font-poppins">
+                    {mode === "signup" ? "JOIN MAHASTAYS" : "WELCOME BACK"}
+                  </span>
+                  <span className="w-5 h-[1.5px] bg-red-600 opacity-60 inline-block"></span>
+                </div>
 
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight font-poppins">
-              {mode === "signup" ? "Create your account" : "Log in to your account"}
-            </h2>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight font-poppins">
+                  {mode === "signup" ? "Create your account" : "Log in to your account"}
+                </h2>
 
-            <p className="text-xs sm:text-sm text-neutral-500 font-normal leading-relaxed mt-1.5 font-roboto">
-              {mode === "signup"
-                ? "Join Mahastays to book exclusive resorts, villas, and curated experiences."
-                : "Continue to access your bookings, manage stays and explore new destinations."}
-            </p>
-          </div>
+                <p className="text-xs sm:text-sm text-neutral-500 font-normal leading-relaxed mt-1.5 font-roboto">
+                  {mode === "signup"
+                    ? "Join Mahastays to book exclusive resorts, villas, and curated experiences."
+                    : "Continue to access your bookings, manage stays and explore new destinations."}
+                </p>
+              </div>
 
           {/* Feedback Messages */}
           {activeSuccess && (
@@ -1046,19 +1278,21 @@ function AuthPageContent({
             )}
           </div>
 
-          {/* Terms of Service Disclaimer */}
-          <p className="text-[11px] text-neutral-400 text-center leading-relaxed pt-6 font-roboto">
-            By continuing, I agree to Mahastays{" "}
-            <Link href="#" className="underline hover:text-neutral-600">
-              Privacy Policy
-            </Link>{" "}
-            and{" "}
-            <Link href="#" className="underline hover:text-neutral-600">
-              Terms of Service
-            </Link>
-            .
-          </p>
-        </div>
+            {/* Terms of Service Disclaimer */}
+            <p className="text-[11px] text-neutral-400 text-center leading-relaxed pt-6 font-roboto">
+              By continuing, I agree to Mahastays{" "}
+              <Link href="#" className="underline hover:text-neutral-600">
+                Privacy Policy
+              </Link>{" "}
+              and{" "}
+              <Link href="#" className="underline hover:text-neutral-600">
+                Terms of Service
+              </Link>
+              .
+            </p>
+          </>
+        )}
+      </div>
 
         {/* Footer spacer for clean balance */}
         <div className="hidden lg:block h-2" />

@@ -552,9 +552,17 @@ export default function PackageDetailsPage() {
             {/* Host Card */}
             <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#0B0A06] text-white font-extrabold text-base flex items-center justify-center font-poppins shrink-0 shadow-sm">
-                  {((pkg as any).host?.name || pkg.hostProperty?.propertyName || "V")[0].toUpperCase()}
-                </div>
+                {(pkg as any).host?.avatar || (pkg as any).vendor?.avatarUrl ? (
+                  <img
+                    src={(pkg as any).host?.avatar || (pkg as any).vendor?.avatarUrl}
+                    alt={(pkg as any).host?.name || "Host Profile"}
+                    className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-[#0B0A06] text-white font-extrabold text-base flex items-center justify-center font-poppins shrink-0 shadow-sm">
+                    {((pkg as any).host?.name || pkg.hostProperty?.propertyName || "V")[0].toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
                     <span>Hosted by {(pkg as any).host?.name || pkg.hostProperty?.propertyName || "Vikramaditya & Concierge Team"}</span>
@@ -576,28 +584,41 @@ export default function PackageDetailsPage() {
               </div>
             </div>
 
-            {/* Quick Highlights Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
-                ? (pkg as any).keyHighlights.map((ka: any) => ({
-                    title: ka.name || ka.title,
-                    desc: ka.desc || ka.description,
-                  }))
-                : [
-                    { title: "4-Star Resort Stay", desc: "Hilltop valley view rooms" },
-                    { title: "All Meals & Decor", desc: "Candlelight dinner setup" },
-                    { title: "Dedicated Chauffeur", desc: "AC sedan sightseeing" },
-                    { title: "Venna Lake Boating", desc: "Free activity pass" },
-                  ]
-              ).map((h: any, i: number) => (
-                <div key={i} className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-xs flex flex-col group hover:border-slate-300 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-rose-50/70 border border-rose-200/50 text-[#ea110d] flex items-center justify-center mb-2.5 shrink-0 group-hover:bg-rose-100/60 transition-colors font-bold text-xs">
-                    ✓
+            {/* Quick Highlights Strip (Clean 1-line strip with Mahastays logo bullet & dividers) */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
+                {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
+                  ? (pkg as any).keyHighlights.map((ka: any) => ({
+                      title: ka.name || ka.title,
+                      desc: ka.desc || ka.description,
+                    }))
+                  : [
+                      { title: "4-Star Resort Stay", desc: "Hilltop valley view rooms" },
+                      { title: "All Meals & Decor", desc: "Candlelight dinner setup" },
+                      { title: "Dedicated Chauffeur", desc: "AC sedan sightseeing" },
+                      { title: "Venna Lake Boating", desc: "Free activity pass" },
+                    ]
+                ).map((h: any, i: number) => (
+                  <div
+                    key={i}
+                    title={h.desc ? `${h.title} • ${h.desc}` : h.title}
+                    className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                  >
+                    <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                      <Image
+                        src="/brand/mahastays-logo-main.png"
+                        alt="Mahastays"
+                        width={22}
+                        height={22}
+                        className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                      />
+                    </div>
+                    <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                      {h.title}
+                    </span>
                   </div>
-                  <div className="text-xs font-bold text-slate-900 font-poppins">{h.title}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 leading-tight">{h.desc}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Sticky Navigation Tabs Bar with Left/Right Slide Buttons & White Gradient */}

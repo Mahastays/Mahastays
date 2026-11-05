@@ -64,12 +64,16 @@ export interface UserProfile {
 }
 
 export interface AuthSessionResponse {
-  user: UserProfile;
+  user?: UserProfile;
   profile?: UserProfile;
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
   expiresAt?: string;
   role?: string;
+  requiresVerification?: boolean;
+  requiresOtp?: boolean;
+  email?: string;
+  message?: string;
 }
 
 export interface AuthState {
@@ -120,6 +124,14 @@ function clearSession() {
 
 // Helper to normalize backend auth responses
 function normalizeAuthSession(raw: any): AuthSessionResponse {
+  if (raw?.requiresVerification || raw?.requiresOtp) {
+    return {
+      requiresVerification: true,
+      requiresOtp: true,
+      email: raw?.email,
+      message: raw?.message,
+    };
+  }
   const user: UserProfile = raw?.user || raw?.profile || raw;
   const accessToken: string = raw?.accessToken || raw?.token || '';
   return {
@@ -160,8 +172,11 @@ export const signupUser = createAsyncThunk<
       body.phone = { countryCode: '+91', nationalNumber: national };
     }
     const res = await api.post('/auth/user/signup', body);
-    const session = normalizeAuthSession(res.data?.data || res.data);
-    saveSession(session);
+    const data = res.data?.data || res.data;
+    const session = normalizeAuthSession(data);
+    if (!session.requiresVerification && session.accessToken && session.user) {
+      saveSession(session);
+    }
     return session;
   } catch (err: any) {
     return rejectWithValue(err.message || 'Registration failed');
@@ -183,11 +198,75 @@ export const loginWithEmail = createAsyncThunk<
       email: payload.email.trim().toLowerCase(),
       password: payload.password,
     });
-    const session = normalizeAuthSession(res.data?.data || res.data);
-    saveSession(session);
+    const data = res.data?.data || res.data;
+    const session = normalizeAuthSession(data);
+    if (!session.requiresVerification && session.accessToken && session.user) {
+      saveSession(session);
+    }
     return session;
   } catch (err: any) {
     return rejectWithValue(err.message || 'Login failed. Check your email and password.');
+  }
+});
+
+export interface EmailOtpVerifyPayload {
+  email: string;
+  code: string;
+}
+
+export const verifyEmailOtp = createAsyncThunk<
+  AuthSessionResponse,
+  EmailOtpVerifyPayload,
+  { rejectValue: string }
+>('auth/verifyEmailOtp', async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/user/verify-email-otp', {
+      email: payload.email.trim().toLowerCase(),
+      code: payload.code.trim(),
+    });
+    const session = normalizeAuthSession(res.data?.data || res.data);
+    if (session.accessToken && session.user) {
+      saveSession(session);
+    }
+    return session;
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Verification code is invalid or has expired');
+  }
+});
+
+export const resendEmailOtp = createAsyncThunk<
+  { sent: boolean; message?: string },
+  string,
+  { rejectValue: string }
+>('auth/resendEmailOtp', async (email, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/user/resend-email-otp', {
+      email: email.trim().toLowerCase(),
+    });
+    return res.data?.data || res.data;
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Failed to resend verification code');
+  }
+});
+
+export interface ChangePasswordPayload {
+  currentPassword?: string;
+  newPassword: string;
+}
+
+export const changeUserPassword = createAsyncThunk<
+  { message: string },
+  ChangePasswordPayload,
+  { rejectValue: string }
+>('auth/changeUserPassword', async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/change-password', {
+      currentPassword: payload.currentPassword || '',
+      newPassword: payload.newPassword,
+    });
+    return res.data?.data || res.data || { message: 'Password updated successfully' };
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Failed to update password');
   }
 });
 
@@ -383,10 +462,15 @@ export const authSlice = createSlice({
       })
       .addCase(signupUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
-        state.isAuthenticated = true;
-        state.successMessage = 'Account created successfully! Welcome to Mahastays.';
+        if (action.payload.requiresVerification) {
+          state.isAuthenticated = false;
+          state.successMessage = action.payload.message || 'Verification code sent to your email.';
+        } else if (action.payload.user && action.payload.accessToken) {
+          state.user = action.payload.user;
+          state.token = action.payload.accessToken;
+          state.isAuthenticated = true;
+          state.successMessage = 'Account created successfully! Welcome to Mahastays.';
+        }
       })
       .addCase(signupUser.rejected, (state, action) => {
         state.loading = false;
@@ -402,14 +486,38 @@ export const authSlice = createSlice({
       })
       .addCase(loginWithEmail.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
-        state.isAuthenticated = true;
-        state.successMessage = 'Logged in successfully! Welcome back.';
+        if (action.payload.requiresVerification) {
+          state.isAuthenticated = false;
+          state.successMessage = action.payload.message || 'Please verify your email to log in.';
+        } else if (action.payload.user && action.payload.accessToken) {
+          state.user = action.payload.user;
+          state.token = action.payload.accessToken;
+          state.isAuthenticated = true;
+          state.successMessage = 'Logged in successfully! Welcome back.';
+        }
       })
       .addCase(loginWithEmail.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Login failed';
+      });
+
+    // ─── Email OTP Verify ───
+    builder
+      .addCase(verifyEmailOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(verifyEmailOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user || null;
+        state.token = action.payload.accessToken || null;
+        state.isAuthenticated = true;
+        state.successMessage = 'Email verified successfully! Welcome to Mahastays.';
+      })
+      .addCase(verifyEmailOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Verification code is invalid or has expired';
       });
 
     // ─── Phone OTP Request ───
@@ -439,8 +547,8 @@ export const authSlice = createSlice({
       })
       .addCase(verifyPhoneOtp.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
+        state.user = action.payload.user ?? null;
+        state.token = action.payload.accessToken ?? null;
         state.isAuthenticated = true;
         state.otpSent = false;
         state.otpPhone = null;
@@ -464,8 +572,8 @@ export const authSlice = createSlice({
       })
       .addCase(loginWithGoogle.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
+        state.user = action.payload.user ?? null;
+        state.token = action.payload.accessToken ?? null;
         state.isAuthenticated = true;
         state.successMessage = 'Google login successful! Welcome to Mahastays.';
       })

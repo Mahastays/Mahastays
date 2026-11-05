@@ -6,11 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logoutUser, fetchCurrentUser, updateUserProfile } from "@/store/authSlice";
+import { logoutUser, fetchCurrentUser, updateUserProfile, changeUserPassword } from "@/store/authSlice";
 import api from "@/lib/api";
 import { toast } from "../../components/ui/Toast";
 import { useFavoritesList } from "@/lib/wishlist";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Eye, EyeOff, Lock, KeyRound, ShieldCheck } from "lucide-react";
 import BookingInvoiceModal, { BookingInvoiceData } from "../components/booking/BookingInvoiceModal";
 
 interface BookingItem {
@@ -97,6 +97,15 @@ function ProfileContent() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Security / Update Password Form State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Sync edit form with user state
   useEffect(() => {
@@ -264,6 +273,45 @@ function ProfileContent() {
       toast.error(typeof err === "string" ? err : "Failed to update profile", "Update Error");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword) {
+      toast.warning("Please enter a new password.", "Missing Password");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.warning("New password must be at least 8 characters long.", "Password Too Short");
+      return;
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      toast.warning("New password must contain both letters and numbers.", "Weak Password");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.", "Password Mismatch");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await dispatch(
+        changeUserPassword({
+          currentPassword,
+          newPassword,
+        })
+      ).unwrap();
+      toast.success("Your password has been updated successfully!", "Password Changed");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      const msg = typeof err === "string" ? err : err?.message || "Failed to update password.";
+      toast.error(msg, "Password Update Failed");
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -828,7 +876,8 @@ function ProfileContent() {
         {/* TAB 4: SETTINGS & EDIT PROFILE                                */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === "settings" && (
-          <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#ea110d] block font-poppins">
@@ -991,7 +1040,152 @@ function ProfileContent() {
               </div>
             </form>
           </div>
-        )}
+
+          {/* Security & Password Update Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+            <div className="mb-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#ea110d] block font-poppins">
+                  Security &amp; Authentication
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-poppins">
+                  Update Password
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 font-roboto">
+                  Ensure your account stays secure by using a strong password with at least 8 characters including letters and numbers.
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-2xl bg-red-50 text-[#ea110d] flex items-center justify-center shrink-0">
+                <KeyRound size={20} />
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-5">
+              {/* Current Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 font-poppins mb-1.5">
+                  Current Password
+                </label>
+                <div className="relative flex items-center rounded-xl border border-slate-200 bg-slate-50/40 focus-within:bg-white focus-within:border-[#ea110d] transition">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter your current password"
+                    className="w-full px-4 py-2.5 text-xs font-medium text-slate-900 bg-transparent focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Leave blank if you signed in using Google and never set a password.
+                </span>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 font-poppins mb-1.5">
+                  New Password *
+                </label>
+                <div className="relative flex items-center rounded-xl border border-slate-200 bg-slate-50/40 focus-within:bg-white focus-within:border-[#ea110d] transition">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min. 8 characters)"
+                    className="w-full px-4 py-2.5 text-xs font-medium text-slate-900 bg-transparent focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+
+                {/* Password requirements */}
+                <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                    <ShieldCheck size={14} className="text-[#ea110d]" />
+                    <span>Password requirements:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 pt-0.5">
+                    <span className={newPassword.length >= 8 ? "text-emerald-700 font-bold" : "text-slate-400"}>
+                      {newPassword.length >= 8 ? "✓" : "○"} At least 8 characters
+                    </span>
+                    <span className={/[A-Za-z]/.test(newPassword) ? "text-emerald-700 font-bold" : "text-slate-400"}>
+                      {/[A-Za-z]/.test(newPassword) ? "✓" : "○"} Contains a letter
+                    </span>
+                    <span className={/\d/.test(newPassword) ? "text-emerald-700 font-bold" : "text-slate-400"}>
+                      {/\d/.test(newPassword) ? "✓" : "○"} Contains a number
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confirm New Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 font-poppins mb-1.5">
+                  Confirm New Password *
+                </label>
+                <div className="relative flex items-center rounded-xl border border-slate-200 bg-slate-50/40 focus-within:bg-white focus-within:border-[#ea110d] transition">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full px-4 py-2.5 text-xs font-medium text-slate-900 bg-transparent focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <span className="text-[11px] text-red-600 font-medium mt-1 block">
+                    Passwords do not match.
+                  </span>
+                )}
+              </div>
+
+              {/* Update Password Button */}
+              <div className="pt-2 flex items-center justify-end">
+                <button
+                  type="submit"
+                  disabled={isChangingPassword || !newPassword || newPassword !== confirmPassword}
+                  className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs font-poppins shadow-md disabled:opacity-50 transition cursor-pointer flex items-center gap-2"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>Updating Password...</span>
+                    </>
+                  ) : (
+                    <span>Update Password</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* TAB 2: MY BOOKINGS                                            */}
