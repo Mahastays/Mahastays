@@ -62,6 +62,9 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
           guests = `${b.participants?.adults || b.adults || 1} Participants`;
         }
 
+        const rawPhone = b.guestPhone || (typeof b.customer?.phone === 'string' ? b.customer.phone : b.customer?.phone?.nationalNumber) || b.phone || '';
+        const cleanPhone = String(rawPhone).replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+
         const invoiceData: BookingInvoiceData = {
           id: b.id,
           bookingReference: b.bookingReference || refCode,
@@ -70,7 +73,7 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
           createdAt: b.createdAt || payment.capturedAt,
           guestName: b.customer?.fullName || b.guestName || 'Valued Guest',
           guestEmail: b.customer?.email || b.guestEmail || '',
-          guestPhone: b.customer?.phone?.nationalNumber || b.guestPhone || '',
+          guestPhone: cleanPhone,
           billingState: b.billingState || 'Maharashtra',
           paymentStatus: payment.status || b.paymentStatus || 'paid',
           paymentMethod: payment.method || b.paymentMethod || 'online',

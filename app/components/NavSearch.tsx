@@ -322,7 +322,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
           className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 h-10 w-48 lg:w-64 xl:w-72 focus-within:w-64 lg:focus-within:w-80 xl:focus-within:w-96 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 ${
             isScrolled || !isHomePage
               ? "bg-slate-100 border border-slate-200"
-              : "bg-white/85 backdrop-blur-md border border-white/60 shadow-xs"
+              : "bg-white/85 backdrop-blur-md border border-white/60"
           }`}
         >
           <svg

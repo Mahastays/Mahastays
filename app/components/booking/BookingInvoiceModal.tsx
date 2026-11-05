@@ -244,21 +244,21 @@ export default function BookingInvoiceModal({
       <div className="fixed inset-0 print:hidden" onClick={onClose} />
 
       {/* Modal Dialog Container */}
-      <div className="relative bg-white text-slate-900 rounded-3xl max-w-4xl w-full my-auto shadow-2xl border border-slate-200 overflow-hidden z-10 print:shadow-none print:border-none print:max-w-none print:rounded-none">
+      <div className="relative bg-white text-slate-900 rounded-2xl sm:rounded-3xl max-w-4xl w-full my-auto shadow-2xl border border-slate-200 overflow-hidden z-10 print:shadow-none print:border-none print:max-w-none print:rounded-none max-h-[92vh] flex flex-col">
         {/* Top Control Bar (Hidden during printing) */}
-        <div className="flex items-center justify-between px-5 sm:px-8 py-4 bg-slate-900 text-white print:hidden">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#ea110d]" />
-            <span className="text-xs sm:text-sm font-bold font-poppins">
-              Official GST Tax Invoice • {booking.bookingReference}
+        <div className="flex items-center justify-between px-3.5 sm:px-8 py-3 sm:py-4 bg-slate-900 text-white print:hidden shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <FileText className="w-4 h-4 text-[#ea110d] shrink-0" />
+            <span className="text-xs sm:text-sm font-bold font-poppins truncate max-w-[150px] sm:max-w-none">
+              GST Tax Invoice • {booking.bookingReference}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer transition shadow-xs"
               title="Print Document"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -269,7 +269,7 @@ export default function BookingInvoiceModal({
               type="button"
               onClick={handleDownloadPdf}
               disabled={isDownloading || !isPaid || isCancelled}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold cursor-pointer transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold cursor-pointer transition shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               title={isCancelled ? 'No invoice for cancelled bookings' : !isPaid ? 'Invoice available after payment' : 'Download PDF'}
             >
               {isDownloading ? (
@@ -277,13 +277,13 @@ export default function BookingInvoiceModal({
               ) : (
                 <Download className="w-3.5 h-3.5" />
               )}
-              <span>{isDownloading ? 'Downloading...' : 'Download PDF'}</span>
+              <span className="text-[11px] sm:text-xs">{isDownloading ? 'Downloading...' : 'PDF'}</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer transition ml-1"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer transition ml-0.5"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -294,7 +294,7 @@ export default function BookingInvoiceModal({
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* PRINTABLE INVOICE BODY                                        */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        <div ref={printRef} className="p-6 sm:p-10 font-sans space-y-6 print:p-6 bg-white">
+        <div ref={printRef} className="p-4 sm:p-10 font-sans space-y-6 print:p-6 bg-white flex-1 overflow-y-auto">
           {/* Header: Brand & Invoice Title */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200 pb-6">
             <div>
@@ -354,7 +354,11 @@ export default function BookingInvoiceModal({
                 {booking.guestName || 'Valued Guest'}
               </h4>
               <p className="text-slate-600 mt-0.5">{booking.guestEmail || 'customer@mahastays.com'}</p>
-              {booking.guestPhone && <p className="text-slate-600">Phone: +91 {booking.guestPhone}</p>}
+              {booking.guestPhone && (
+                <p className="text-slate-700 font-medium mt-0.5">
+                  Mobile: +91 {booking.guestPhone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10)}
+                </p>
+              )}
               <p className="text-slate-600">
                 State of Supply:{' '}
                 <strong className="text-slate-800 font-medium">

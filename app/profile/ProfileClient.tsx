@@ -28,6 +28,10 @@ interface BookingItem {
   image?: string;
   createdAt?: string;
   pricing?: any;
+  guestName?: string;
+  guestPhone?: string;
+  specialRequests?: string;
+  notes?: string;
 }
 
 // Client-side image compression helper
@@ -186,6 +190,9 @@ function ProfileContent() {
 
           const amount = Number(rawAmount) || 0;
 
+          const rawPhone = b.guestPhone || b.phone || (typeof b.customer?.phone === 'string' ? b.customer.phone : b.customer?.phone?.nationalNumber) || '';
+          const cleanPhone = String(rawPhone).replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+
           return {
             id: b.id,
             bookingType: type,
@@ -201,6 +208,10 @@ function ProfileContent() {
             image,
             createdAt: b.createdAt,
             pricing: b.pricing,
+            guestName: b.guestName || b.customer?.fullName,
+            guestPhone: cleanPhone,
+            specialRequests: b.specialRequests || b.notes,
+            notes: b.notes || b.specialRequests,
           };
         });
         setBookings(formatted);
@@ -1277,6 +1288,17 @@ function ProfileContent() {
                         <p className="text-xs text-slate-500">
                           {b.dates} · {b.guests}
                         </p>
+                        {b.guestPhone && (
+                          <p className="text-xs text-slate-700 font-medium flex items-center gap-1.5 mt-0.5">
+                            <span className="text-slate-400">Mobile:</span>
+                            <span className="font-semibold text-slate-900">+91 {b.guestPhone}</span>
+                          </p>
+                        )}
+                        {(b.specialRequests || b.notes) && (
+                          <p className="text-[11px] text-amber-700 bg-amber-50/70 border border-amber-200/70 px-2.5 py-0.5 rounded-lg w-fit mt-1 italic">
+                            Note: &ldquo;{b.specialRequests || b.notes}&rdquo;
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1310,8 +1332,9 @@ function ProfileContent() {
                                   bookingStatus: b.status,
                                   createdAt: b.createdAt,
                                   pricing: b.pricing,
-                                  guestName: user?.fullName,
+                                  guestName: b.guestName || user?.fullName,
                                   guestEmail: user?.email,
+                                  guestPhone: b.guestPhone || user?.phone?.nationalNumber || user?.phoneNumber,
                                 })
                               }
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:border-slate-800 hover:text-slate-900 transition shadow-2xs cursor-pointer"

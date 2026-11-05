@@ -117,6 +117,7 @@ function CheckoutContent() {
   // Coupon State
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discountAmount: number;
@@ -197,70 +198,75 @@ function CheckoutContent() {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
     setCouponError(null);
+    setIsApplyingCoupon(true);
 
-    // Try backend API first
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-      const token = typeof window !== "undefined" ? localStorage.getItem("mahastays_token") : null;
-      const res = await fetch(`${apiUrl}/coupons/validate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          code,
-          bookingType,
-          amount: grandTotal,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.data?.discountAmount) {
-        const amt = Math.round(data.data.discountAmount);
+      // Try backend API first
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+        const token = typeof window !== "undefined" ? localStorage.getItem("mahastays_token") : null;
+        const res = await fetch(`${apiUrl}/coupons/validate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            code,
+            bookingType,
+            amount: grandTotal,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data?.discountAmount) {
+          const amt = Math.round(data.data.discountAmount);
+          setAppliedCoupon({
+            code,
+            discountAmount: amt,
+            description: `Applied successfully! (Saved ₹${amt.toLocaleString()})`,
+          });
+          setCouponInput("");
+          toast.success(`Coupon "${code}" applied! You saved ₹${amt.toLocaleString("en-IN")}.`, "Coupon Applied");
+          return;
+        }
+      } catch {
+        // offline fallback to standard promotional codes
+      }
+
+      if (code === "MAHA10") {
+        const discount = Math.min(2500, Math.round(grandTotal * 0.1));
         setAppliedCoupon({
-          code,
-          discountAmount: amt,
-          description: `Applied successfully! (Saved ₹${amt.toLocaleString()})`,
+          code: "MAHA10",
+          discountAmount: discount,
+          description: "10% Platform Discount Applied!",
         });
         setCouponInput("");
-        toast.success(`Coupon "${code}" applied! You saved ₹${amt.toLocaleString("en-IN")}.`, "Coupon Applied");
-        return;
+        toast.success(`Coupon "MAHA10" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
+      } else if (code === "WELCOME500") {
+        const discount = Math.min(500, grandTotal);
+        setAppliedCoupon({
+          code: "WELCOME500",
+          discountAmount: discount,
+          description: "Flat ₹500 First Time Booking Discount!",
+        });
+        setCouponInput("");
+        toast.success(`Coupon "WELCOME500" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
+      } else if (code === "ESCAPE15") {
+        const discount = Math.min(3500, Math.round(grandTotal * 0.15));
+        setAppliedCoupon({
+          code: "ESCAPE15",
+          discountAmount: discount,
+          description: "15% Special Getaway Discount Applied!",
+        });
+        setCouponInput("");
+        toast.success(`Coupon "ESCAPE15" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
+      } else {
+        const err = "Invalid or expired coupon code. Try MAHA10 or WELCOME500.";
+        setCouponError(err);
+        toast.error(err, "Invalid Coupon");
       }
-    } catch {
-      // offline fallback to standard promotional codes
-    }
-
-    if (code === "MAHA10") {
-      const discount = Math.min(2500, Math.round(grandTotal * 0.1));
-      setAppliedCoupon({
-        code: "MAHA10",
-        discountAmount: discount,
-        description: "10% Platform Discount Applied!",
-      });
-      setCouponInput("");
-      toast.success(`Coupon "MAHA10" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
-    } else if (code === "WELCOME500") {
-      const discount = Math.min(500, grandTotal);
-      setAppliedCoupon({
-        code: "WELCOME500",
-        discountAmount: discount,
-        description: "Flat ₹500 First Time Booking Discount!",
-      });
-      setCouponInput("");
-      toast.success(`Coupon "WELCOME500" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
-    } else if (code === "ESCAPE15") {
-      const discount = Math.min(3500, Math.round(grandTotal * 0.15));
-      setAppliedCoupon({
-        code: "ESCAPE15",
-        discountAmount: discount,
-        description: "15% Special Getaway Discount Applied!",
-      });
-      setCouponInput("");
-      toast.success(`Coupon "ESCAPE15" applied! You saved ₹${discount.toLocaleString("en-IN")}.`, "Coupon Applied");
-    } else {
-      const err = "Invalid or expired coupon code. Try MAHA10 or WELCOME500.";
-      setCouponError(err);
-      toast.error(err, "Invalid Coupon");
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -335,10 +341,24 @@ function CheckoutContent() {
       return;
     }
 
-    if (!formData.fullName.trim() || !formData.email.trim() || !formData.phone.trim()) {
-      const msg = "Please fill in your Name, Email, and Mobile Number.";
+    const cleanPhoneDigits = extractPhone(formData.phone);
+
+    if (!formData.fullName.trim() || !formData.email.trim()) {
+      const msg = "Please fill in your Name and Email Address.";
       setErrorMsg(msg);
       toast.warning(msg, "Missing Information");
+      return;
+    }
+
+    if (!cleanPhoneDigits || cleanPhoneDigits.length !== 10) {
+      const msg = "A valid 10-digit mobile number is mandatory to book. Please enter your mobile number.";
+      setErrorMsg(msg);
+      toast.warning(msg, "Mobile Number Required");
+      const phoneInput = document.getElementById("checkout-phone-input");
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return;
     }
 
@@ -359,9 +379,10 @@ function CheckoutContent() {
         slotTime: bookingType === "experience" ? slotTime : undefined,
         guestName: formData.fullName.trim(),
         guestEmail: formData.email.trim(),
-        guestPhone: extractPhone(formData.phone),
+        guestPhone: cleanPhoneDigits,
         billingState: formData.state,
         specialRequests: formData.specialRequests.trim() || undefined,
+        notes: formData.specialRequests.trim() || undefined,
         paymentMethod: formData.paymentMethod === "pay_at_property" ? "pay_at_property" : "upi",
         couponCode: appliedCoupon?.code,
         pricing: {
@@ -389,6 +410,22 @@ function CheckoutContent() {
 
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Failed to process booking on backend");
+      }
+
+      // Persist phone number and special requests to user profile in localStorage
+      if (typeof window !== "undefined") {
+        try {
+          const storedUser = localStorage.getItem("mahastays_user");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            parsedUser.phone = { countryCode: "+91", nationalNumber: cleanPhoneDigits, isVerified: parsedUser.phone?.isVerified ?? false };
+            parsedUser.phoneNumber = cleanPhoneDigits;
+            if (formData.specialRequests.trim()) {
+              parsedUser.bio = formData.specialRequests.trim();
+            }
+            localStorage.setItem("mahastays_user", JSON.stringify(parsedUser));
+          }
+        } catch {}
       }
 
       // If user chose pay at property, booking is directly confirmed
@@ -657,6 +694,9 @@ function CheckoutContent() {
           : "Online Payment",
       guestName: formData.fullName,
       guestEmail: formData.email,
+      guestPhone: extractPhone(formData.phone),
+      specialRequests: formData.specialRequests.trim() || undefined,
+      notes: formData.specialRequests.trim() || undefined,
       pricing: {
         grandTotal: finalGrandTotal,
         grandTotalInr: finalGrandTotal,
@@ -829,14 +869,35 @@ function CheckoutContent() {
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 font-poppins mb-1.5">
-                      Mobile Number *
-                    </label>
-                    <div className="flex rounded-xl border border-slate-200 bg-slate-50/40 overflow-hidden focus-within:border-[#ea110d]">
-                      <span className="px-3 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 border-r border-slate-200">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label htmlFor="checkout-phone-input" className="block text-xs font-bold text-slate-700 font-poppins">
+                        Mobile Number *
+                      </label>
+                      {extractPhone(formData.phone).length > 0 && extractPhone(formData.phone).length < 10 && (
+                        <span className="text-[10px] text-amber-600 font-bold">
+                          {10 - extractPhone(formData.phone).length} digits remaining
+                        </span>
+                      )}
+                      {extractPhone(formData.phone).length === 10 && (
+                        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                          ✓ Saved to Profile &amp; Booking
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={`flex rounded-xl border bg-slate-50/40 overflow-hidden transition-all ${
+                        !extractPhone(formData.phone) && errorMsg
+                          ? "border-red-500 ring-2 ring-red-100"
+                          : extractPhone(formData.phone).length === 10
+                          ? "border-emerald-400 focus-within:border-emerald-500 ring-1 ring-emerald-100"
+                          : "border-slate-200 focus-within:border-[#ea110d]"
+                      }`}
+                    >
+                      <span className="px-3 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 border-r border-slate-200 flex items-center gap-1">
                         +91
                       </span>
                       <input
+                        id="checkout-phone-input"
                         type="tel"
                         required
                         placeholder="98765 43210"
@@ -844,10 +905,24 @@ function CheckoutContent() {
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
                           setFormData({ ...formData, phone: digits });
+                          if (errorMsg) setErrorMsg("");
                         }}
-                        className="w-full px-3 py-2.5 text-xs font-medium text-slate-900 focus:outline-none bg-transparent"
+                        className="w-full px-3 py-2.5 text-xs font-medium text-slate-900 focus:outline-none bg-transparent placeholder:text-slate-400"
                       />
                     </div>
+                    {!extractPhone(formData.phone) ? (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Mandatory: Required to confirm booking and receive instant check-in SMS.
+                      </p>
+                    ) : extractPhone(formData.phone).length < 10 ? (
+                      <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                        Please enter a complete 10-digit mobile number.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-emerald-600 mt-1 font-medium">
+                        Will be stored on your account profile and shared with the property host.
+                      </p>
+                    )}
                   </div>
 
                   {/* Billing State */}
@@ -964,10 +1039,18 @@ function CheckoutContent() {
                         <button
                           type="button"
                           onClick={handleApplyCoupon}
-                          disabled={!couponInput.trim()}
-                          className="px-6 py-3 rounded-2xl bg-[#fff1f1] hover:bg-rose-100 disabled:opacity-50 text-[#ea110d] border border-rose-200 text-xs sm:text-sm font-bold font-poppins transition-all cursor-pointer shrink-0"
+                          disabled={!couponInput.trim() || isApplyingCoupon}
+                          className="px-6 py-3 rounded-2xl bg-[#fff1f1] hover:bg-rose-100 disabled:opacity-50 text-[#ea110d] border border-rose-200 text-xs sm:text-sm font-bold font-poppins transition-all cursor-pointer shrink-0 min-w-[85px] flex items-center justify-center"
                         >
-                          Apply
+                          {isApplyingCoupon ? (
+                            <div className="inline-flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#ea110d] animate-wave-dot" style={{ animationDelay: "0ms" }} />
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#ea110d] animate-wave-dot" style={{ animationDelay: "140ms" }} />
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#ea110d] animate-wave-dot" style={{ animationDelay: "280ms" }} />
+                            </div>
+                          ) : (
+                            "Apply"
+                          )}
                         </button>
                       </div>
 
@@ -993,14 +1076,32 @@ function CheckoutContent() {
                 <button
                   type="submit"
                   disabled={isLoading || !platformBookingsEnabled}
-                  className={`w-full py-4 px-6 sm:py-3.5 sm:px-6 rounded-2xl text-white font-bold tracking-wide font-poppins transition-all flex items-center justify-center sm:justify-between ${
+                  className={`w-full py-4 px-6 sm:py-3.5 sm:px-6 rounded-2xl text-white font-bold tracking-wide font-poppins transition-all flex items-center justify-center ${
+                    isLoading ? 'justify-center' : 'sm:justify-between'
+                  } ${
                     !platformBookingsEnabled
                       ? 'bg-slate-400 cursor-not-allowed shadow-none'
-                      : 'bg-[#ea110d] hover:bg-[#d00f0c] active:scale-[0.99] shadow-xl shadow-red-500/25 cursor-pointer disabled:opacity-60'
+                      : 'bg-[#ea110d] hover:bg-[#d00f0c] active:scale-[0.99] shadow-xl shadow-red-500/25 cursor-pointer disabled:opacity-85'
                   }`}
                 >
-                  {/* Small screen layout (Centered lock icon + Pay text + arrow) */}
-                  <div className="flex sm:hidden items-center justify-center gap-2.5 w-full">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-3 w-full py-1">
+                      <span className="font-extrabold text-sm sm:text-base font-poppins tracking-wide">
+                        Processing Reservation
+                      </span>
+                      {/* Horizontal Dotted Wave Loading Effect */}
+                      <div className="inline-flex items-center gap-1.5 ml-1" aria-label="Loading wave">
+                        <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white animate-wave-dot" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white animate-wave-dot" style={{ animationDelay: "140ms" }} />
+                        <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white animate-wave-dot" style={{ animationDelay: "280ms" }} />
+                        <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white animate-wave-dot" style={{ animationDelay: "420ms" }} />
+                        <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white animate-wave-dot" style={{ animationDelay: "560ms" }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Small screen layout (Centered lock icon + Pay text + arrow) */}
+                      <div className="flex sm:hidden items-center justify-center gap-2.5 w-full">
                     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0110 0v4" />
@@ -1010,6 +1111,8 @@ function CheckoutContent() {
                         ? "Platform Bookings Paused"
                         : !isLoggedIn
                         ? `Log In to Book (₹${finalGrandTotal.toLocaleString("en-IN")})`
+                        : extractPhone(formData.phone).length !== 10
+                        ? `Enter Mobile Number to Book`
                         : `Pay ₹${finalGrandTotal.toLocaleString("en-IN")} & Complete Booking`}
                     </span>
                     <span className="text-base font-bold">→</span>
@@ -1023,6 +1126,8 @@ function CheckoutContent() {
                           ? "Platform Bookings Paused by Administration"
                           : !isLoggedIn
                           ? `Log In to Book (₹${finalGrandTotal.toLocaleString("en-IN")})`
+                          : extractPhone(formData.phone).length !== 10
+                          ? `Enter Mobile Number to Book (₹${finalGrandTotal.toLocaleString("en-IN")})`
                           : `Pay ₹${finalGrandTotal.toLocaleString("en-IN")} & Complete Booking`}
                       </span>
                       <span className="text-lg">→</span>
@@ -1153,7 +1258,9 @@ function CheckoutContent() {
                       </div>
                     </div>
                   </div>
-                </button>
+                </>
+              )}
+            </button>
 
                 {/* Small Screen Guarantees & Outside Logos (Only visible on small screen) */}
                 <div className="sm:hidden space-y-4">

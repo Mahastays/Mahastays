@@ -115,8 +115,8 @@ function SuccessClientContent() {
           bookingStatus: b.bookingStatus || "confirmed",
           title,
           image,
-          rating: 4.9,
-          reviewsCount: 142,
+          rating: b.rating || b.property?.rating || undefined,
+          reviewsCount: b.reviewsCount || b.property?.reviewsCount || undefined,
           location,
           checkInDate,
           checkInTime: "02:00 PM",
@@ -149,7 +149,7 @@ function SuccessClientContent() {
     <div className="min-h-screen bg-white flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white">
+      <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white overflow-x-hidden">
         {loading ? (
           <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-9 h-9 text-[#ea110d] animate-spin" />

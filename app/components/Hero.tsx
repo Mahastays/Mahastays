@@ -225,6 +225,28 @@ export default function Hero() {
     return () => clearInterval(interval);
   }, [slides.length, isPaused]);
 
+  // Scroll-driven Hero shrink animation
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Compute smooth normalized scroll progress: 0 (top of page, full background) to 1 (scrolled down >= 320px)
+  const scrollProgress = Math.min(1, Math.max(0, scrollY / 320));
+
   const nextHeroSlide = () => {
     setCurrentSlideIndex((prev) => (prev + 1) % slides.length);
   };
@@ -294,15 +316,43 @@ export default function Hero() {
   };
 
   return (
-    <section className="w-full px-2 sm:px-4 lg:px-6 mb-3 sm:mb-5 pt-0">
+    <section
+      className="w-full mb-3 sm:mb-5 pt-0 overflow-visible"
+      style={{
+        paddingLeft: `calc(${scrollProgress} * clamp(8px, 2.2vw, 28px))`,
+        paddingRight: `calc(${scrollProgress} * clamp(8px, 2.2vw, 28px))`,
+        paddingTop: `calc(${scrollProgress} * clamp(4px, 1vw, 12px))`,
+        transition: "padding 0.12s cubic-bezier(0.16, 1, 0.3, 1)",
+        willChange: "padding",
+      }}
+    >
       {/* ─── Hero Main Background & Headline Auto Carousel ─── */}
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="relative w-full h-[520px] sm:h-[560px] lg:h-[590px] flex flex-col justify-end rounded-2xl sm:rounded-3xl shadow-[0_16px_40px_rgba(0,0,0,0.14)] overflow-hidden"
+        className="relative w-full h-[560px] sm:h-[620px] lg:h-[680px] xl:h-[720px] flex flex-col justify-end overflow-hidden"
+        style={{
+          transform: `scale(${1 - scrollProgress * 0.04})`,
+          transformOrigin: "center top",
+          borderRadius: `calc(${scrollProgress} * clamp(16px, 2.5vw, 32px))`,
+          boxShadow:
+            scrollProgress > 0.05
+              ? `0 ${scrollProgress * 22}px ${scrollProgress * 50}px -10px rgba(0,0,0,${scrollProgress * 0.22})`
+              : "none",
+          transition:
+            "transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease-out",
+          willChange: "transform, border-radius",
+        }}
       >
         {/* Layered Background Images (Crossfade Carousel) */}
-        <div className="absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl">
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{
+            borderRadius: `calc(${scrollProgress} * clamp(16px, 2.5vw, 32px))`,
+            transition: "border-radius 0.12s cubic-bezier(0.16, 1, 0.3, 1)",
+            willChange: "border-radius",
+          }}
+        >
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlideIndex;
             return (
@@ -331,13 +381,14 @@ export default function Hero() {
             );
           })}
 
-          {/* Cinematic dark gradients for headline readability */}
+          {/* Cinematic dark gradients for headline readability & top navbar contrast */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-transparent pointer-events-none z-2" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/15 pointer-events-none z-2" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none z-2" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none z-2" />
         </div>
 
         {/* Hero Headline & Subheading & Content */}
-        <div className="relative z-10 px-8 sm:px-14 lg:px-20 pb-20 sm:pb-24 pt-32 sm:pt-36 transition-all duration-700">
+        <div className="relative z-10 px-6 sm:px-12 lg:px-20 pb-20 sm:pb-24 pt-32 sm:pt-36 transition-all duration-700">
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlideIndex;
             if (!isActive) return null;

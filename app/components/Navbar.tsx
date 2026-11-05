@@ -168,7 +168,7 @@ export default function Navbar() {
               ? "w-[96%] sm:w-[94%] xl:w-[92%] max-w-[1440px] px-4 sm:px-7 lg:px-8 py-2 sm:py-2.5 rounded-full bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_12px_30px_rgba(0,0,0,0.1),0_2px_8px_rgba(0,0,0,0.04)]"
               : isHomePage
               ? "w-full max-w-[100%] px-4 sm:px-8 lg:px-12 py-3.5 sm:py-5 rounded-none bg-transparent border-b border-transparent shadow-none"
-              : "w-full max-w-[100%] px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-none bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_15px_rgba(0,0,0,0.03)]"
+              : "w-full max-w-[100%] px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-none bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-none"
           }`}
         >
           {/* Brand Logo: Icon & Text styled responsively for all devices */}
@@ -225,7 +225,7 @@ export default function Navbar() {
                         ? "bg-primary text-white shadow-[0_2px_10px_rgba(234,17,13,0.35)]"
                         : isScrolled
                         ? "text-slate-600 hover:text-primary hover:bg-primary-light"
-                        : "text-slate-800 hover:text-primary hover:bg-white/50 backdrop-blur-sm"
+                        : "text-slate-800 bg-white/85 hover:bg-white hover:text-primary border border-white/60 backdrop-blur-md"
                     }`}
                   >
                     <span className={`inline-flex items-center justify-center transition-transform duration-200 ${isActive ? "opacity-100" : "opacity-80 group-hover:scale-110"}`}>
@@ -250,14 +250,18 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={openNotificationDrawer}
-                  className="relative p-1.5 sm:p-2 text-slate-700 hover:text-[#ea110d] transition-colors rounded-full hover:bg-slate-100/70 cursor-pointer"
+                  className={`relative p-1.5 sm:p-2 transition-all rounded-full cursor-pointer ${
+                    isScrolled
+                      ? "text-slate-700 hover:text-[#ea110d] hover:bg-slate-100/70"
+                      : "text-slate-800 bg-white/85 hover:bg-white hover:text-[#ea110d] border border-white/60 backdrop-blur-md"
+                  }`}
                   title="Notifications"
                   aria-label="Notifications"
                 >
                   <svg className="w-5 h-5 text-slate-700 hover:text-[#ea110d] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#ea110d] text-white text-[9px] font-bold flex items-center justify-center shadow-xs">
+                  <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#ea110d] text-white text-[9px] font-bold flex items-center justify-center">
                     {unreadCount}
                   </span>
                 </button>
@@ -270,10 +274,10 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 pl-1.5 pr-2.5 sm:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 shadow-sm hover:shadow-md transition-all whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 pl-1.5 pr-2.5 sm:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 transition-all whitespace-nowrap cursor-pointer"
                     id="navbar-profile-btn"
                   >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                       {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt={user.fullName || "User Avatar"} className="w-full h-full object-cover" />
                       ) : (
