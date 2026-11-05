@@ -7,7 +7,7 @@ import { useData } from '../../context/DataContext';
 interface RejectReasonModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetKind: 'property' | 'package' | 'experience' | null;
+  targetKind: 'property' | 'package' | 'experience' | 'vendor' | null;
   targetId: string;
   targetName: string;
 }
@@ -19,7 +19,7 @@ export default function RejectReasonModal({
   targetId,
   targetName,
 }: RejectReasonModalProps) {
-  const { rejectProperty, rejectPackage, rejectExperience } = useData();
+  const { rejectProperty, rejectPackage, rejectExperience, verifyVendorKYC } = useData();
   const [reason, setReason] = useState('Missing MTDC tourism license or valid safety certification.');
 
   if (!isOpen || !targetKind) return null;
@@ -34,6 +34,8 @@ export default function RejectReasonModal({
       rejectPackage(targetId, reason.trim());
     } else if (targetKind === 'experience') {
       rejectExperience(targetId, reason.trim());
+    } else if (targetKind === 'vendor') {
+      verifyVendorKYC(targetId, false, reason.trim());
     }
 
     onClose();

@@ -81,6 +81,11 @@ export const normalizeProperty = (raw: any): PropertyItem => {
     };
   });
 
+  const roomPrices = rooms.map((r: any) => Number(r.basePrice)).filter((p: number) => !isNaN(p) && p > 0);
+  const startingPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : (raw.numericPrice || raw.inrPrice || 0);
+  const origPrices = rooms.map((r: any) => Number(r.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
+  const startingOrigPrice = origPrices.length > 0 ? Math.min(...origPrices) : raw.originalPrice;
+
   return {
     id: raw.id || raw._id,
     code: raw.code || raw.slug || `PROP-${(raw.id || '').slice(-4)}`,
@@ -95,8 +100,8 @@ export const normalizeProperty = (raw: any): PropertyItem => {
     longDescription: raw.longDescription || raw.description || '',
     location: raw.location || '',
     city: raw.city || 'Mahabaleshwar',
-    numericPrice: raw.numericPrice || raw.inrPrice || 0,
-    originalPrice: raw.originalPrice,
+    numericPrice: startingPrice,
+    originalPrice: startingOrigPrice,
     rating: raw.ratingScore || raw.rating || 0,
     reviewsCount: raw.reviewsCount || 0,
     images,
@@ -234,35 +239,50 @@ export const fetchPropertyById = createAsyncThunk(
 export const updatePropertyAsync = createAsyncThunk(
   'properties/updateProperty',
   async (updatedProp: PropertyItem, { getState, rejectWithValue }) => {
+    const roomPrices = (updatedProp.rooms || []).map((r: any) => Number(r.basePrice)).filter((p: number) => !isNaN(p) && p > 0);
+    const minRoomPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : (updatedProp.numericPrice || 0);
+    const origPrices = (updatedProp.rooms || []).map((r: any) => Number(r.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
+    const minOrigPrice = origPrices.length > 0 ? Math.min(...origPrices) : updatedProp.originalPrice;
+
+    const propToSave: PropertyItem = {
+      ...updatedProp,
+      numericPrice: minRoomPrice,
+      originalPrice: minOrigPrice,
+    };
+
+    let serverData: any = null;
     try {
       const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
       if (isVendor) {
-        await api
-          .put(`/vendor/properties/${updatedProp.id}`, updatedProp)
-          .catch(() => api.put(`/admin/properties/${updatedProp.id}`, updatedProp));
+        const res = await api
+          .put(`/vendor/properties/${propToSave.id}`, propToSave)
+          .catch(() => api.put(`/admin/properties/${propToSave.id}`, propToSave));
+        serverData = res?.data?.data || res?.data;
       } else {
-        await api
-          .put(`/admin/properties/${updatedProp.id}`, updatedProp)
-          .catch(() => api.put(`/vendor/properties/${updatedProp.id}`, updatedProp))
+        const res = await api
+          .put(`/admin/properties/${propToSave.id}`, propToSave)
+          .catch(() => api.put(`/vendor/properties/${propToSave.id}`, propToSave))
           .catch(() =>
-            api.patch(`/admin/properties/${updatedProp.id}/content`, {
-              name: updatedProp.name,
-              tagline: updatedProp.tagline,
-              description: updatedProp.description,
-              badge: updatedProp.badge,
+            api.patch(`/admin/properties/${propToSave.id}/content`, {
+              name: propToSave.name,
+              tagline: propToSave.tagline,
+              description: propToSave.description,
+              badge: propToSave.badge,
             })
           );
+        serverData = res?.data?.data || res?.data;
       }
     } catch {
       // Offline fallback
     }
 
+    const finalProp = serverData ? normalizeProperty(serverData) : propToSave;
     const state = getState() as { properties: PropertiesState };
     const next = state.properties.items.map((p) =>
-      p.id === updatedProp.id ? updatedProp : p
+      p.id === finalProp.id ? finalProp : p
     );
     saveProperties(next);
-    return updatedProp;
+    return finalProp;
   }
 );
 

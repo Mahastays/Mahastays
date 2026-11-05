@@ -59,6 +59,11 @@ export const normalizePackage = (raw: any): PackageItem => {
     features: Array.isArray(t.features) && t.features.length > 0 ? t.features : ['Resort Room Included', 'All Meals Included', 'Private Sunset Boating', 'Spa Credit Voucher'],
   }));
 
+  const tierPrices = tiers.map((t: any) => Number(t.pricePerPerson)).filter((p: number) => !isNaN(p) && p > 0);
+  const startingPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : (raw.numericPrice || 0);
+  const origPrices = tiers.map((t: any) => Number(t.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
+  const startingOrigPrice = origPrices.length > 0 ? Math.min(...origPrices) : raw.originalPrice;
+
   const rawInclusions = Array.isArray(raw.inclusions) ? raw.inclusions : [];
   const inclusions = rawInclusions.map((inc: any) => {
     if (typeof inc === 'string') return { title: inc };
@@ -84,8 +89,8 @@ export const normalizePackage = (raw: any): PackageItem => {
     durationNights: raw.durationNights || 0,
     location: raw.location || '',
     city: raw.city || 'Mahabaleshwar',
-    numericPrice: raw.numericPrice || 0,
-    originalPrice: raw.originalPrice,
+    numericPrice: startingPrice,
+    originalPrice: startingOrigPrice,
     shortDesc: raw.shortDesc || raw.description || '',
     thumbnail: images[0] || '',
     images,

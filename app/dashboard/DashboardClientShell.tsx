@@ -34,7 +34,7 @@ interface DashboardContextType {
   currentTab: NavTab;
   navigateTab: (tab: NavTab) => void;
   openCreateModal: (type: 'property' | 'package' | 'experience' | 'ad') => void;
-  openRejectModal: (kind: 'property' | 'package' | 'experience', id: string, name: string) => void;
+  openRejectModal: (kind: 'property' | 'package' | 'experience' | 'vendor', id: string, name: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 }
@@ -66,7 +66,7 @@ export default function DashboardClientShell({ children }: { children: React.Rea
   // Rejection modal state
   const [rejectModalState, setRejectModalState] = useState<{
     isOpen: boolean;
-    targetKind: 'property' | 'package' | 'experience' | null;
+    targetKind: 'property' | 'package' | 'experience' | 'vendor' | null;
     targetId: string;
     targetName: string;
   }>({
@@ -107,7 +107,7 @@ export default function DashboardClientShell({ children }: { children: React.Rea
   };
 
   const handleOpenRejectModal = (
-    kind: 'property' | 'package' | 'experience',
+    kind: 'property' | 'package' | 'experience' | 'vendor',
     id: string,
     name: string
   ) => {

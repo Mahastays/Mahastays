@@ -537,17 +537,23 @@ export default function UserDetailHistoryView({ id }: UserDetailHistoryViewProps
                 <span className="flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-slate-400" />
                   <span>{userData.email}</span>
-                  {userData.verification?.isEmailVerified && (
-                    <span className="text-emerald-600 font-bold text-[10px]">✓</span>
+                  {userData.verification?.isEmailVerified ? (
+                    <span className="text-emerald-600 font-bold text-[10px]" title="Email Verified">✓</span>
+                  ) : (
+                    <span className="text-amber-500 font-medium text-[10px]" title="Email Unverified">Unverified</span>
                   )}
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-slate-400" />
                   <span>{userPhone}</span>
-                  {userData.verification?.isPhoneVerified && (
-                    <span className="text-emerald-600 font-bold text-[10px]">✓</span>
-                  )}
+                  {(userData.phone?.nationalNumber || userData.phoneNumber) ? (
+                    (userData.verification?.isPhoneVerified || userData.phone?.isVerified) ? (
+                      <span className="text-emerald-600 font-bold text-[10px]" title="Phone Verified">✓</span>
+                    ) : (
+                      <span className="text-amber-500 font-medium text-[10px]" title="Phone Unverified">Unverified</span>
+                    )
+                  ) : null}
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5">
@@ -634,18 +640,58 @@ export default function UserDetailHistoryView({ id }: UserDetailHistoryViewProps
         </div>
 
         {/* Metric 4: Account Security & Verification */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">KYC &amp; Verification</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+        {(() => {
+          const isEmailVerified = Boolean(userData.verification?.isEmailVerified);
+          const isPhoneVerified = Boolean(userData.verification?.isPhoneVerified || userData.phone?.isVerified);
+          const hasPhone = Boolean(userData.phone?.nationalNumber || userData.phoneNumber);
+
+          return (
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">KYC &amp; Verification</span>
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    isEmailVerified && isPhoneVerified
+                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                      : isEmailVerified || isPhoneVerified
+                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
+                      : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                {isEmailVerified && isPhoneVerified ? (
+                  <span className="text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" /> Fully Verified
+                  </span>
+                ) : isEmailVerified ? (
+                  <span className="text-amber-600 flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Email Verified
+                  </span>
+                ) : isPhoneVerified ? (
+                  <span className="text-amber-600 flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Phone Verified
+                  </span>
+                ) : (
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" /> Unverified
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {isEmailVerified && isPhoneVerified
+                  ? 'Email & Mobile OTP authenticated'
+                  : isEmailVerified
+                  ? (hasPhone ? 'Email authenticated • Phone OTP pending' : 'Email authenticated • No phone on file')
+                  : isPhoneVerified
+                  ? 'Mobile OTP verified • Email confirmation pending'
+                  : 'No verified authentication credentials'}
+              </p>
             </div>
-          </div>
-          <div className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-            <span className="text-emerald-600">✓ Fully Verified</span>
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Email &amp; Mobile OTP authenticated</p>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Two-Column Grid: Left Profile Information & Right Lifetime Booking History */}
@@ -668,17 +714,35 @@ export default function UserDetailHistoryView({ id }: UserDetailHistoryViewProps
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Email Address</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 break-all">{userData.email}</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1">
-                  ✓ Confirmed &amp; OTP Validated
-                </span>
+                {userData.verification?.isEmailVerified ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1">
+                    ✓ Confirmed &amp; OTP Validated
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium mt-1">
+                    <Clock className="w-3 h-3" /> Unverified Email Address
+                  </span>
+                )}
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Primary Mobile</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{userPhone}</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1">
-                  ✓ Verified Mobile Device
-                </span>
+                {userData.phone?.nationalNumber || userData.phoneNumber ? (
+                  userData.verification?.isPhoneVerified || userData.phone?.isVerified ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-1">
+                      ✓ Verified Mobile Device
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium mt-1">
+                      <Clock className="w-3 h-3" /> Mobile Number Not Verified
+                    </span>
+                  )
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 italic mt-1">
+                    No phone number provided
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2">

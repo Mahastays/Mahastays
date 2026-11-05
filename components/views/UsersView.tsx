@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import DashboardSkeleton from '../common/DashboardSkeleton';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   fetchAdminUsers,
@@ -143,6 +144,10 @@ export default function UsersView() {
         </div>
       </div>
     );
+  }
+
+  if (loading && users.length === 0) {
+    return <DashboardSkeleton type="table" />;
   }
 
   return (

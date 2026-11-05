@@ -7,6 +7,7 @@ import bookingsReducer from './slices/bookingsSlice';
 import adsReducer from './slices/adsSlice';
 import vendorsReducer from './slices/vendorsSlice';
 import usersReducer from './slices/usersSlice';
+import payoutsReducer from './slices/payoutsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     ads: adsReducer,
     vendors: vendorsReducer,
     users: usersReducer,
+    payouts: payoutsReducer,
   },
   devTools: process.env.NODE_ENV !== 'production',
 });

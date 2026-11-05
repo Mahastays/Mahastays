@@ -205,9 +205,9 @@ export const createVendorAsync = createAsyncThunk(
 
 export const verifyVendorKYCAsync = createAsyncThunk(
   'vendors/verifyKYC',
-  async ({ vendorId, approve }: { vendorId: string; approve: boolean }, { getState }) => {
+  async ({ vendorId, approve, reason }: { vendorId: string; approve: boolean; reason?: string }, { getState }) => {
     try {
-      await api.patch(`/admin/vendors/${vendorId}/kyc`, { approve });
+      await api.patch(`/admin/vendors/${vendorId}/kyc`, { approve, reason });
     } catch {
       // Offline fallback
     }
@@ -219,6 +219,7 @@ export const verifyVendorKYCAsync = createAsyncThunk(
             compliance: {
               ...v.compliance,
               verificationStatus: (approve ? 'approved' : 'rejected') as any,
+              rejectionReason: approve ? undefined : reason,
             },
             status: (approve ? 'active' : 'on_hold') as any,
           }

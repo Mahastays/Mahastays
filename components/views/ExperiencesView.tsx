@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -20,6 +20,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { ExperienceItem } from '../../types';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchExperiences } from '../../store/slices/experiencesSlice';
+import { fetchVendors } from '../../store/slices/vendorsSlice';
 
 interface ExperiencesViewProps {
   onOpenCreateModal: () => void;
@@ -30,14 +34,25 @@ export default function ExperiencesView({
   onOpenCreateModal,
   onOpenRejectModal,
 }: ExperiencesViewProps) {
+  const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { experiences, vendors, approveExperience, deleteExperience, toggleExperienceBooking } = useData();
+  const { loading } = useAppSelector((state) => state.experiences);
+
   const [filter, setFilter] = useState<'all' | 'active' | 'pending_approval' | 'rejected'>('all');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [experienceToDelete, setExperienceToDelete] = useState<ExperienceItem | null>(null);
 
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
+
+  // Fetch only when Experiences view mounts
+  useEffect(() => {
+    dispatch(fetchExperiences());
+    if (isAdmin) {
+      dispatch(fetchVendors());
+    }
+  }, [dispatch, isAdmin]);
 
   const roleFiltered = experiences.filter((exp) => {
     if (!isAdmin) {
@@ -48,6 +63,10 @@ export default function ExperiencesView({
     if (filter === 'all') return true;
     return exp.status === filter;
   });
+
+  if (loading && experiences.length === 0) {
+    return <DashboardSkeleton type="cards" />;
+  }
 
   return (
     <div className="space-y-6">

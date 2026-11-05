@@ -38,6 +38,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import BookingInvoiceModal from '../modals/BookingInvoiceModal';
 import { useAppSelector, useAppDispatch } from '../../store';
+import DashboardSkeleton from '../common/DashboardSkeleton';
 import {
   updateBookingStatusAsync,
   updatePaymentStatusAsync,
@@ -399,6 +400,10 @@ export default function BookingsView() {
     );
     setNewNoteInput('');
   };
+
+  if (loading && bookings.length === 0) {
+    return <DashboardSkeleton type="table" />;
+  }
 
   return (
     <div className="space-y-6 pb-12">

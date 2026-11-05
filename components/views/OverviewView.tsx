@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   TrendingUp,
   DollarSign,
@@ -20,6 +20,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { NavTab } from '../sidebar/Sidebar';
 import { StayBookingItem } from '../../types';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchProperties } from '../../store/slices/propertiesSlice';
+import { fetchBookings } from '../../store/slices/bookingsSlice';
 
 interface OverviewViewProps {
   onNavigateTab: (tab: NavTab) => void;
@@ -27,10 +31,22 @@ interface OverviewViewProps {
 }
 
 export default function OverviewView({ onNavigateTab, onOpenCreateModal }: OverviewViewProps) {
+  const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { properties, packages, experiences, bookings, ads, setSelectedBooking } = useData();
+  const propertiesLoading = useAppSelector((state) => state.properties.loading);
+  const bookingsLoading = useAppSelector((state) => state.bookings.loading);
+
+  useEffect(() => {
+    if (properties.length === 0) dispatch(fetchProperties());
+    if (bookings.length === 0) dispatch(fetchBookings());
+  }, [dispatch, properties.length, bookings.length]);
 
   const isAdmin = activeViewMode === 'admin';
+
+  if ((propertiesLoading || bookingsLoading) && properties.length === 0 && bookings.length === 0) {
+    return <DashboardSkeleton type="table" />;
+  }
 
   // Counts
   const pendingProps = properties.filter((p) => p.status === 'pending_approval').length;

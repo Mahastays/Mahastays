@@ -774,9 +774,17 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
             <span className="text-[11px] font-semibold text-slate-400 block uppercase tracking-wider">
               KYC &amp; Bank Status
             </span>
-            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mt-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isApproved && isBankVerified ? 'Fully Verified' : 'Action Needed'}</span>
+            <div className={`text-sm font-bold flex items-center gap-1.5 mt-2 ${
+              isApproved && isBankVerified
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-amber-600 dark:text-amber-400'
+            }`}>
+              {isApproved && isBankVerified ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              )}
+              <span>{isApproved && isBankVerified ? 'Fully Verified' : isApproved ? 'KYC Approved (Bank Pending)' : 'Pending Verification'}</span>
             </div>
             <span className="text-[10px] text-slate-400 block mt-0.5">
               Bank Account: {isBankVerified ? 'Verified' : 'Unverified'}

@@ -69,6 +69,12 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
     features: Array.isArray(t.features) ? t.features : ['Expert Guide Included', 'Safety Gear', 'Valley Viewpoint Access'],
   }));
 
+  const allPrices = [
+    ...slots.map((s: any) => Number(s.price)),
+    ...tiers.map((t: any) => Number(t.pricePerPerson)),
+  ].filter((p: number) => !isNaN(p) && p > 0);
+  const startingPrice = allPrices.length > 0 ? Math.min(...allPrices) : (raw.numericPrice || 0);
+
   const rawInclusions = Array.isArray(raw.inclusions) ? raw.inclusions : [];
   const inclusions = rawInclusions.map((inc: any) => {
     if (typeof inc === 'string') return { title: inc };
@@ -90,7 +96,7 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
     difficulty: (raw.difficulty || 'Easy') as any,
     duration: raw.duration || '',
     city: raw.city || 'Mahabaleshwar',
-    numericPrice: raw.numericPrice || 0,
+    numericPrice: startingPrice,
     originalPrice: raw.originalPrice,
     image,
     gallery,

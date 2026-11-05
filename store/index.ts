@@ -8,3 +8,4 @@ export * from './slices/bookingsSlice';
 export * from './slices/adsSlice';
 export * from './slices/vendorsSlice';
 export * from './slices/usersSlice';
+export * from './slices/payoutsSlice';

@@ -141,7 +141,7 @@ interface DataContextType {
     category?: 'property_host' | 'activity_operator' | 'integrated_resort';
     businessType?: 'individual' | 'proprietorship' | 'private_limited' | 'partnership';
   }) => Promise<VendorItem>;
-  verifyVendorKYC: (vendorId: string, approve: boolean) => void;
+  verifyVendorKYC: (vendorId: string, approve: boolean, reason?: string) => void;
   verifyVendorBank: (vendorId: string, verified: boolean) => void;
   updateVendorProfile: (vendorId: string, data: any) => Promise<any>;
 
@@ -187,15 +187,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem(key);
         }
       });
-    }
-
-    dispatch(fetchProperties());
-    dispatch(fetchPackages());
-    dispatch(fetchExperiences());
-    dispatch(fetchBookings());
-    if (activeViewMode === 'admin') {
-      dispatch(fetchVendors());
-      dispatch(fetchAds());
     }
   }, [dispatch, isAuthenticated, activeViewMode, user?.id]);
 
@@ -372,8 +363,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const verifyVendorKYC = (vendorId: string, approve: boolean) => {
-    dispatch(verifyVendorKYCAsync({ vendorId, approve }));
+  const verifyVendorKYC = (vendorId: string, approve: boolean, reason?: string) => {
+    dispatch(verifyVendorKYCAsync({ vendorId, approve, reason }));
   };
 
   const verifyVendorBank = (vendorId: string, verified: boolean) => {

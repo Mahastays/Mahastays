@@ -469,9 +469,13 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       images: [allPhotos[0]],
       amenities: ['Private Balcony', 'Smart TV', 'High-Speed Wi-Fi'],
     };
+    const updatedRooms = [...rooms, newRoom];
+    const roomPrices = updatedRooms.map((r) => Number(r.basePrice)).filter((p) => !isNaN(p) && p > 0);
+    const minPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : property.numericPrice;
     setProperty({
       ...property,
-      rooms: [...rooms, newRoom],
+      rooms: updatedRooms,
+      numericPrice: minPrice,
     });
     setSelectedRoomIndex(rooms.length);
   };
@@ -480,7 +484,9 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
     if (!property) return;
     const updated = [...rooms];
     updated[index] = { ...updated[index], [field]: val };
-    setProperty({ ...property, rooms: updated });
+    const roomPrices = updated.map((r) => Number(r.basePrice)).filter((p) => !isNaN(p) && p > 0);
+    const minPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : property.numericPrice;
+    setProperty({ ...property, rooms: updated, numericPrice: minPrice });
   };
 
   const handleRemoveRoom = (index: number) => {
@@ -489,7 +495,9 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       return;
     }
     const updated = rooms.filter((_, i) => i !== index);
-    setProperty({ ...property, rooms: updated });
+    const roomPrices = updated.map((r) => Number(r.basePrice)).filter((p) => !isNaN(p) && p > 0);
+    const minPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : property.numericPrice;
+    setProperty({ ...property, rooms: updated, numericPrice: minPrice });
     if (selectedRoomIndex >= updated.length) {
       setSelectedRoomIndex(0);
     }
@@ -614,7 +622,14 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
   const handleSaveChanges = async () => {
     if (!property) return;
-    await dispatch(updatePropertyAsync(property));
+    const roomPrices = (property.rooms || []).map((r) => Number(r.basePrice)).filter((p) => !isNaN(p) && p > 0);
+    const minPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : (property.numericPrice || 0);
+    const updatedProp = {
+      ...property,
+      numericPrice: minPrice,
+    };
+    await dispatch(updatePropertyAsync(updatedProp));
+    setProperty(updatedProp);
     setSaveSuccessToast(true);
     setTimeout(() => setSaveSuccessToast(false), 3500);
     setIsEditMode(false);

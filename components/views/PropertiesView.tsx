@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   BedDouble,
@@ -22,6 +22,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { PropertyItem } from '../../types';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchProperties } from '../../store/slices/propertiesSlice';
+import { fetchVendors } from '../../store/slices/vendorsSlice';
 
 interface PropertiesViewProps {
   onOpenCreateModal: () => void;
@@ -32,8 +36,11 @@ export default function PropertiesView({
   onOpenCreateModal,
   onOpenRejectModal,
 }: PropertiesViewProps) {
+  const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { properties, vendors, approveProperty, deleteProperty, togglePropertyBooking } = useData();
+  const { loading } = useAppSelector((state) => state.properties);
+
   const [filter, setFilter] = useState<'all' | 'active' | 'pending_approval' | 'rejected'>('all');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [selectedProperty, setSelectedProperty] = useState<PropertyItem | null>(null);
@@ -41,6 +48,14 @@ export default function PropertiesView({
 
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
+
+  // Fetch only when Properties view mounts
+  useEffect(() => {
+    dispatch(fetchProperties());
+    if (isAdmin) {
+      dispatch(fetchVendors());
+    }
+  }, [dispatch, isAdmin]);
 
   // Filter properties: vendors only see their own properties; admin sees all or filtered by vendor
   const roleFiltered = properties.filter((p) => {
@@ -52,6 +67,10 @@ export default function PropertiesView({
     if (filter === 'all') return true;
     return p.status === filter;
   });
+
+  if (loading && properties.length === 0) {
+    return <DashboardSkeleton type="cards" />;
+  }
 
   return (
     <div className="space-y-6">

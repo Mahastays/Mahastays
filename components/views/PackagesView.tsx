@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Compass,
@@ -20,6 +20,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { PackageItem } from '../../types';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchPackages } from '../../store/slices/packagesSlice';
+import { fetchVendors } from '../../store/slices/vendorsSlice';
 
 interface PackagesViewProps {
   onOpenCreateModal: () => void;
@@ -27,14 +31,25 @@ interface PackagesViewProps {
 }
 
 export default function PackagesView({ onOpenCreateModal, onOpenRejectModal }: PackagesViewProps) {
+  const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { packages, vendors, approvePackage, deletePackage, togglePackageBooking } = useData();
+  const { loading } = useAppSelector((state) => state.packages);
+
   const [filter, setFilter] = useState<'all' | 'active' | 'pending_approval' | 'rejected'>('all');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [packageToDelete, setPackageToDelete] = useState<PackageItem | null>(null);
 
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
+
+  // Fetch only when Packages view mounts
+  useEffect(() => {
+    dispatch(fetchPackages());
+    if (isAdmin) {
+      dispatch(fetchVendors());
+    }
+  }, [dispatch, isAdmin]);
 
   const roleFiltered = packages.filter((pkg) => {
     if (!isAdmin) {
@@ -45,6 +60,10 @@ export default function PackagesView({ onOpenCreateModal, onOpenRejectModal }: P
     if (filter === 'all') return true;
     return pkg.status === filter;
   });
+
+  if (loading && packages.length === 0) {
+    return <DashboardSkeleton type="cards" />;
+  }
 
   return (
     <div className="space-y-6">

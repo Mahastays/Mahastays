@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Megaphone,
   CheckCircle2,
@@ -32,14 +32,23 @@ import { AdCampaignItem, AdPlacement, AdSectionTab } from '../../types';
 import CreateAdModal from '../modals/CreateAdModal';
 import EditAdModal from '../modals/EditAdModal';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchAds } from '../../store/slices/adsSlice';
 
 interface AdsViewProps {
   onOpenCreateModal?: () => void;
 }
 
 export default function AdsView({ onOpenCreateModal }: AdsViewProps) {
+  const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { ads, approveAdCampaign, toggleAdCampaign, deleteAdCampaign } = useData();
+  const { loading } = useAppSelector((state) => state.ads);
+
+  useEffect(() => {
+    dispatch(fetchAds());
+  }, [dispatch]);
 
   // Active section tab: 'all' | 'home' | 'stays' | 'packages' | 'experiences'
   const [activeSection, setActiveSection] = useState<AdSectionTab>('all');
@@ -178,6 +187,10 @@ export default function AdsView({ onOpenCreateModal }: AdsViewProps) {
   };
 
   const currentMeta = sectionMeta[activeSection];
+
+  if (loading && ads.length === 0) {
+    return <DashboardSkeleton type="cards" />;
+  }
 
   return (
     <div className="space-y-6">

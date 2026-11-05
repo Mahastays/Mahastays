@@ -4,12 +4,6 @@ import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { loadSavedAuth } from './slices/authSlice';
-import { fetchProperties } from './slices/propertiesSlice';
-import { fetchPackages } from './slices/packagesSlice';
-import { fetchExperiences } from './slices/experiencesSlice';
-import { fetchBookings } from './slices/bookingsSlice';
-import { fetchAds } from './slices/adsSlice';
-import { fetchVendors } from './slices/vendorsSlice';
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -37,14 +31,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       });
     }
-
-    // Initialize store slices from cache/api
-    store.dispatch(fetchProperties());
-    store.dispatch(fetchPackages());
-    store.dispatch(fetchExperiences());
-    store.dispatch(fetchBookings());
-    store.dispatch(fetchAds());
-    store.dispatch(fetchVendors());
   }, []);
 
   return <Provider store={store}>{children}</Provider>;

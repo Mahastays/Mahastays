@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,10 +27,20 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import DashboardSkeleton from '../common/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchVendors } from '../../store/slices/vendorsSlice';
 
 export default function VendorsView() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { vendors, verifyVendorKYC, verifyVendorBank, createVendor } = useData();
+  const { loading } = useAppSelector((state) => state.vendors);
+
+  // Fetch only when Vendors view mounts
+  useEffect(() => {
+    dispatch(fetchVendors());
+  }, [dispatch]);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,6 +157,10 @@ export default function VendorsView() {
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  if (loading && vendors.length === 0) {
+    return <DashboardSkeleton type="table" />;
+  }
 
   return (
     <div className="space-y-6">
