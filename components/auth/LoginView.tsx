@@ -174,7 +174,9 @@ export default function LoginView({ onSuccess }: LoginViewProps) {
                 Two-Factor Security Verification
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                For administrator protection, a 6-digit authorization code was sent to:
+                {activePersona === 'vendor'
+                  ? 'For host & partner security, a 6-digit verification code was sent to:'
+                  : 'For administrator protection, a 6-digit authorization code was sent to:'}
                 <br />
                 <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">
                   {otpEmail || email}

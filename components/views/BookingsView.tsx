@@ -98,12 +98,21 @@ export default function BookingsView() {
         hour12: true,
       });
       setLastSyncedTime(timeStr);
-      const fetchedList = (resultAction.payload as any)?.bookings;
+      const payload = resultAction.payload as any;
+      const fetchedList = payload?.bookings;
+      const isLive = payload?.isLive;
       const count = Array.isArray(fetchedList) ? fetchedList.length : bookings.length;
-      setSyncToast({
-        message: `Bookings up to date! Loaded ${count} records directly from database.`,
-        type: 'success',
-      });
+      if (isLive) {
+        setSyncToast({
+          message: `Bookings up to date! Loaded ${count} records directly from database.`,
+          type: 'success',
+        });
+      } else {
+        setSyncToast({
+          message: `Displaying ${count} cached records. Start backend API (port 5000) for real-time live sync.`,
+          type: 'error',
+        });
+      }
       setTimeout(() => setSyncToast(null), 3500);
     } catch {
       setSyncToast({

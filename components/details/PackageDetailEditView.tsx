@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { VideoPlayerModal, getYouTubeThumbnailUrl } from '../modals/VideoPlayerModal';
 import { uploadImageToCloudinary } from '@/lib/upload';
+import LocationMapPicker from '../maps/LocationMapPicker';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
 import { useAuth } from '@/context/AuthContext';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -85,6 +86,22 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const hostAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingHostAvatar, setIsUploadingHostAvatar] = useState(false);
+
+  const handleHostAvatarUpload = async (file: File) => {
+    try {
+      setIsUploadingHostAvatar(true);
+      const res = await uploadImageToCloudinary(file, 'hosts');
+      handleHostChange('avatar', res.url);
+      setUploadSuccessToast('Host profile / logo updated!');
+      setTimeout(() => setUploadSuccessToast(null), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload host image');
+    } finally {
+      setIsUploadingHostAvatar(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!id) return;
@@ -1203,8 +1220,45 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
           {/* Host Card */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-[#0B0A06] text-white font-extrabold text-lg flex items-center justify-center font-poppins shrink-0 shadow-sm">
-                {(pkg.host?.name || 'V')[0].toUpperCase()}
+              <div className="relative group shrink-0">
+                {pkg.host?.avatar ? (
+                  <img
+                    src={pkg.host.avatar}
+                    alt={pkg.host?.name || 'Host'}
+                    className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-[#0B0A06] text-white font-extrabold text-lg flex items-center justify-center font-poppins shrink-0 shadow-sm">
+                    {(pkg.host?.name || 'V')[0].toUpperCase()}
+                  </div>
+                )}
+                {isEditMode && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isUploadingHostAvatar}
+                      onClick={() => hostAvatarInputRef.current?.click()}
+                      className="absolute inset-0 rounded-full bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[9px] font-bold"
+                      title="Upload Host Photo / Logo"
+                    >
+                      {isUploadingHostAvatar ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                    <input
+                      ref={hostAvatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleHostAvatarUpload(file);
+                      }}
+                    />
+                  </>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 {isEditMode ? (
@@ -1248,6 +1302,35 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                         placeholder="e.g. 1,200+ Verified Guests"
                         className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
+                    </div>
+                    <div className="flex items-center gap-2 sm:col-span-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={isUploadingHostAvatar}
+                        onClick={() => hostAvatarInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#ea110d] text-[11px] font-bold border border-rose-200 transition cursor-pointer"
+                      >
+                        {isUploadingHostAvatar ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-3 h-3" />
+                            <span>{pkg.host?.avatar ? 'Change Host Photo / Logo' : 'Upload Host Photo / Logo'}</span>
+                          </>
+                        )}
+                      </button>
+                      {pkg.host?.avatar && (
+                        <button
+                          type="button"
+                          onClick={() => handleHostChange('avatar', '')}
+                          className="text-[11px] text-slate-400 hover:text-rose-600 transition"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1318,73 +1401,91 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
-                  ? (pkg as any).keyHighlights
-                  : [
-                      { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
-                      { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
-                      { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
-                      { name: 'Venna Lake Boating', desc: 'Free activity pass' },
-                    ]
-                ).map((hl: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700 mt-0.5">
-                      {idx % 4 === 0 ? (
-                        <Building className="w-4 h-4 text-slate-700" />
-                      ) : idx % 4 === 1 ? (
-                        <Utensils className="w-4 h-4 text-slate-700" />
-                      ) : idx % 4 === 2 ? (
-                        <ShieldCheck className="w-4 h-4 text-slate-700" />
-                      ) : (
-                        <Compass className="w-4 h-4 text-slate-700" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      {isEditMode ? (
-                        <div className="space-y-1">
-                          <input
-                            type="text"
-                            value={hl.name}
-                            onChange={(e) => handleKeyHighlightChange(idx, 'name', e.target.value)}
-                            placeholder="Card Title"
-                            className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
-                          />
-                          <input
-                            type="text"
-                            value={hl.desc}
-                            onChange={(e) => handleKeyHighlightChange(idx, 'desc', e.target.value)}
-                            placeholder="Card Description"
-                            className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+              {!isEditMode ? (
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
+                    {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
+                      ? (pkg as any).keyHighlights
+                      : [
+                          { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+                          { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+                          { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+                          { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+                        ]
+                    ).map((hl: any, idx: number) => (
+                      <div
+                        key={idx}
+                        title={hl.desc ? `${hl.name} • ${hl.desc}` : hl.name}
+                        className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                      >
+                        <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                          <Image
+                            src="/brand/mahastays-logo-main.png"
+                            alt="Mahastays"
+                            width={22}
+                            height={22}
+                            className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
                           />
                         </div>
-                      ) : (
-                        <>
-                          <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                            {hl.name}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate">
-                            {hl.desc}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    {isEditMode && (
+                        <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                          {hl.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {(((pkg as any).keyHighlights && (pkg as any).keyHighlights.length > 0)
+                    ? (pkg as any).keyHighlights
+                    : [
+                        { name: '4-Star Resort Stay', desc: 'Hilltop valley view rooms' },
+                        { name: 'All Meals & Decor', desc: 'Candlelight dinner setup' },
+                        { name: 'Dedicated Chauffeur', desc: 'AC sedan sightseeing' },
+                        { name: 'Venna Lake Boating', desc: 'Free activity pass' },
+                      ]
+                  ).map((hl: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
+                    >
+                      <div className="relative w-8 h-8 rounded-lg bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 p-1 mt-0.5">
+                        <Image
+                          src="/brand/mahastays-logo-main.png"
+                          alt="Mahastays"
+                          width={20}
+                          height={20}
+                          className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 transition-all"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <input
+                          type="text"
+                          value={hl.name}
+                          onChange={(e) => handleKeyHighlightChange(idx, 'name', e.target.value)}
+                          placeholder="Card Title"
+                          className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                        />
+                        <input
+                          type="text"
+                          value={hl.desc}
+                          onChange={(e) => handleKeyHighlightChange(idx, 'desc', e.target.value)}
+                          placeholder="Card Description"
+                          className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveKeyHighlight(idx)}
                         className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
-                        title="Remove this card (don't keep)"
+                        title="Remove this card"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -2318,58 +2419,41 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
           {/* ─── Tab 6: Location & Meeting Point ─── */}
           {(activeDetailTab === 'all' || activeDetailTab === 'location') && (
-            <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-poppins">
-                    Location &amp; Meeting Point
-                  </h3>
-                  <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                    {pkg.location || pkg.city || 'Panchgani & Mahabaleshwar, Maharashtra'}
-                  </p>
-                </div>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pkg.title + ' ' + (pkg.location || pkg.city || 'Mahabaleshwar'))}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-poppins transition"
-                >
-                  <span>Open in Maps</span>
-                  <span>↗</span>
-                </a>
-              </div>
-
-              <div className="relative rounded-2xl overflow-hidden h-56 sm:h-64 bg-slate-100 border border-slate-200">
-                <Image
-                  src="/panchgani.jpg"
-                  alt="Map Location View"
-                  fill
-                  className="object-cover opacity-90"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-[#ea110d] text-white flex items-center justify-center shadow-xl animate-bounce">
-                    <MapPin className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="mt-1 px-3 py-1 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-md backdrop-blur-sm">
-                    {pkg.title}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-                {[
+            <div id="location">
+              <LocationMapPicker
+                propertyName={pkg.title}
+                locationArea={pkg.location || pkg.city || 'Panchgani & Mahabaleshwar'}
+                initialCoordinates={{
+                  lat: pkg.address?.lat || 17.9242,
+                  lng: pkg.address?.lng || 73.8015,
+                  fullAddress: pkg.address?.fullAddress || pkg.location || pkg.city,
+                  mapLink: pkg.address?.mapLink || `https://www.google.com/maps?q=17.9242,73.8015`,
+                }}
+                isEditMode={isEditMode}
+                nearbyAttractions={pkg.nearbyAttractions || [
                   { name: 'Panchgani Bus Depot', distance: '1.2 km • 5 mins', desc: 'Complimentary pickup point' },
                   { name: 'Venna Lake Boating Jetty', distance: '3.5 km • 10 mins', desc: 'Activity starting point' },
-                  { name: 'Pune Airport / Station', distance: '105 km • 2.5 hrs', desc: 'Airport transfer available on request' },
-                ].map((pt, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="text-xs font-bold text-slate-900 font-poppins">{pt.name}</div>
-                    <div className="text-[11px] font-semibold text-[#ea110d] mt-0.5">{pt.distance}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{pt.desc}</div>
-                  </div>
-                ))}
-              </div>
+                  { name: 'Table Land Plateau', distance: '2.4 km • 7 mins drive', desc: "Asia's 2nd largest volcanic plateau" },
+                ]}
+                onChange={(coords) => {
+                  setPkg((prev) => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      location: coords.fullAddress || prev.location,
+                      address: {
+                        lat: coords.lat,
+                        lng: coords.lng,
+                        fullAddress: coords.fullAddress || prev.address?.fullAddress || prev.location || '',
+                        mapLink: coords.mapLink || `https://www.google.com/maps?q=${coords.lat},${coords.lng}`,
+                      },
+                    };
+                  });
+                }}
+                onAttractionsChange={(attractions) => {
+                  setPkg((prev) => (prev ? { ...prev, nearbyAttractions: attractions } : prev));
+                }}
+              />
             </div>
           )}
 

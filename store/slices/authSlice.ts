@@ -48,8 +48,19 @@ export const loginUser = createAsyncThunk(
     if (isExplicitVendor) {
       try {
         const res = await api.post('/auth/vendor/login', { email: trimmedEmail, password });
-        const token = res.data?.data?.accessToken || res.data?.accessToken;
-        const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
+        const resData = res.data?.data || res.data;
+
+        if (resData?.twoFactorRequired || resData?.requiresOtp) {
+          return {
+            requiresOtp: true,
+            challengeToken: resData.challengeToken,
+            email: resData.email || trimmedEmail,
+            message: resData.message || `A 6-digit verification code was sent to ${resData.email || trimmedEmail}`,
+          };
+        }
+
+        const token = resData?.accessToken || res.data?.accessToken;
+        const rawUser = resData?.user || resData?.profile || res.data?.user;
         if (token && typeof window !== 'undefined') {
           localStorage.setItem('mahastays_admin_token', token);
           localStorage.setItem('mahastays_token', token);
@@ -70,7 +81,7 @@ export const loginUser = createAsyncThunk(
             localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
             localStorage.setItem('mahastays_auth_view_mode', 'vendor');
           }
-          return { user: vendorUser, role: 'vendor' as const, token };
+          return { user: vendorUser, role: 'vendor' as const, token, requiresOtp: false };
         }
         return rejectWithValue('Invalid vendor credentials');
       } catch (err: any) {
@@ -160,8 +171,19 @@ export const loginUser = createAsyncThunk(
     } catch (adminErr: any) {
       try {
         const res = await api.post('/auth/vendor/login', { email: trimmedEmail, password });
-        const token = res.data?.data?.accessToken || res.data?.accessToken;
-        const rawUser = res.data?.data?.user || res.data?.user || res.data?.data?.profile;
+        const resData = res.data?.data || res.data;
+
+        if (resData?.twoFactorRequired || resData?.requiresOtp) {
+          return {
+            requiresOtp: true,
+            challengeToken: resData.challengeToken,
+            email: resData.email || trimmedEmail,
+            message: resData.message || `A 6-digit verification code was sent to ${resData.email || trimmedEmail}`,
+          };
+        }
+
+        const token = resData?.accessToken || res.data?.accessToken;
+        const rawUser = resData?.user || resData?.profile || res.data?.user;
         if (token && typeof window !== 'undefined') {
           localStorage.setItem('mahastays_admin_token', token);
           localStorage.setItem('mahastays_token', token);
@@ -182,7 +204,7 @@ export const loginUser = createAsyncThunk(
             localStorage.setItem('mahastays_auth_user', JSON.stringify(vendorUser));
             localStorage.setItem('mahastays_auth_view_mode', 'vendor');
           }
-          return { user: vendorUser, role: 'vendor' as const, token };
+          return { user: vendorUser, role: 'vendor' as const, token, requiresOtp: false };
         }
       } catch {
         return rejectWithValue(getApiErrorMessage(adminErr) || 'Invalid email or password. Please verify your credentials.');
@@ -229,7 +251,18 @@ export const verifyAdminOtp = createAsyncThunk(
         localStorage.setItem('mahastays_token', token);
       }
       if (rawUser) {
-        const adminUser: CurrentUser = {
+        const isVendor = rawUser.role === 'vendor' || data?.role === 'vendor' || !!rawUser.businessName || !!rawUser.vendorCode;
+        const userObj: CurrentUser = isVendor ? {
+          id: rawUser.id || rawUser._id,
+          name: rawUser.displayName || rawUser.businessName || rawUser.fullName || 'Vendor Partner',
+          email: rawUser.email || payload.email || '',
+          role: 'vendor',
+          avatar: rawUser.avatarUrl || '',
+          title: `${rawUser.displayRole || 'Host'} · ${rawUser.businessName || 'Mahastays Partner'}`,
+          businessName: rawUser.businessName || 'Hospitality Partner',
+          vendorId: rawUser.id || rawUser._id,
+          vendorCode: rawUser.vendorCode || 'VND-3001',
+        } : {
           id: rawUser.id || rawUser._id,
           name: rawUser.fullName || rawUser.name || 'MahaStays Admin',
           email: rawUser.email || payload.email || '[EMAIL_ADDRESS]',
@@ -239,10 +272,11 @@ export const verifyAdminOtp = createAsyncThunk(
           adminCode: rawUser.adminCode || 'ADM-100',
         };
         if (typeof window !== 'undefined') {
-          localStorage.setItem('mahastays_auth_user', JSON.stringify(adminUser));
-          localStorage.setItem('mahastays_auth_view_mode', 'admin');
+          localStorage.setItem('mahastays_auth_user', JSON.stringify(userObj));
+          localStorage.setItem('mahastays_auth_view_mode', isVendor ? 'vendor' : 'admin');
         }
-        return { user: adminUser, role: 'admin' as const, token };
+        const assignedRole: 'vendor' | 'admin' = isVendor ? 'vendor' : 'admin';
+        return { user: userObj, role: assignedRole, token };
       }
       return rejectWithValue('Invalid response from authentication server');
     } catch (err: any) {

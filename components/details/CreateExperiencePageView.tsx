@@ -153,10 +153,31 @@ export default function CreateExperiencePageView() {
   const [guideName, setGuideName] = useState('');
   const [guideRole, setGuideRole] = useState('Certified Mountaineering Instructor');
   const [guideExperience, setGuideExperience] = useState('7 Years Guiding • 450+ Treks Led');
+  const [guideBio, setGuideBio] = useState('Specializing in Western Ghats wilderness expeditions, safety briefings, and nature trails.');
+  const [guideAvatar, setGuideAvatar] = useState('');
+  const [isUploadingGuideAvatar, setIsUploadingGuideAvatar] = useState(false);
+  const guideAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleGuideAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingGuideAvatar(true);
+    try {
+      const res = await uploadImageToCloudinary(file, 'avatar');
+      setGuideAvatar(res.url);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to upload guide avatar');
+    } finally {
+      setIsUploadingGuideAvatar(false);
+    }
+  };
 
   useEffect(() => {
     if (activeVendor) {
       setGuideName(activeVendor.displayName || activeVendor.businessName || '');
+      if (activeVendor.avatarUrl && !guideAvatar) {
+        setGuideAvatar(activeVendor.avatarUrl);
+      }
     } else if (!isAdmin && user) {
       setGuideName(user.name || user.businessName || 'Lead Guide');
     }
@@ -295,7 +316,7 @@ export default function CreateExperiencePageView() {
         name: guideName.trim() || assignedVendorName,
         role: guideRole.trim(),
         experience: guideExperience.trim(),
-        avatar: activeVendor?.avatarUrl || '',
+        avatar: guideAvatar.trim() || activeVendor?.avatarUrl || '',
         verified: true,
         confirmationBadge: 'Certified Guide',
       },
@@ -303,7 +324,7 @@ export default function CreateExperiencePageView() {
         name: guideName.trim() || assignedVendorName,
         role: guideRole.trim(),
         experience: guideExperience.trim(),
-        avatar: activeVendor?.avatarUrl || '',
+        avatar: guideAvatar.trim() || activeVendor?.avatarUrl || '',
         verified: true,
         confirmationBadge: 'Certified Guide',
       },
@@ -994,6 +1015,150 @@ export default function CreateExperiencePageView() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================== */}
+        {/* 8. GUIDE & HOST INFORMATION                                    */}
+        {/* ============================================================== */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                Lead Guide &amp; Activity Host Information
+              </h2>
+              <p className="text-xs text-slate-500">
+                Displays in the &ldquo;Guided by&rdquo; card and details overview on the frontend.
+              </p>
+            </div>
+          </div>
+
+          {/* Guide Profile Picture / Operator Brand Logo Upload */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative group shrink-0">
+              {guideAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={guideAvatar}
+                  alt={guideName || 'Guide'}
+                  className="w-16 h-16 rounded-full object-cover ring-2 ring-rose-200 dark:ring-rose-900/50 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-slate-900 text-white font-extrabold text-xl flex items-center justify-center font-poppins shadow-sm">
+                  {(guideName || 'G')[0]?.toUpperCase() || 'G'}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 text-center sm:text-left space-y-1">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Guide Profile Photo or Company Brand Logo
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Shows in the guest experience page. Upload high-res photo or operator brand logo (PNG, JPG, WEBP).
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1.5 justify-center sm:justify-start">
+                <input
+                  ref={guideAvatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleGuideAvatarUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingGuideAvatar}
+                  onClick={() => guideAvatarInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#c50e0a] text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                >
+                  {isUploadingGuideAvatar ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>{guideAvatar ? 'Change Photo / Logo' : 'Upload Guide Photo / Logo'}</span>
+                    </>
+                  )}
+                </button>
+                {activeVendor?.avatarUrl && guideAvatar !== activeVendor.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setGuideAvatar(activeVendor.avatarUrl || '')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-300 transition"
+                  >
+                    <span>Use Vendor Profile Logo</span>
+                  </button>
+                )}
+                {guideAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => setGuideAvatar('')}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-600 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Guide / Leader Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Rahul Patil & Sahyadri Guides"
+                value={guideName}
+                onChange={(e) => setGuideName(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Guide Certification &amp; Title
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Certified Mountaineering Instructor"
+                value={guideRole}
+                onChange={(e) => setGuideRole(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Guiding Experience / Badges
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 7 Years Guiding • 450+ Treks Led"
+                value={guideExperience}
+                onChange={(e) => setGuideExperience(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Guide Bio
+              </label>
+              <textarea
+                rows={2}
+                value={guideBio}
+                onChange={(e) => setGuideBio(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
             </div>
           </div>
         </div>

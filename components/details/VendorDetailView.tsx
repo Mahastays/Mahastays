@@ -40,6 +40,8 @@ import {
   FileText,
   Loader2,
   Info,
+  Camera,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -140,7 +142,12 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
     businessProofUrl: '',
     bankProofUrl: '',
     tourismProofUrl: '',
+    avatarUrl: '',
   });
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const modalAvatarInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Match vendor by ID or vendorCode
   const vendor = useMemo(() => {
@@ -229,10 +236,33 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
       businessProofUrl: isDummyVal(vendor.compliance?.businessProofUrl) ? '' : (vendor.compliance?.businessProofUrl || ''),
       bankProofUrl: isDummyVal(vendor.compliance?.bankProofUrl) ? '' : (vendor.compliance?.bankProofUrl || ''),
       tourismProofUrl: isDummyVal(vendor.compliance?.tourismProofUrl) ? '' : (vendor.compliance?.tourismProofUrl || ''),
+      avatarUrl: vendor.avatarUrl || '',
     });
     setShowPassword(false);
     setShowConfirmPassword(false);
     setIsEditModalOpen(true);
+  };
+
+  // Direct Host Profile / Logo Upload Handler
+  const handleAvatarUpload = async (file: File) => {
+    if (!vendor) return;
+    try {
+      setIsUploadingAvatar(true);
+      const uploadRes = await uploadImageToCloudinary(file, 'avatar');
+      const uploadedUrl = uploadRes.url;
+      const res = await updateVendorProfile(vendor.id, {
+        avatarUrl: uploadedUrl,
+      });
+      if (res) {
+        setApiVendor(res);
+      }
+      setEditForm((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
+      showToast('Host profile / logo image updated successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload profile/logo image');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   // Direct Document Upload Handler for KYC docs
@@ -311,6 +341,7 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
         businessProofUrl: editForm.businessProofUrl.trim(),
         bankProofUrl: editForm.bankProofUrl.trim(),
         tourismProofUrl: editForm.tourismProofUrl.trim(),
+        avatarUrl: editForm.avatarUrl?.trim() || undefined,
       };
 
       if (editForm.password.trim()) {
@@ -570,17 +601,46 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-start sm:items-center gap-4">
-            {vendor.avatarUrl ? (
-              <img
-                src={vendor.avatarUrl}
-                alt={vendor.displayName}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover ring-4 ring-rose-50 dark:ring-rose-950/40 shrink-0"
+            <div className="relative group shrink-0">
+              {vendor.avatarUrl ? (
+                <img
+                  src={vendor.avatarUrl}
+                  alt={vendor.displayName}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover ring-4 ring-rose-50 dark:ring-rose-950/40 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-extrabold text-2xl flex items-center justify-center shrink-0 border border-rose-200/60 dark:border-rose-900/40">
+                  {(vendor.businessName || vendor.displayName || 'V')[0].toUpperCase()}
+                </div>
+              )}
+              {/* Overlay upload button */}
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute inset-0 rounded-3xl bg-black/55 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold p-1 text-center"
+                title="Upload / Change Host Profile or Logo"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 mb-0.5" />
+                    <span>Change Logo</span>
+                  </>
+                )}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAvatarUpload(f);
+                }}
               />
-            ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-extrabold text-2xl flex items-center justify-center shrink-0 border border-rose-200/60 dark:border-rose-900/40">
-                {(vendor.businessName || vendor.displayName || 'V')[0].toUpperCase()}
-              </div>
-            )}
+            </div>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
@@ -612,6 +672,41 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
               <p className="text-xs text-slate-500">
                 Primary Contact: <strong className="text-slate-800 dark:text-slate-200">{vendor.displayName}</strong> • {vendor.displayRole || 'Host & Partner'}
               </p>
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition cursor-pointer shadow-2xs"
+                >
+                  {isUploadingAvatar ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                      <span>Uploading Logo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5 text-rose-600" />
+                      <span>{vendor.avatarUrl ? 'Change Host Profile / Logo' : 'Upload Host Profile / Logo'}</span>
+                    </>
+                  )}
+                </button>
+                {vendor.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm('Remove host profile/logo image?')) {
+                        await updateVendorProfile(vendor.id, { avatarUrl: '' });
+                        setApiVendor({ ...vendor, avatarUrl: '' });
+                        showToast('Host profile/logo removed');
+                      }
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-rose-600 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-slate-400">
                 {vendor.experienceSummary || 'Authorized partner listed on Mahastays tourism network'}
               </p>
@@ -1757,6 +1852,93 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
                       >
                         {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 1.5: Host Profile Picture & Brand Logo */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-rose-600" />
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                      Host Profile Photo / Brand Logo
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    Public Host Badge
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="relative shrink-0">
+                    {editForm.avatarUrl ? (
+                      <img
+                        src={editForm.avatarUrl}
+                        alt="Host Preview"
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-rose-200 dark:border-rose-900 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xl border border-dashed border-slate-300 dark:border-slate-600">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 flex-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                      This photo or business logo appears as the verified host on all property, package, and experience listings.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={modalAvatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setIsUploadingAvatar(true);
+                            const res = await uploadImageToCloudinary(file, 'avatar');
+                            setEditForm((prev) => ({ ...prev, avatarUrl: res.url }));
+                            showToast('Photo uploaded to preview');
+                          } catch (err: any) {
+                            alert(err.message || 'Upload failed');
+                          } finally {
+                            setIsUploadingAvatar(false);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploadingAvatar}
+                        onClick={() => modalAvatarInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 dark:hover:bg-rose-900 text-[#ea110d] dark:text-rose-300 text-xs font-bold transition cursor-pointer border border-rose-200 dark:border-rose-800"
+                      >
+                        {isUploadingAvatar ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-3.5 h-3.5" />
+                            <span>{editForm.avatarUrl ? 'Replace Photo / Logo' : 'Upload Photo / Logo'}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {editForm.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditForm((prev) => ({ ...prev, avatarUrl: '' }))}
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

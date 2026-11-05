@@ -74,9 +74,10 @@ api.interceptors.response.use(
     }
 
     const enhancedError = new Error(message);
-    (enhancedError as any).code = errorData?.code || 'REQUEST_FAILED';
+    (enhancedError as any).code = errorData?.code || (error.code === 'ERR_NETWORK' ? 'ERR_NETWORK' : 'REQUEST_FAILED');
     (enhancedError as any).details = errorData?.details;
     (enhancedError as any).status = error.response?.status;
+    (enhancedError as any).isNetworkError = error.code === 'ERR_NETWORK' || error.message === 'Network Error';
 
     return Promise.reject(enhancedError);
   }

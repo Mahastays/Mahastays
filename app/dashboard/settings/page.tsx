@@ -28,6 +28,10 @@ import {
   Lock,
   Eye,
   EyeOff,
+  User,
+  Camera,
+  UploadCloud,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -35,6 +39,7 @@ import { fetchVendors, updateVendorCommissionAsync } from '../../../store/slices
 import { VendorItem, PlatformConfigData } from '../../../types';
 import api from '../../../lib/api';
 import { toast } from '../../../components/ui/Toast';
+import { uploadImageToCloudinary } from '../../../lib/upload';
 
 const DEFAULT_PLATFORM_CONFIG: PlatformConfigData = {
   gstRates: {
@@ -95,6 +100,39 @@ export default function SettingsPage() {
   // Vendor Table Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'property_host' | 'activity_operator' | 'integrated_resort'>('all');
+
+  // Vendor Host Avatar / Logo Upload State
+  const [isUploadingVendorAvatar, setIsUploadingVendorAvatar] = useState(false);
+  const vendorAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleVendorAvatarUpload = async (file: File) => {
+    if (!currentVendor) return;
+    setIsUploadingVendorAvatar(true);
+    try {
+      const res = await uploadImageToCloudinary(file, 'avatar');
+      await api.put(`/vendors/${currentVendor.id}`, { avatarUrl: res.url });
+      await dispatch(fetchVendors());
+      showToast('Host profile picture / brand logo updated successfully!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to upload logo');
+    } finally {
+      setIsUploadingVendorAvatar(false);
+    }
+  };
+
+  const handleRemoveVendorAvatar = async () => {
+    if (!currentVendor) return;
+    try {
+      setIsUploadingVendorAvatar(true);
+      await api.put(`/vendors/${currentVendor.id}`, { avatarUrl: '' });
+      await dispatch(fetchVendors());
+      showToast('Host profile picture / brand logo removed');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to remove logo');
+    } finally {
+      setIsUploadingVendorAvatar(false);
+    }
+  };
 
   // Admin Change Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -469,7 +507,112 @@ export default function SettingsPage() {
 
       {/* ── 2. Vendor Partner Personal View (if logged in as vendor) ── */}
       {!isAdmin && currentVendor && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+        <>
+          {/* Host Profile Picture & Brand Logo Card */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <User className="w-4 h-4 text-rose-600" />
+                  <span>Host Profile Picture &amp; Brand Logo</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  This photo or logo is shown on all your property stays, packages, and experience listings across Mahastays.
+                </p>
+              </div>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {currentVendor.vendorCode || 'Host'}
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+              <div className="relative group shrink-0">
+                {currentVendor.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={currentVendor.avatarUrl}
+                    alt={currentVendor.businessName || 'Host'}
+                    className="w-20 h-20 rounded-full object-cover ring-4 ring-rose-100 dark:ring-rose-950/60 shadow-md"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center font-poppins shadow-md">
+                    {(currentVendor.businessName || currentVendor.displayName || 'V')[0]?.toUpperCase()}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  disabled={isUploadingVendorAvatar}
+                  onClick={() => vendorAvatarInputRef.current?.click()}
+                  className="absolute inset-0 rounded-full bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold"
+                  title="Upload Host Photo / Logo"
+                >
+                  {isUploadingVendorAvatar ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+
+              <div className="flex-1 min-w-0 text-center sm:text-left space-y-1">
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
+                    {currentVendor.businessName || currentVendor.displayName}
+                  </h4>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active Host" />
+                </div>
+                <p className="text-xs text-slate-500 font-roboto">
+                  {currentVendor.displayName && currentVendor.displayName !== currentVendor.businessName
+                    ? `${currentVendor.displayName} • `
+                    : ''}
+                  {currentVendor.email || ''} {currentVendor.phone ? `• +91 ${currentVendor.phone}` : ''}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2 pt-2 justify-center sm:justify-start">
+                  <input
+                    ref={vendorAvatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleVendorAvatarUpload(f);
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploadingVendorAvatar}
+                    onClick={() => vendorAvatarInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#c50e0a] text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploadingVendorAvatar ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>{currentVendor.avatarUrl ? 'Change Profile / Brand Logo' : 'Upload Brand Logo / Photo'}</span>
+                      </>
+                    )}
+                  </button>
+                  {currentVendor.avatarUrl && (
+                    <button
+                      type="button"
+                      disabled={isUploadingVendorAvatar}
+                      onClick={handleRemoveVendorAvatar}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-rose-600 transition"
+                    >
+                      Remove Logo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
@@ -510,6 +653,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* ── 3. Vendor Commissions Management Table (ADMIN ONLY) ── */}

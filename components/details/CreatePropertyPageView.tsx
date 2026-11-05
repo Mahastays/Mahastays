@@ -189,11 +189,31 @@ export default function CreatePropertyPageView() {
   const [hostRole, setHostRole] = useState('Property Owner & Host');
   const [hostExperience, setHostExperience] = useState('5 Years Hosting • 1,200+ Verified Guests');
   const [hostBio, setHostBio] = useState('Passionate about authentic Western Ghats hospitality and local dining.');
+  const [hostAvatar, setHostAvatar] = useState('');
+  const [isUploadingHostAvatar, setIsUploadingHostAvatar] = useState(false);
+  const hostAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleHostAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingHostAvatar(true);
+    try {
+      const res = await uploadImageToCloudinary(file, 'avatar');
+      setHostAvatar(res.url);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to upload host avatar');
+    } finally {
+      setIsUploadingHostAvatar(false);
+    }
+  };
 
   // Auto-sync host name when vendor changes
   useEffect(() => {
     if (activeVendor) {
       setHostName(activeVendor.displayName || activeVendor.businessName || '');
+      if (activeVendor.avatarUrl && !hostAvatar) {
+        setHostAvatar(activeVendor.avatarUrl);
+      }
     } else if (!isAdmin && user) {
       setHostName(user.name || user.businessName || 'Host');
     }
@@ -315,7 +335,7 @@ export default function CreatePropertyPageView() {
         name: hostName.trim() || assignedVendorName,
         role: hostRole.trim(),
         experience: hostExperience.trim(),
-        avatar: activeVendor?.avatarUrl || '',
+        avatar: hostAvatar.trim() || activeVendor?.avatarUrl || '',
         verified: true,
         staysCount: '15+ Stays Hosted',
         confirmationBadge: 'Instant Booking Confirmed',
@@ -1329,6 +1349,78 @@ export default function CreatePropertyPageView() {
               <p className="text-xs text-slate-500">
                 Displays in the &ldquo;Host &amp; Reviews&rdquo; tab on the frontend.
               </p>
+            </div>
+          </div>
+
+          {/* Host Profile Picture / Brand Logo Upload */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative group shrink-0">
+              {hostAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={hostAvatar}
+                  alt={hostName || 'Host'}
+                  className="w-16 h-16 rounded-full object-cover ring-2 ring-rose-200 dark:ring-rose-900/50 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-slate-900 text-white font-extrabold text-xl flex items-center justify-center font-poppins shadow-sm">
+                  {(hostName || 'H')[0]?.toUpperCase() || 'H'}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 text-center sm:text-left space-y-1">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Host Profile Photo or Brand Logo
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Shows in the stay details Host Card to guests. Upload high-res photo or hotel brand logo (PNG, JPG, WEBP).
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1.5 justify-center sm:justify-start">
+                <input
+                  ref={hostAvatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHostAvatarUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingHostAvatar}
+                  onClick={() => hostAvatarInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ea110d] hover:bg-[#c50e0a] text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+                >
+                  {isUploadingHostAvatar ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>{hostAvatar ? 'Change Photo / Logo' : 'Upload Host Photo / Logo'}</span>
+                    </>
+                  )}
+                </button>
+                {activeVendor?.avatarUrl && hostAvatar !== activeVendor.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setHostAvatar(activeVendor.avatarUrl || '')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-300 transition"
+                  >
+                    <span>Use Vendor Profile Logo</span>
+                  </button>
+                )}
+                {hostAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => setHostAvatar('')}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-600 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

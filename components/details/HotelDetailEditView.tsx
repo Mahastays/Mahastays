@@ -109,6 +109,22 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const hostAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingHostAvatar, setIsUploadingHostAvatar] = useState(false);
+
+  const handleHostAvatarUpload = async (file: File) => {
+    try {
+      setIsUploadingHostAvatar(true);
+      const res = await uploadImageToCloudinary(file, 'hosts');
+      handleHostChange('avatar', res.url);
+      setUploadSuccessToast('Host profile / logo updated!');
+      setTimeout(() => setUploadSuccessToast(null), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload host image');
+    } finally {
+      setIsUploadingHostAvatar(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!id) return;
@@ -1093,8 +1109,45 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
           {/* ─── Host Card (Exact Screenshot 1) ─── */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-[#0B0A06] text-white font-extrabold text-lg flex items-center justify-center font-poppins shrink-0 shadow-sm">
-                {property.host?.name ? property.host.name[0] : 'K'}
+              <div className="relative group shrink-0">
+                {property.host?.avatar ? (
+                  <img
+                    src={property.host.avatar}
+                    alt={property.host?.name || 'Host'}
+                    className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-[#0B0A06] text-white font-extrabold text-lg flex items-center justify-center font-poppins shrink-0 shadow-sm">
+                    {property.host?.name ? property.host.name[0] : 'K'}
+                  </div>
+                )}
+                {isEditMode && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isUploadingHostAvatar}
+                      onClick={() => hostAvatarInputRef.current?.click()}
+                      className="absolute inset-0 rounded-full bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[9px] font-bold"
+                      title="Upload Host Photo / Logo"
+                    >
+                      {isUploadingHostAvatar ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                    <input
+                      ref={hostAvatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleHostAvatarUpload(file);
+                      }}
+                    />
+                  </>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 {isEditMode ? (
@@ -1138,6 +1191,35 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                         placeholder="e.g. 64+ Verified Group Stays"
                         className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
+                    </div>
+                    <div className="flex items-center gap-2 sm:col-span-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={isUploadingHostAvatar}
+                        onClick={() => hostAvatarInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#ea110d] text-[11px] font-bold border border-rose-200 transition cursor-pointer"
+                      >
+                        {isUploadingHostAvatar ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-3 h-3" />
+                            <span>{property.host?.avatar ? 'Change Host Photo / Logo' : 'Upload Host Photo / Logo'}</span>
+                          </>
+                        )}
+                      </button>
+                      {property.host?.avatar && (
+                        <button
+                          type="button"
+                          onClick={() => handleHostChange('avatar', '')}
+                          className="text-[11px] text-slate-400 hover:text-rose-600 transition"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1213,71 +1295,89 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                {(property.keyAmenities || []).length === 0 ? (
-                  <div className="col-span-full py-2 text-center text-xs text-slate-400 italic">
-                    No custom feature cards added. Click &quot;Add Feature Card&quot; to highlight amenities.
+              {!isEditMode ? (
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
+                    {(((property.keyAmenities && property.keyAmenities.length > 0))
+                      ? property.keyAmenities
+                      : [
+                          { name: 'Infinity Pool', desc: 'Heated pool with valley view' },
+                          { name: 'Private Chef', desc: 'On-demand dining & BBQ' },
+                          { name: 'Butler Service', desc: 'Personalised assistance' },
+                          { name: 'High-Speed Wi-Fi', desc: 'Stay connected 250 Mbps' },
+                        ]
+                    ).map((amenity, idx) => (
+                      <div
+                        key={idx}
+                        title={amenity.desc ? `${amenity.name} • ${amenity.desc}` : amenity.name}
+                        className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                      >
+                        <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                          <Image
+                            src="/brand/mahastays-logo-main.png"
+                            alt="Mahastays"
+                            width={22}
+                            height={22}
+                            className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                          />
+                        </div>
+                        <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                          {amenity.name}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  (property.keyAmenities || []).map((amenity, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 text-slate-700 mt-0.5">
-                        {idx % 4 === 0 ? (
-                          <Waves className="w-4 h-4 text-slate-700" />
-                        ) : idx % 4 === 1 ? (
-                          <Utensils className="w-4 h-4 text-slate-700" />
-                        ) : idx % 4 === 2 ? (
-                          <ShieldCheck className="w-4 h-4 text-slate-700" />
-                        ) : (
-                          <Wifi className="w-4 h-4 text-slate-700" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        {isEditMode ? (
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              value={amenity.name}
-                              onChange={(e) => handleKeyAmenityChange(idx, 'name', e.target.value)}
-                              placeholder="Card Title"
-                              className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
-                            />
-                            <input
-                              type="text"
-                              value={amenity.desc}
-                              onChange={(e) => handleKeyAmenityChange(idx, 'desc', e.target.value)}
-                              placeholder="Card Description"
-                              className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <div className="text-xs font-bold text-slate-900 font-poppins truncate">
-                              {amenity.name}
-                            </div>
-                            <div className="text-[10px] text-slate-500 truncate">
-                              {amenity.desc}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {isEditMode && (
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {(property.keyAmenities || []).length === 0 ? (
+                    <div className="col-span-full py-2 text-center text-xs text-slate-400 italic">
+                      No custom feature cards added. Click &quot;Add Feature Card&quot; to highlight amenities.
+                    </div>
+                  ) : (
+                    (property.keyAmenities || []).map((amenity, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100 relative group"
+                      >
+                        <div className="relative w-8 h-8 rounded-lg bg-rose-50/70 border border-rose-200/60 flex items-center justify-center shrink-0 p-1 mt-0.5">
+                          <Image
+                            src="/brand/mahastays-logo-main.png"
+                            alt="Mahastays"
+                            width={20}
+                            height={20}
+                            className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 transition-all"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <input
+                            type="text"
+                            value={amenity.name}
+                            onChange={(e) => handleKeyAmenityChange(idx, 'name', e.target.value)}
+                            placeholder="Card Title"
+                            className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                          />
+                          <input
+                            type="text"
+                            value={amenity.desc}
+                            onChange={(e) => handleKeyAmenityChange(idx, 'desc', e.target.value)}
+                            placeholder="Card Description"
+                            className="text-[10px] text-slate-500 border-b border-slate-300 w-full p-0 bg-transparent focus:outline-hidden"
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveKeyAmenity(idx)}
                           className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
-                          title="Remove this card (don't keep)"
+                          title="Remove this card"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 

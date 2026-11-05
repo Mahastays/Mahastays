@@ -237,22 +237,18 @@ export const fetchBookings = createAsyncThunk('bookings/fetchBookings', async ()
     const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
     const requestConfig = {
       params: { _t: Date.now(), limit: 100 },
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-      },
     };
     const res = isVendor
       ? await api.get('/vendor/bookings', requestConfig).catch(() => api.get('/admin/bookings', requestConfig))
       : await api.get('/admin/bookings', requestConfig).catch(() => api.get('/vendor/bookings', requestConfig));
 
-    const rawList = Array.isArray(res.data?.data)
+    const rawList = Array.isArray(res?.data?.data)
       ? res.data.data
-      : Array.isArray(res.data?.data?.items)
+      : Array.isArray(res?.data?.data?.items)
       ? res.data.data.items
-      : Array.isArray(res.data?.items)
+      : Array.isArray(res?.data?.items)
       ? res.data.items
-      : Array.isArray(res.data)
+      : Array.isArray(res?.data)
       ? res.data
       : null;
 
@@ -265,12 +261,12 @@ export const fetchBookings = createAsyncThunk('bookings/fetchBookings', async ()
         saveGuests(realGuests);
       }
 
-      return { bookings: normalized, guests: realGuests };
+      return { bookings: normalized, guests: realGuests, isLive: true };
     }
-  } catch (err) {
-    console.error('Failed to fetch bookings from server:', err);
+  } catch {
+    // Graceful offline fallback to localStorage when backend API is unreachable
   }
-  return { bookings: getStoredBookings(), guests: getStoredGuests() };
+  return { bookings: getStoredBookings(), guests: getStoredGuests(), isLive: false };
 });
 
 export const updateBookingStatusAsync = createAsyncThunk(

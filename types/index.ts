@@ -224,6 +224,17 @@ export interface PackageItem {
   videoUrl?: string;
   idealFor?: string;
   destinations?: string;
+  address?: {
+    fullAddress: string;
+    lat: number;
+    lng: number;
+    mapLink?: string;
+  };
+  nearbyAttractions?: Array<{
+    name: string;
+    distance: string;
+    desc?: string;
+  }>;
   policies?: {
     cancellationPolicy?: string;
     rules?: string[];
@@ -311,6 +322,21 @@ export interface ExperienceItem {
   videoUrl?: string;
   idealFor?: string;
   groupSizeText?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  address?: {
+    fullAddress: string;
+    lat: number;
+    lng: number;
+    mapLink?: string;
+  };
+  nearbyAttractions?: Array<{
+    name: string;
+    distance: string;
+    desc?: string;
+  }>;
   rating: number;
   reviewsCount: number;
   featured: boolean;
