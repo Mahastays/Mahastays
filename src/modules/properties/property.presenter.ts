@@ -33,12 +33,16 @@ export function presentRoom(r: Room, extra: { availableUnits?: number } = {}) {
 /** Full property in the spec's shape (display aliases are derived, never stored twice). */
 export function presentProperty(p: Property, opts: { roomAvailability?: Map<string, number> } = {}) {
   const policies = p.policies;
+  const roomPrices = (p.rooms || []).map((r) => Number(r.basePrice)).filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : p.numericPrice;
   return {
     ...omit(p, 'amenityKeys'),
     _id: p.id,
     type: cap(p.propertyType),
-    price: formatInr(p.numericPrice),
-    inrPrice: p.numericPrice,
+    price: formatInr(startingPrice),
+    numericPrice: startingPrice,
+    inrPrice: startingPrice,
+    pricingRules: p.pricingRules ?? null,
     mapCoordinates: { lat: p.address.lat, lng: p.address.lng },
     hostName: p.host?.name ?? null,
     hostRole: p.host?.role ?? null,
@@ -61,6 +65,8 @@ export function presentProperty(p: Property, opts: { roomAvailability?: Map<stri
 
 /** Lightweight shape for lists (StayCard / PopularHotels). */
 export function presentPropertyCard(p: Property, extra: Record<string, unknown> = {}) {
+  const roomPrices = (p.rooms || []).map((r) => Number(r.basePrice)).filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : p.numericPrice;
   return {
     id: p.id,
     _id: p.id,
@@ -68,10 +74,11 @@ export function presentPropertyCard(p: Property, extra: Record<string, unknown> 
     name: p.name,
     propertyType: p.propertyType,
     type: cap(p.propertyType),
-    price: formatInr(p.numericPrice),
-    numericPrice: p.numericPrice,
-    inrPrice: p.numericPrice,
+    price: formatInr(startingPrice),
+    numericPrice: startingPrice,
+    inrPrice: startingPrice,
     originalPrice: p.originalPrice,
+    pricingRules: p.pricingRules ?? null,
     tagline: p.tagline,
     badge: p.badge,
     tags: p.tags,

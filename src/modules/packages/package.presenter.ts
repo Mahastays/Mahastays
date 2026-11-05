@@ -15,6 +15,8 @@ export function presentPackage(
     experiences?: Map<string, Pick<Experience, 'id' | 'title' | 'image' | 'category' | 'status'>>;
   } = {},
 ) {
+  const tierPrices = (pk.tiers || []).map((t) => Number(t.pricePerPerson)).filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : pk.numericPrice;
   return {
     ...omit(pk, 'tiers', 'freeActivities'),
     _id: pk.id,
@@ -23,7 +25,9 @@ export function presentPackage(
     rating: `${pk.rating.toFixed(1)}/5 ★`,
     ratingScore: pk.rating,
     duration: `${pk.durationDays} Days / ${pk.durationNights} Nights`,
-    price: priceLabel(pk.numericPrice),
+    price: priceLabel(startingPrice),
+    numericPrice: startingPrice,
+    pricingRules: pk.pricingRules ?? null,
     pricingUnit: 'person' as const,
     fullDesc: pk.overview ?? pk.description ?? pk.shortDesc,
     hostProperty: extra.property
@@ -52,6 +56,8 @@ export function presentPackage(
 }
 
 export function presentPackageCard(pk: Package, extra: Record<string, unknown> = {}) {
+  const tierPrices = (pk.tiers || []).map((t) => Number(t.pricePerPerson)).filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : pk.numericPrice;
   return {
     id: pk.id,
     _id: pk.id,
@@ -72,9 +78,10 @@ export function presentPackageCard(pk: Package, extra: Record<string, unknown> =
     locationId: pk.locationId,
     city: pk.city,
     country: pk.country,
-    price: priceLabel(pk.numericPrice),
-    numericPrice: pk.numericPrice,
+    price: priceLabel(startingPrice),
+    numericPrice: startingPrice,
     originalPrice: pk.originalPrice,
+    pricingRules: pk.pricingRules ?? null,
     pricingUnit: 'person' as const,
     shortDesc: pk.shortDesc,
     thumbnail: pk.thumbnail,

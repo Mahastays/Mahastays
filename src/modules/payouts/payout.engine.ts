@@ -1,5 +1,3 @@
-import { pct } from '../../utils/money';
-
 export interface SettlementBooking {
   bookingType: 'stay' | 'package' | 'experience';
   bookingId: string;
@@ -22,30 +20,29 @@ export interface PayoutLineCalc {
 }
 
 /**
- * Gross − commission − TDS.
- * TDS is computed on the pre-GST (taxable) value of each booking; the rate is configurable in PlatformConfig
- * because the applicable section / rate can change — confirm with your CA.
+ * Gross = Commission + Vendor Share.
+ * Auto TDS and secondary GST cuts removed as requested: vendor receives full share of booking (Customer Paid - Platform Commission).
  */
-export function computePayout(bookings: SettlementBooking[], tdsRatePercent: number) {
+export function computePayout(bookings: SettlementBooking[], _tdsRatePercent: number = 0) {
   const lines: PayoutLineCalc[] = bookings.map((b) => ({
     bookingType: b.bookingType,
     bookingId: b.bookingId,
     reference: b.reference,
     amountInr: b.vendorShareInr + b.commissionAmountInr, // = what the customer paid for this settlement
     commissionInr: b.commissionAmountInr,
-    tdsInr: pct(b.taxableAmountInr, tdsRatePercent),
+    tdsInr: 0,
     vendorShareInr: b.vendorShareInr,
   }));
   const grossBookingsAmountInr = lines.reduce((s, l) => s + l.amountInr, 0);
   const platformCommissionDeductedInr = lines.reduce((s, l) => s + l.commissionInr, 0);
   const vendorShareTotalInr = lines.reduce((s, l) => s + l.vendorShareInr, 0);
-  const tdsDeductedInr = lines.reduce((s, l) => s + l.tdsInr, 0);
+  const tdsDeductedInr = 0;
   return {
     lines,
     grossBookingsAmountInr,
     platformCommissionDeductedInr,
     vendorShareTotalInr,
     tdsDeductedInr,
-    netPayableAmountInr: vendorShareTotalInr - tdsDeductedInr,
+    netPayableAmountInr: vendorShareTotalInr,
   };
 }

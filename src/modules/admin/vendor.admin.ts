@@ -182,9 +182,6 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
 
   let updated;
   if (input.decision === 'approve') {
-    if (c.verificationStatus === 'pending' || !c.identityProofUrl || !c.businessProofUrl) {
-      throw ApiError.conflict('The vendor has not submitted KYC documents yet', 'KYC_INCOMPLETE');
-    }
     updated = await prisma.vendor.update({
       where: { id },
       data: {
@@ -196,7 +193,7 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
   } else {
     updated = await prisma.vendor.update({
       where: { id },
-      data: { compliance: { set: { ...c, verificationStatus: 'rejected', rejectionReason: input.reason ?? null } } },
+      data: { compliance: { set: { ...c, verificationStatus: 'rejected', rejectionReason: input.reason ?? 'KYC rejected by administrator' } } },
     });
   }
   await audit({
@@ -210,6 +207,37 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
   });
   const mail = templates.vendorDecision({ name: v.displayName, approved: input.decision === 'approve', reason: input.reason });
   void sendEmail({ to: v.email, subject: mail.subject, html: mail.html });
+  ok(res, presentVendor(updated, { bank: 'masked' }));
+});
+
+const patchKycSchema = z.object({
+  approve: z.boolean(),
+  reason: optionalTrimmed(300),
+});
+
+adminVendorRouter.patch('/:id/kyc', approve, async (req, res) => {
+  const staff = getStaff(req);
+  const input = patchKycSchema.parse(bodyOf(req));
+  const v = await resolveVendor(String(req.params.id));
+  if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
+  const c = v.compliance;
+
+  let updated;
+  if (input.approve) {
+    updated = await prisma.vendor.update({
+      where: { id },
+      data: {
+        status: 'active',
+        compliance: { set: { ...c, verificationStatus: 'approved', rejectionReason: null, verifiedAt: new Date(), verifiedByAdminId: staff.id } },
+      },
+    });
+  } else {
+    updated = await prisma.vendor.update({
+      where: { id },
+      data: { compliance: { set: { ...c, verificationStatus: 'rejected', rejectionReason: input.reason ?? 'KYC rejected by administrator' } } },
+    });
+  }
   ok(res, presentVendor(updated, { bank: 'masked' }));
 });
 

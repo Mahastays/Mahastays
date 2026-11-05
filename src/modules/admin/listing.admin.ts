@@ -378,17 +378,21 @@ export function adminListingRouter(kind: ListingKind): Router {
           amenities: Array.isArray(r.amenities) ? r.amenities : [],
         }));
         data.rooms = { set: rooms };
-        const prices = rooms.map((r: any) => r.basePrice).filter(Boolean);
+        const prices = rooms.map((r: any) => Number(r.basePrice)).filter((p: number) => !isNaN(p) && p > 0);
         if (prices.length > 0) {
           data.numericPrice = Math.min(...prices);
         }
-        const origPrices = rooms.map((r: any) => r.originalPrice).filter(Boolean);
+        const origPrices = rooms.map((r: any) => Number(r.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
         if (origPrices.length > 0) {
           data.originalPrice = Math.min(...origPrices);
         }
       }
-      if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
-      if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.numericPrice !== undefined && data.numericPrice === undefined) {
+        data.numericPrice = Number(body.numericPrice);
+      }
+      if (body.originalPrice !== undefined && data.originalPrice === undefined) {
+        data.originalPrice = Number(body.originalPrice);
+      }
       if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.property.update({ where: { id }, data });
@@ -446,11 +450,17 @@ export function adminListingRouter(kind: ListingKind): Router {
           features: Array.isArray(t.features) ? t.features : [],
         }));
         data.tiers = { set: tiers };
-        const prices = tiers.map((t: any) => t.pricePerPerson).filter(Boolean);
+        const prices = tiers.map((t: any) => Number(t.pricePerPerson)).filter((p: number) => !isNaN(p) && p > 0);
         if (prices.length > 0) data.numericPrice = Math.min(...prices);
+        const origPrices = tiers.map((t: any) => Number(t.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
+        if (origPrices.length > 0) data.originalPrice = Math.min(...origPrices);
       }
-      if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
-      if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.numericPrice !== undefined && data.numericPrice === undefined) {
+        data.numericPrice = Number(body.numericPrice);
+      }
+      if (body.originalPrice !== undefined && data.originalPrice === undefined) {
+        data.originalPrice = Number(body.originalPrice);
+      }
       if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.package.update({ where: { id }, data });
@@ -524,11 +534,17 @@ export function adminListingRouter(kind: ListingKind): Router {
           features: Array.isArray(t.features) ? t.features : [],
         }));
         data.tiers = { set: tiers };
-        const prices = tiers.map((t: any) => t.pricePerPerson).filter(Boolean);
+        const prices = tiers.map((t: any) => Number(t.pricePerPerson)).filter((p: number) => !isNaN(p) && p > 0);
         if (prices.length > 0) data.numericPrice = Math.min(...prices);
+        const origPrices = tiers.map((t: any) => Number(t.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
+        if (origPrices.length > 0) data.originalPrice = Math.min(...origPrices);
       }
-      if (body.numericPrice !== undefined) data.numericPrice = Number(body.numericPrice);
-      if (body.originalPrice !== undefined) data.originalPrice = Number(body.originalPrice);
+      if (body.numericPrice !== undefined && data.numericPrice === undefined) {
+        data.numericPrice = Number(body.numericPrice);
+      }
+      if (body.originalPrice !== undefined && data.originalPrice === undefined) {
+        data.originalPrice = Number(body.originalPrice);
+      }
       if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
 
       const updated = await prisma.experience.update({ where: { id }, data });

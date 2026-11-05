@@ -75,7 +75,7 @@ export async function previewPayout(vendorId: string) {
   const [vendor, cfg] = await Promise.all([prisma.vendor.findUniqueOrThrow({ where: { id: vendorId } }), getPlatformConfig()]);
   const cutoff = await cutoffFor();
   const eligible = await findEligible(vendorId, cutoff);
-  const calc = computePayout(eligible, cfg.payoutRules.tdsRatePercent);
+  const calc = computePayout(eligible, 0);
   return {
     wallet: {
       pendingClearanceBalanceInr: vendor.walletPendingInr,
@@ -87,54 +87,90 @@ export async function previewPayout(vendorId: string) {
       bookings: eligible.length,
       grossBookingsAmountInr: calc.grossBookingsAmountInr,
       platformCommissionDeductedInr: calc.platformCommissionDeductedInr,
-      tdsDeductedInr: calc.tdsDeductedInr,
+      tdsDeductedInr: 0,
       netPayableAmountInr: calc.netPayableAmountInr,
       cutoffServiceDate: cutoff,
     },
-    rules: { minPayoutAmountInr: cfg.payoutRules.minPayoutAmountInr, tdsRatePercent: cfg.payoutRules.tdsRatePercent, holdDaysAfterService: cfg.payoutRules.holdDaysAfterService },
+    rules: { minPayoutAmountInr: cfg.payoutRules.minPayoutAmountInr, holdDaysAfterService: cfg.payoutRules.holdDaysAfterService },
     bankVerified: !!vendor.banking?.isAccountVerified,
+    banking: vendor.banking
+      ? {
+          accountHolderName: vendor.banking.accountHolderName,
+          accountNumberLast4: vendor.banking.accountNumberLast4,
+          bankName: vendor.banking.bankName,
+          ifscCode: vendor.banking.ifscCode,
+          isAccountVerified: vendor.banking.isAccountVerified,
+        }
+      : null,
   };
 }
 
-export async function requestPayout(vendorId: string, input: { upTo?: string }, req: Pick<Request, 'ip' | 'get'>) {
+export async function requestPayout(vendorId: string, input: { upTo?: string; amountInr?: number }, req: Pick<Request, 'ip' | 'get'>) {
   return lockService.withLock(`payout:${vendorId}`, async () => {
     const vendor = await prisma.vendor.findUniqueOrThrow({ where: { id: vendorId } });
-    if (!vendor.banking || !vendor.banking.isAccountVerified) {
-      throw ApiError.conflict('Add your bank account and wait for it to be verified before requesting a payout.', 'BANK_NOT_VERIFIED');
+    if (!vendor.banking || !vendor.banking.accountNumberLast4) {
+      throw ApiError.badRequest('Add your bank account before requesting a payout.', 'BANK_NOT_CONFIGURED');
     }
     const cfg = await getPlatformConfig();
+    const minPayout = cfg.payoutRules.minPayoutAmountInr || 500;
     const eligible = await findEligible(vendorId, await cutoffFor(input.upTo));
-    if (eligible.length === 0) throw ApiError.conflict('No settled bookings are available for payout yet.', 'NOTHING_TO_PAY');
 
-    const calc = computePayout(eligible, cfg.payoutRules.tdsRatePercent);
-    if (calc.netPayableAmountInr < cfg.payoutRules.minPayoutAmountInr) {
-      throw ApiError.conflict(`The minimum payout is ₹${cfg.payoutRules.minPayoutAmountInr}. You currently have ₹${calc.netPayableAmountInr} available.`, 'BELOW_MINIMUM_PAYOUT');
+    let grossBookingsAmountInr = 0;
+    let vendorShareTotalInr = 0;
+    let platformCommissionDeductedInr = 0;
+    let lines: any[] = [];
+
+    if (eligible.length > 0) {
+      const calc = computePayout(eligible, 0);
+      grossBookingsAmountInr = calc.grossBookingsAmountInr;
+      vendorShareTotalInr = calc.vendorShareTotalInr;
+      platformCommissionDeductedInr = calc.platformCommissionDeductedInr;
+      lines = calc.lines;
+    } else {
+      const available = vendor.walletAvailableInr || 0;
+      if (available <= 0) {
+        throw ApiError.conflict('No settled bookings or wallet funds are available for payout yet.', 'NOTHING_TO_PAY');
+      }
+      const requestedAmt = input.amountInr && input.amountInr > 0 ? Math.min(input.amountInr, available) : available;
+      if (requestedAmt < minPayout && available >= minPayout) {
+        throw ApiError.conflict(`The minimum payout is ₹${minPayout}.`, 'BELOW_MINIMUM_PAYOUT');
+      }
+      vendorShareTotalInr = requestedAmt;
+      grossBookingsAmountInr = requestedAmt;
+      platformCommissionDeductedInr = 0;
+    }
+
+    const withdrawAmount = Math.min(vendorShareTotalInr, vendor.walletAvailableInr);
+    if (withdrawAmount <= 0) {
+      throw ApiError.conflict('Insufficient available wallet balance for payout.', 'INSUFFICIENT_BALANCE');
     }
 
     const payoutId = randomObjectId();
-    const claimed = (await claim(payoutId, vendorId, eligible)).reduce((s, r) => s + r.count, 0);
-    if (claimed !== eligible.length) {
-      await prisma.$transaction(unclaimOps(payoutId));
-      throw ApiError.conflict('Another payout request is in progress. Please retry in a moment.', 'PAYOUT_IN_PROGRESS');
+    if (eligible.length > 0) {
+      const claimed = (await claim(payoutId, vendorId, eligible)).reduce((s, r) => s + r.count, 0);
+      if (claimed !== eligible.length) {
+        await prisma.$transaction(unclaimOps(payoutId));
+        throw ApiError.conflict('Another payout request is in progress. Please retry in a moment.', 'PAYOUT_IN_PROGRESS');
+      }
     }
 
     const created = await runGuarded([
       // guard: the wallet must really hold this money
-      prisma.vendor.update({ where: { id: vendorId, walletAvailableInr: { gte: calc.vendorShareTotalInr } }, data: { walletAvailableInr: { decrement: calc.vendorShareTotalInr } } }),
+      prisma.vendor.update({ where: { id: vendorId, walletAvailableInr: { gte: withdrawAmount } }, data: { walletAvailableInr: { decrement: withdrawAmount } } }),
       prisma.vendorPayout.create({
         data: {
           id: payoutId,
           payoutReference: await generatePayoutReference(),
           vendorId,
-          periodFrom: new Date(Math.min(...eligible.map((b) => b.createdAt.getTime()))),
+          periodFrom: eligible.length > 0 ? new Date(Math.min(...eligible.map((b) => b.createdAt.getTime()))) : new Date(),
           periodTo: new Date(),
-          lines: calc.lines,
-          grossBookingsAmountInr: calc.grossBookingsAmountInr,
-          vendorShareTotalInr: calc.vendorShareTotalInr,
-          platformCommissionDeductedInr: calc.platformCommissionDeductedInr,
-          tdsRatePercent: cfg.payoutRules.tdsRatePercent,
-          tdsDeductedInr: calc.tdsDeductedInr,
-          netPayableAmountInr: calc.netPayableAmountInr,
+          lines,
+          grossBookingsAmountInr,
+          vendorShareTotalInr: withdrawAmount,
+          platformCommissionDeductedInr,
+          tdsRatePercent: 0,
+          tdsDeductedInr: 0,
+          netPayableAmountInr: withdrawAmount,
           bank: {
             accountHolderName: vendor.banking.accountHolderName,
             accountNumberEnc: vendor.banking.accountNumberEnc,
@@ -147,7 +183,7 @@ export async function requestPayout(vendorId: string, input: { upTo?: string }, 
       }),
     ]);
     if (!created) {
-      await prisma.$transaction(unclaimOps(payoutId));
+      if (eligible.length > 0) await prisma.$transaction(unclaimOps(payoutId));
       throw ApiError.conflict('Your wallet balance changed. Please refresh and try again.', 'WALLET_CHANGED');
     }
 
@@ -163,7 +199,19 @@ export async function listPayouts(q: PaginationInput & { status?: Prisma.VendorP
     prisma.vendorPayout.count({ where }),
     prisma.vendorPayout.findMany({ where, orderBy: { createdAt: 'desc' }, ...skipTake(q) }),
   ]);
-  return { items: rows.map((p) => presentPayout(p, opts)), meta: pageMeta(q, total) };
+  const vendorIds = Array.from(new Set(rows.map((r) => r.vendorId)));
+  const vendors = await prisma.vendor.findMany({
+    where: { id: { in: vendorIds } },
+    select: { id: true, displayName: true, businessName: true, email: true },
+  });
+  const vendorMap = new Map(vendors.map((v) => [v.id, v.displayName || v.businessName || 'Vendor Partner']));
+  return {
+    items: rows.map((p) => ({
+      ...presentPayout(p, opts),
+      vendorName: vendorMap.get(p.vendorId) || 'Vendor Partner',
+    })),
+    meta: pageMeta(q, total),
+  };
 }
 
 export async function getPayout(id: string, opts: { vendorId?: string; revealAccount?: boolean } = {}) {
@@ -227,6 +275,67 @@ export async function completePayout(payoutId: string, staff: StaffContext, utrN
   ]);
   if (!ok) throw conflictState();
   await audit({ actor: { id: staff.id, role: staff.role }, action: 'COMPLETE_PAYOUT', targetEntity: 'VendorPayout', targetId: payoutId, newState: { utrNumber }, req });
+  void notifyVendor(p.vendorId, p.payoutReference, 'completed', p.netPayableAmountInr);
+  return getPayout(payoutId, { revealAccount: true });
+}
+
+/** Direct Admin/SuperAdmin settlement completion with transaction number (UTR) & transfer method */
+export async function adminCompletePayout(
+  payoutId: string,
+  staff: StaffContext,
+  input: { utrNumber: string; transferMethod?: TransferMethod; notes?: string },
+  req: Pick<Request, 'ip' | 'get'>
+) {
+  const p = await prisma.vendorPayout.findUnique({ where: { id: payoutId } });
+  if (!p) throw ApiError.notFound('Payout');
+  if (p.status === 'completed') {
+    throw ApiError.conflict('Payout is already marked as completed', 'ALREADY_COMPLETED');
+  }
+
+  const now = new Date();
+  const method: TransferMethod = input.transferMethod || 'NEFT';
+
+  const ok = await runGuarded([
+    prisma.vendorPayout.update({
+      where: { id: payoutId, status: { in: ['requested', 'audited_by_admin', 'released_by_superadmin'] } },
+      data: {
+        status: 'completed',
+        transferMethod: method,
+        utrNumber: input.utrNumber,
+        notes: input.notes || p.notes,
+        approvedBySuperAdminId: staff.id,
+        releasedAt: p.releasedAt || now,
+        completedAt: now,
+      },
+    }),
+    lifetimeTotals(p.vendorId, p.netPayableAmountInr, p.platformCommissionDeductedInr),
+  ]);
+  if (!ok) throw conflictState();
+
+  // If vendor has banking, mark isAccountVerified true
+  const v = await prisma.vendor.findUnique({ where: { id: p.vendorId }, select: { banking: true } });
+  if (v?.banking && !v.banking.isAccountVerified) {
+    await prisma.vendor.update({
+      where: { id: p.vendorId },
+      data: {
+        banking: {
+          set: {
+            ...v.banking,
+            isAccountVerified: true,
+          },
+        },
+      },
+    });
+  }
+
+  await audit({
+    actor: { id: staff.id, role: staff.role },
+    action: 'COMPLETE_PAYOUT',
+    targetEntity: 'VendorPayout',
+    targetId: payoutId,
+    newState: { utrNumber: input.utrNumber, transferMethod: method, net: p.netPayableAmountInr },
+    req,
+  });
   void notifyVendor(p.vendorId, p.payoutReference, 'completed', p.netPayableAmountInr);
   return getPayout(payoutId, { revealAccount: true });
 }

@@ -7,12 +7,12 @@ import { ApiError } from '../../utils/ApiError';
 import { pageMeta, paginationSchema, skipTake } from '../../utils/pagination';
 import { bodyOf, objectId } from '../../utils/zod';
 import { auditPayoutSchema, failPayoutSchema, payoutListQuery } from '../payouts/payout.schemas';
-import { auditPayout, failPayout, getPayout, listPayouts } from '../payouts/payout.service';
+import { z } from 'zod';
+import { adminCompletePayout, auditPayout, failPayout, getPayout, listPayouts } from '../payouts/payout.service';
 
 export const adminFinanceRouter = Router();
 
-/** Admins audit; only the Super-Admin can release money (see superadmin routes). */
-const finance = requireStaff({ admin: 'canExportFinancialReports' });
+const finance = requireStaff({ admin: true, sub_admin: true });
 
 const parseRange = (q: Record<string, unknown>) => {
   const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -44,6 +44,44 @@ adminFinanceRouter.post('/settlements/:id/audit', finance, async (req, res) => {
 
 adminFinanceRouter.post('/settlements/:id/reject', finance, async (req, res) => {
   ok(res, await failPayout(objectId.parse(req.params.id), getStaff(req), failPayoutSchema.parse(bodyOf(req)).reason, req));
+});
+
+const completePayoutInputSchema = z.object({
+  utrNumber: z.string().trim().min(2, 'Transaction / UTR number is required'),
+  transferMethod: z.enum(['NEFT', 'RTGS', 'IMPS', 'neft', 'rtgs', 'imps']).optional(),
+  notes: z.string().trim().optional(),
+});
+
+adminFinanceRouter.post('/settlements/:id/complete', finance, async (req, res) => {
+  const body = completePayoutInputSchema.parse(bodyOf(req));
+  const staff = getStaff(req);
+  const payout = await adminCompletePayout(
+    objectId.parse(req.params.id),
+    staff,
+    {
+      utrNumber: body.utrNumber,
+      transferMethod: (body.transferMethod?.toUpperCase() as any) || 'NEFT',
+      notes: body.notes,
+    },
+    req
+  );
+  ok(res, payout);
+});
+
+adminFinanceRouter.post('/settlements/:id/process', finance, async (req, res) => {
+  const body = completePayoutInputSchema.parse(bodyOf(req));
+  const staff = getStaff(req);
+  const payout = await adminCompletePayout(
+    objectId.parse(req.params.id),
+    staff,
+    {
+      utrNumber: body.utrNumber,
+      transferMethod: (body.transferMethod?.toUpperCase() as any) || 'NEFT',
+      notes: body.notes,
+    },
+    req
+  );
+  ok(res, payout);
 });
 
 /** GET /admin/finance/summary?from=YYYY-MM-DD&to=YYYY-MM-DD */

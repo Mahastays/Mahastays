@@ -3,14 +3,21 @@ import { formatInr } from '../../utils/money';
 import { omit } from '../../utils/object';
 
 export function presentExperience(e: Experience) {
+  const slotPrices = [
+    ...(e.slots || []).map((s) => Number(s.price)),
+    ...(e.tiers || []).map((t) => Number(t.pricePerPerson)),
+  ].filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = slotPrices.length > 0 ? Math.min(...slotPrices) : e.numericPrice;
   return {
     ...omit(e, 'slots', 'tiers', 'guide'),
     _id: e.id,
     name: e.title,
     rating: `${e.rating.toFixed(1)}/5 ★`,
     ratingScore: e.rating,
-    price: `${formatInr(e.numericPrice)} / person`,
-    slots: e.slots.map((s) => ({ ...s, id: s.slotId, availableSpots: s.capacity, price: s.price ?? e.numericPrice })),
+    price: `${formatInr(startingPrice)} / person`,
+    numericPrice: startingPrice,
+    pricingRules: e.pricingRules ?? null,
+    slots: e.slots.map((s) => ({ ...s, id: s.slotId, availableSpots: s.capacity, price: s.price ?? startingPrice })),
     tiers: e.tiers.map((t) => ({ ...t, id: t.tierId })),
     guide: e.guide,
     guideName: e.guide?.name ?? null,
@@ -19,6 +26,11 @@ export function presentExperience(e: Experience) {
 }
 
 export function presentExperienceCard(e: Experience, extra: Record<string, unknown> = {}) {
+  const slotPrices = [
+    ...(e.slots || []).map((s) => Number(s.price)),
+    ...(e.tiers || []).map((t) => Number(t.pricePerPerson)),
+  ].filter((v) => !isNaN(v) && v > 0);
+  const startingPrice = slotPrices.length > 0 ? Math.min(...slotPrices) : e.numericPrice;
   return {
     id: e.id,
     _id: e.id,
@@ -34,9 +46,10 @@ export function presentExperienceCard(e: Experience, extra: Record<string, unkno
     rating: `${e.rating.toFixed(1)}/5 ★`,
     ratingScore: e.rating,
     reviewsCount: e.reviewsCount,
-    price: `${formatInr(e.numericPrice)} / person`,
-    numericPrice: e.numericPrice,
+    price: `${formatInr(startingPrice)} / person`,
+    numericPrice: startingPrice,
     originalPrice: e.originalPrice,
+    pricingRules: e.pricingRules ?? null,
     difficulty: e.difficulty,
     ageLimit: e.ageLimit,
     groupSize: e.groupSize,

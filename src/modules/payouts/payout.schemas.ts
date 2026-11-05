@@ -5,6 +5,7 @@ import * as v from '../../utils/zod';
 export const requestPayoutSchema = z.object({
   /** Only bookings whose service ended on/before this date (default: today minus the hold period). */
   upTo: v.isoDate.optional(),
+  amountInr: z.number().positive().optional(),
 });
 
 export const payoutListQuery = paginationSchema.extend({
