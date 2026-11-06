@@ -593,7 +593,7 @@ export default function StayBookingDetailsPage() {
                 )}
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
-                    <span>Hosted by {stay.host?.name || "Kunal & Caretaker Ramesh"}</span>
+                    <span>Hosted by {stay.host?.name || (stay as any).hostName || "Verified Host"}</span>
                     {((stay.host as any)?.verified !== false) && (
                       <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
                         ✓
@@ -601,9 +601,9 @@ export default function StayBookingDetailsPage() {
                     )}
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                    {stay.host?.role || "Property Owner & Manager"}
-                    {stay.host?.experience ? ` • ${stay.host.experience}` : " • Host since 2019"}
-                    {(stay.host as any)?.staysCount ? ` • ${(stay.host as any).staysCount}` : " • 64+ Verified Group Stays"}
+                    {stay.host?.role || (stay as any).hostRole || "Property Host"}
+                    {stay.host?.experience ? ` • ${stay.host.experience}` : (stay as any).hostExperience ? ` • ${(stay as any).hostExperience}` : ""}
+                    {(stay.host as any)?.staysCount ? ` • ${(stay.host as any).staysCount}` : ""}
                   </p>
                 </div>
               </div>
@@ -614,7 +614,7 @@ export default function StayBookingDetailsPage() {
               </div>
             </div>
 
-            {/* Quick 4 Highlights Strip (Clean 1-line strip with Mahastays logo bullet & dividers) */}
+            {/* Quick Feature Cards Strip */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
               <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
                 {(((stay as any).keyAmenities && (stay as any).keyAmenities.length > 0)
@@ -622,8 +622,13 @@ export default function StayBookingDetailsPage() {
                       title: ka.name || ka.title,
                       desc: ka.desc || ka.description,
                     }))
+                  : (stay.highlights && stay.highlights.length > 0)
+                  ? stay.highlights.slice(0, 4).map((h: any) => ({
+                      title: h.title,
+                      desc: h.desc || (h as any).description,
+                    }))
                   : [
-                      { title: "Infinity Pool", desc: "Heated pool with valley view" },
+                      { title: "Infinity Pool Deck", desc: "Heated pool with valley view" },
                       { title: "Private Chef", desc: "On-demand dining & BBQ" },
                       { title: "Butler Service", desc: "Personalised assistance" },
                       { title: "High-Speed Wi-Fi", desc: "Stay connected 250 Mbps" },
@@ -736,18 +741,6 @@ export default function StayBookingDetailsPage() {
                     </svg>
                   ),
                 },
-                {
-                  id: "all",
-                  label: "All Details",
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <rect x="3" y="3" width="7" height="7" rx="1" />
-                      <rect x="14" y="3" width="7" height="7" rx="1" />
-                      <rect x="14" y="14" width="7" height="7" rx="1" />
-                      <rect x="3" y="14" width="7" height="7" rx="1" />
-                    </svg>
-                  ),
-                },
               ].map((tab) => {
                 const isActive = activeDetailTab === tab.id;
                 return (
@@ -793,7 +786,7 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 1: Rooms & Suites (Default Open)                            */}
             {/* ============================================================== */}
-            {(activeDetailTab === "rooms" || activeDetailTab === "all") && (
+            {activeDetailTab === "rooms" && (
               <div ref={accommodationRef} id="rooms" className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -947,7 +940,7 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 2: About this Resort / Villa                                */}
             {/* ============================================================== */}
-            {(activeDetailTab === "about" || activeDetailTab === "all") && (
+            {activeDetailTab === "about" && (
               <div className="flex flex-col gap-4 sm:gap-5">
                 <div id="about" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
@@ -1055,51 +1048,54 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 3: Facilities & Amenities                                   */}
             {/* ============================================================== */}
-            {(activeDetailTab === "facilities" || activeDetailTab === "all") && (
+            {activeDetailTab === "facilities" && (
               <div id="facilities" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-5">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 font-poppins">
-                    What this Resort Offers
+                    What this {stay.type ? (stay.type.charAt(0).toUpperCase() + stay.type.slice(1).toLowerCase()) : "Resort"} Offers
                   </h3>
                   <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                    Premium amenities and resort services curated for uninterrupted comfort
+                    All facilities and amenities have been verified by Mahastays quality inspection team.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {[
-                    {
-                      category: "Luxury & Recreation",
-                      items: ["Private Infinity Pool (Heated)", "Jacuzzi & Sun Deck", "Private Lawns & Orchard Walk", "Bonfire Pit with Seating"],
-                    },
-                    {
-                      category: "Dining & Culinary",
-                      items: ["Private Chef on Demand", "Open-air Barbecue Station", "Complimentary Gourmet Breakfast", "24/7 Tea & Coffee Station"],
-                    },
-                    {
-                      category: "Entertainment & Tech",
-                      items: ["High-Speed Wi-Fi (250 Mbps)", "Cinema Projector & Smart TVs", "Billiards & Table Tennis", "Board Games & Books Library"],
-                    },
-                    {
-                      category: "Comfort & Utilities",
-                      items: ["100% Power Backup (Inverter & Gen)", "Central Air Conditioning", "Hot Water 24/7 (Solar + Geyser)", "Daily Housekeeping Service"],
-                    },
-                    {
-                      category: "Safety & Security",
-                      items: ["24/7 Resident Caretaker", "CCTV in Outdoor Common Areas", "First Aid & Doctor on Call", "Gated Compound & Private Parking"],
-                    },
-                    {
-                      category: "Family & Pet Friendly",
-                      items: ["Kids Play Area & High Chair", "Pet-friendly Outdoor Gardens", "Baby Crib on Request", "Elderly-accessible Ground Floor Suites"],
-                    },
-                  ].map((cat, idx) => (
+                  {(((stay as any).facilityCategories && (stay as any).facilityCategories.length > 0)
+                    ? (stay as any).facilityCategories
+                    : [
+                        {
+                          category: "Luxury & Recreation",
+                          items: ["Private Infinity Heated Pool", "Open-Air Jacuzzi & Sun Deck", "Landscaped Lawn & Gazebo", "Private Balcony with Valley View"],
+                        },
+                        {
+                          category: "Dining & Culinary",
+                          items: ["Dedicated In-House Chef", "Gourmet Multi-Cuisine Menu", "Live Barbeque & Bonfire Setup", "Modern Modular Kitchen"],
+                        },
+                        {
+                          category: "Entertainment & Tech",
+                          items: ["65\" 4K Smart TVs with OTT", "High-Speed Fiber Wi-Fi (300 Mbps)", "Bluetooth Acoustic Sound System", "Board Games & Cards Corner"],
+                        },
+                        {
+                          category: "Comfort & Utilities",
+                          items: ["100% Automatic Power Backup", "Central Air-Conditioning & Heating", "Premium Linens & Memory Foam Mattresses", "Daily Housekeeping & Turn-Down"],
+                        },
+                        {
+                          category: "Safety & Security",
+                          items: ["24/7 Gated Security & Caretaker", "Perimeter CCTV Surveillance", "Digital Safe in Master Suites", "First Aid Kit & Doctor on Call"],
+                        },
+                        {
+                          category: "Family & Pet Friendly",
+                          items: ["Pet-Friendly Lawn Area", "Baby Cot & High Chair on Request", "Safe Enclosed Villa Grounds", "Custom Kids Meal Preparation"],
+                        },
+                      ]
+                  ).map((cat: any, idx: number) => (
                     <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                       <div className="text-xs font-bold text-slate-900 font-poppins mb-2.5 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[#ea110d]" />
                         <span>{cat.category}</span>
                       </div>
                       <ul className="space-y-1.5 text-xs text-slate-600">
-                        {cat.items.map((it, itIdx) => (
+                        {(cat.items || []).map((it: string, itIdx: number) => (
                           <li key={itIdx} className="flex items-center gap-2">
                             <span className="text-[#ea110d] font-bold text-[10px]">✓</span>
                             <span>{it}</span>
@@ -1115,7 +1111,7 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 4: House Rules & Policies                                  */}
             {/* ============================================================== */}
-            {(activeDetailTab === "rules" || activeDetailTab === "all") && (
+            {activeDetailTab === "rules" && (
               <div id="rules" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 font-poppins mb-1">
@@ -1137,9 +1133,9 @@ export default function StayBookingDetailsPage() {
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Check-in &amp; Check-out</div>
                       <div className="text-xs text-slate-600 mt-1 space-y-0.5">
-                        <div>Check-in: <strong>1:00 PM onwards</strong></div>
-                        <div>Check-out: <strong>By 10:00 AM</strong></div>
-                        <div className="text-[11px] text-slate-400">Early check-in subject to availability</div>
+                        <div>Check-in: <strong>{stay.policies?.checkInTime || (stay as any).checkInTime || "14:00"} onwards</strong></div>
+                        <div>Check-out: <strong>By {stay.policies?.checkOutTime || (stay as any).checkOutTime || "11:00"}</strong></div>
+                        <div className="text-[11px] text-slate-400">{stay.policies?.earlyCheckInNote || (stay as any).earlyCheckInNote || "Early check-in subject to availability"}</div>
                       </div>
                     </div>
                   </div>
@@ -1154,7 +1150,7 @@ export default function StayBookingDetailsPage() {
                       <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
                       <div className="text-xs text-emerald-700 font-semibold mt-1">Free Cancellation</div>
                       <div className="text-xs text-slate-600 mt-0.5">
-                        Full refund up to 48 hours before check-in. 50% refund thereafter.
+                        {stay.policies?.cancellationPolicy || (stay as any).cancellationPolicy || "Full refund up to 48 hours before check-in. 50% refund thereafter."}
                       </div>
                     </div>
                   </div>
@@ -1168,10 +1164,19 @@ export default function StayBookingDetailsPage() {
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Rules</div>
                       <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
-                        <li>• Pets allowed (on request)</li>
-                        <li>• Smoking in outdoor garden areas only</li>
-                        <li>• Group &amp; bachelor friendly</li>
-                        <li>• Max 12 guests per estate</li>
+                        {(((stay.policies?.suitabilityRules && stay.policies.suitabilityRules.length > 0)
+                          ? stay.policies.suitabilityRules
+                          : ((stay as any).suitabilityRules && (stay as any).suitabilityRules.length > 0)
+                          ? (stay as any).suitabilityRules
+                          : [
+                              "Pets allowed on request",
+                              "Smoking in outdoor garden areas only",
+                              "Group and family friendly",
+                              `Max ${stay.policies?.maxGuestsPerRoom || 12} guests per unit`,
+                            ]
+                        ) as string[]).map((rule, idx) => (
+                          <li key={idx}>• {rule}</li>
+                        ))}
                       </ul>
                     </div>
                   </div>
@@ -1188,7 +1193,7 @@ export default function StayBookingDetailsPage() {
                       <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
                         <li>• Quiet hours: 10:00 PM – 7:00 AM</li>
                         <li>• Government ID required at check-in</li>
-                        <li>• Plot 12, Venna Lake Road, Panchgani</li>
+                        <li>• {stay.address?.fullAddress || stay.location || "Mahabaleshwar, Maharashtra"}</li>
                       </ul>
                     </div>
                   </div>
@@ -1199,7 +1204,7 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 5: Location & Map                                           */}
             {/* ============================================================== */}
-            {(activeDetailTab === "location" || activeDetailTab === "all") && (
+            {activeDetailTab === "location" && (
               <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1275,7 +1280,7 @@ export default function StayBookingDetailsPage() {
             {/* ============================================================== */}
             {/* TAB 6: Reviews & Ratings                                       */}
             {/* ============================================================== */}
-            {(activeDetailTab === "reviews" || activeDetailTab === "all") && (
+            {activeDetailTab === "reviews" && (
               <div id="reviews" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
                   <div>

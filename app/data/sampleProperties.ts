@@ -46,6 +46,8 @@ export interface RawPropertyPolicies {
   checkInTime: string;
   checkOutTime: string;
   cancellationPolicy: string;
+  earlyCheckInNote?: string;
+  suitabilityRules?: string[];
   acceptingBookings?: boolean;
   petsAllowed: boolean;
   smokingAllowed: boolean;
@@ -139,11 +141,15 @@ export interface StayDetail {
   hostExperience: string;
   hostAvatar?: string;
   highlights: PropertyHighlight[];
+  keyAmenities?: Array<{ name: string; desc?: string; icon?: string }>;
+  facilityCategories?: Array<{ category: string; items: string[]; icon?: string }>;
   amenities: PropertyAmenity[];
   policies: RawPropertyPolicies;
   checkInTime: string;
   checkOutTime: string;
   cancellationPolicy: string;
+  earlyCheckInNote?: string;
+  suitabilityRules?: string[];
   acceptingBookings?: boolean;
   petsAllowed: boolean;
   smokingAllowed: boolean;
