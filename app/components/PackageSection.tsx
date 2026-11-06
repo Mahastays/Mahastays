@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import PackageCard, { PackageData } from "./PackageCard";
 import { PackageCardSkeleton } from "./Skeletons";
@@ -10,15 +10,6 @@ import { fetchPackages } from "@/store/slices/packageslice";
 export default function PackageSection() {
   const dispatch = useAppDispatch();
   const { items, loading, error } = useAppSelector((state) => state.packages);
-  const [activeTab, setActiveTab] = useState<string>("All");
-
-  const categories = [
-    "All",
-    "Honeymoon",
-    "Luxury",
-    "Adventure",
-    "Heritage",
-  ];
 
   useEffect(() => {
     dispatch(fetchPackages());
@@ -44,22 +35,10 @@ export default function PackageSection() {
     }));
   }, [items]);
 
-  const filteredPackages = useMemo(() => {
-    if (activeTab === "All") return mappedPackages;
-    return mappedPackages.filter((item) => {
-      const cat = item.category.toLowerCase();
-      const tab = activeTab.toLowerCase();
-      if (tab === "honeymoon") {
-        return cat.includes("honeymoon") || cat.includes("couple") || cat.includes("romantic");
-      }
-      return cat.includes(tab);
-    });
-  }, [mappedPackages, activeTab]);
-
   return (
     <section className="max-w-7xl mx-auto my-16 px-6 w-full" id="packages">
-      {/* Header with Title and Eyebrow */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+      {/* Header with Title and View All */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div className="max-w-xl">
           <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1.5 block">
             EXCLUSIVE BUNDLES
@@ -72,31 +51,27 @@ export default function PackageSection() {
           </p>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {categories.map((cat) => {
-            const isActive = activeTab === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveTab(cat)}
-                className={`px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? "bg-[#0B0A06] text-white border-[#0B0A06] font-semibold shadow-sm"
-                    : "bg-white text-slate-600 border-slate-200 hover:text-primary hover:border-primary/30 hover:bg-red-50/50"
-                }`}
-              >
-                {cat === "Honeymoon" ? "Couples & Romance" : cat}
-              </button>
-            );
-          })}
-          <Link
-            href="/packages"
-            className="text-xs font-bold text-primary hover:underline ml-2 hidden sm:inline-block"
+        {/* View All Button (visible on small screens and desktop) */}
+        <Link
+          href="/packages"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm hover:text-primary hover:border-primary/30 hover:bg-red-50/50 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
+          id="packages-view-all-link"
+        >
+          <span>View all{mappedPackages.length > 0 ? ` (${mappedPackages.length})` : ""}</span>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            View All ({mappedPackages.length}) →
-          </Link>
-        </div>
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+          </svg>
+        </Link>
       </div>
 
       {/* Loading Skeleton */}
@@ -110,21 +85,24 @@ export default function PackageSection() {
         <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm">
           {error}. Please check backend connection.
         </div>
-      ) : filteredPackages.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {filteredPackages.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} />
-          ))}
-        </div>
-      ) : !loading && !error && filteredPackages.length === 0 && mappedPackages.length > 0 ? (
-        <div className="text-center py-12 text-slate-500 text-sm">
-          No packages found in category &quot;{activeTab}&quot;. Showing all packages instead:
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+      ) : mappedPackages.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {mappedPackages.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} />
             ))}
           </div>
-        </div>
+
+          {/* Additional mobile-friendly View All button at bottom */}
+          <div className="mt-6 flex sm:hidden justify-center">
+            <Link
+              href="/packages"
+              className="w-full text-center py-2.5 px-4 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-primary transition-all"
+            >
+              View All Packages ({mappedPackages.length}) →
+            </Link>
+          </div>
+        </>
       ) : (
         <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 text-sm">
           No packages currently available.

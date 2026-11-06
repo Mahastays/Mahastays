@@ -151,6 +151,7 @@ export default function WhyChooseUsSection() {
                         src="/mountain-peaks.jpg"
                         alt="Sahyadri Peaks"
                         fill
+                        loading="lazy"
                         className="object-cover"
                         sizes="144px"
                       />
@@ -163,6 +164,7 @@ export default function WhyChooseUsSection() {
                           src="/hero-resort.jpg"
                           alt="Sunset Ridge Private Villa"
                           fill
+                          loading="lazy"
                           className="object-cover"
                           sizes="176px"
                         />

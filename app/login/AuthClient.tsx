@@ -463,6 +463,8 @@ function AuthPageContent({
               <img
                 src={slide.image}
                 alt={slide.location}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
                 className="w-full h-full object-cover scale-105 transition-transform duration-[8000ms] ease-out"
               />
             </div>

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import PackageCard, { PackageData } from "../components/PackageCard";
 import { PackageCardSkeleton } from "../components/Skeletons";
 import PackagesOfferAdCarousel, { PackageOfferSlide } from "../components/PackagesOfferAdCarousel";
@@ -555,9 +553,6 @@ export default function PackagesPage() {
 
   return (
     <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
-      {/* ─── Sticky/Glassmorphic Header ───────────────────────── */}
-      <Navbar />
-
       {/* ─── Above The Hero: Special Offers & Discount Deals Carousel (Matching Image Reference) ── */}
       <PackagesOfferAdCarousel onSelectSlide={handlePackageOfferSelect} onAdsLoaded={setHasAds} />
 
@@ -835,8 +830,6 @@ export default function PackagesPage() {
         </div>
       </section>
 
-      {/* ─── Pure Black Global Footer ─────────────────────────── */}
-      <Footer />
       {/* ─── Mobile Filter Modal (Bottom Sheet Dialog on small screens) ─── */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">

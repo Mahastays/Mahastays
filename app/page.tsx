@@ -1,4 +1,3 @@
-import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import PopularHotels from "./components/PopularHotels";
 
@@ -7,8 +6,6 @@ import PackageSection from "./components/PackageSection";
 import ActivitiesExperiences from "./components/ActivitiesExperiences";
 import MahabaleshwarMapSection from "./components/MahabaleshwarMapSection";
 import WhyChooseUsSection from "./components/WhyChooseUsSection";
-
-import Footer from "./components/Footer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -22,8 +19,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased font-roboto">
-      <Navbar />
+    <div className="flex flex-col w-full bg-slate-50 antialiased font-roboto">
       <Hero />
       <PopularHotels />
 
@@ -32,8 +28,6 @@ export default function Home() {
       <ActivitiesExperiences />
       <MahabaleshwarMapSection />
       <WhyChooseUsSection />
-
-      <Footer />
-    </main>
+    </div>
   );
 }

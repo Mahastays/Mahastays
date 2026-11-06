@@ -49,43 +49,77 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
       id={`pkg-card-${pkg.id}`}
     >
       {/* Card Image Area with Inset Radius */}
-      <Link
-        href={`/packages/${pkg.id}`}
-        className="relative w-[calc(100%-20px)] mx-auto mt-2.5 h-56 rounded-[22px] overflow-hidden shrink-0 bg-slate-200 block"
-      >
-        <img
-          src={pkg.images[0]}
-          alt={pkg.title}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
-        />
+      <div className="relative w-[calc(100%-20px)] mx-auto mt-2.5 h-56 rounded-[22px] overflow-hidden shrink-0 bg-slate-200">
+        <Link href={`/packages/${pkg.id}`} className="block w-full h-full">
+          <img
+            src={pkg.images[0]}
+            alt={pkg.title}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
+          />
+        </Link>
 
         {/* Top-Left Host / Badge */}
-        <span className="absolute top-3 left-3 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1 rounded-full border border-white/20 z-10 tracking-wide">
-          {pkg.badge}
-        </span>
+        {pkg.badge && (
+          <span className="absolute top-3 left-3 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1 rounded-full border border-white/20 z-10 tracking-wide pointer-events-none">
+            {pkg.badge}
+          </span>
+        )}
 
-        {/* Top-Right Rating Badge */}
-        <span className="absolute top-3 right-3 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/20 z-10">
-          {pkg.rating}
-        </span>
+        {/* Top-Right: Rating Badge & Favorite Button */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          {pkg.rating && (
+            <span className="bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/20 shadow-xs pointer-events-none">
+              {pkg.rating}
+            </span>
+          )}
+
+          {/* Add to Favorites Button at Top Right near Review */}
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await toggle();
+            }}
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer shadow-xs border ${
+              isFav
+                ? "bg-[#ea110d] border-[#ea110d] text-white scale-105"
+                : "bg-[#0B0A06]/65 hover:bg-[#0B0A06]/90 border-white/20 text-white hover:text-rose-400"
+            }`}
+            aria-label={isFav ? "Saved to favorites" : "Add to favorites"}
+            title={isFav ? "Saved to favorites" : "Add to favorites"}
+            id={`fav-${pkg.id}`}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill={isFav ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2.2"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </button>
+        </div>
 
         {pkg.acceptingBookings === false && (
-          <span className="absolute top-3 left-3 bg-amber-500/95 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full border border-amber-400 z-10 shadow-xs">
+          <span className="absolute top-12 left-3 bg-amber-500/95 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full border border-amber-400 z-10 shadow-xs pointer-events-none">
             Bookings Paused
           </span>
         )}
 
         {/* Bottom Center Carousel Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 pointer-events-none">
           <span className="w-4 h-1.5 rounded-full bg-white transition-all" />
           <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
           <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
           <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
           <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
         </div>
-      </Link>
+      </div>
 
       {/* Card Body */}
       <div className="p-4 sm:p-5 flex flex-col flex-1">
@@ -103,7 +137,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
         </p>
 
         {/* Description with Read more toggle */}
-        <p className="text-xs text-slate-600 leading-relaxed">
+        <p className="text-xs text-slate-600 leading-relaxed mb-3">
           {isExpanded ? (pkg.fullDesc || pkg.shortDesc) : pkg.shortDesc}{" "}
           {pkg.fullDesc && pkg.fullDesc !== pkg.shortDesc && (
             <button
@@ -116,74 +150,33 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
           )}
         </p>
 
-        {/* Price */}
-        <div className="my-3 sm:my-3.5">
-          <span className="text-base font-bold text-slate-900 tracking-tight">
-            {pkg.price}
-          </span>
-        </div>
+        {/* Bottom Row: Price Highlight on Left + Red Theme Book Now Button on Right */}
+        <div className="flex items-center justify-between gap-3 mt-auto pt-3.5 border-t border-slate-100">
+          {/* Price with highlight */}
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Total Package
+            </span>
+            <div className="text-base sm:text-[17px] font-black text-[#ea110d] tracking-tight truncate">
+              {pkg.price}
+            </div>
+          </div>
 
-        {/* Dual Action Buttons */}
-        <div className="flex items-center gap-2 mt-auto">
-          <button
-            type="button"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              await toggle();
-            }}
-            className={`flex-1 h-10 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer whitespace-nowrap px-2.5 ${
-              isFav
-                ? "border-rose-200 text-primary bg-primary-light"
-                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-            }`}
-            id={`fav-${pkg.id}`}
-          >
-            {isFav ? (
-              <>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="#ea110d"
-                  stroke="#ea110d"
-                  strokeWidth="2"
-                >
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                <span>Saved</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                <span>Add to Favorites</span>
-              </>
-            )}
-          </button>
-
+          {/* Book Now Button (Red Theme) */}
           {pkg.acceptingBookings === false ? (
             <button
               type="button"
               disabled
-              className="flex-1 h-10 bg-slate-100 text-slate-400 text-xs sm:text-sm font-semibold rounded-full border border-slate-200 cursor-not-allowed whitespace-nowrap text-center flex items-center justify-center"
+              className="px-5 h-10 bg-slate-100 text-slate-400 text-xs sm:text-sm font-bold rounded-full border border-slate-200 cursor-not-allowed whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
-              Bookings Paused
+              Paused
             </button>
           ) : onBook ? (
             <button
               type="button"
               onClick={() => onBook(pkg)}
-              className="flex-1 h-10 bg-[#0B0A06] text-white text-xs sm:text-sm font-semibold rounded-full border-none cursor-pointer transition-all hover:bg-primary hover:shadow-[0_4px_14px_rgba(234,17,13,0.35)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center"
+              className="px-5 sm:px-6 h-10 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs sm:text-sm font-bold rounded-full border-none cursor-pointer transition-all shadow-[0_4px_14px_rgba(234,17,13,0.3)] hover:shadow-[0_6px_20px_rgba(234,17,13,0.4)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
               Book Now
@@ -191,7 +184,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
           ) : (
             <Link
               href={`/packages/${pkg.id}`}
-              className="flex-1 h-10 bg-[#0B0A06] text-white text-xs sm:text-sm font-semibold rounded-full border-none cursor-pointer transition-all hover:bg-primary hover:shadow-[0_4px_14px_rgba(234,17,13,0.35)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center block"
+              className="px-5 sm:px-6 h-10 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs sm:text-sm font-bold rounded-full border-none cursor-pointer transition-all shadow-[0_4px_14px_rgba(234,17,13,0.3)] hover:shadow-[0_6px_20px_rgba(234,17,13,0.4)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
               Book Now

@@ -4,8 +4,6 @@ import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { toast } from "../../components/ui/Toast";
 import BookingInvoiceModal from "../components/booking/BookingInvoiceModal";
 import BookingConfirmationView, { BookingConfirmationData } from "../components/booking/BookingConfirmationView";
@@ -711,19 +709,15 @@ function CheckoutContent() {
 
     return (
       <div className="min-h-screen bg-white flex flex-col justify-between">
-        <Navbar />
         <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white">
           <BookingConfirmationView data={confirmationData} />
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
         {/* Navigation Breadcrumb */}
         <div className="mb-6 flex items-center justify-between">
@@ -1525,8 +1519,6 @@ function CheckoutContent() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

@@ -302,6 +302,8 @@ export default function BookingInvoiceModal({
                 <img
                   src="https://res.cloudinary.com/vxtop5jd/image/upload/v1793725764/mahastays/brand/mahastays-logo.png"
                   alt="Mahastays"
+                  loading="lazy"
+                  decoding="async"
                   className="h-10 sm:h-12 w-auto object-contain"
                 />
                 <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[#ea110d] text-[10px] font-extrabold tracking-wider uppercase border border-rose-100">

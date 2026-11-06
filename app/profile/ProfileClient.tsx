@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logoutUser, fetchCurrentUser, updateUserProfile, changeUserPassword } from "@/store/authSlice";
 import api from "@/lib/api";
@@ -379,8 +377,6 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen =- flex flex-col font-roboto">
-      <Navbar />
-
       <main className="flex-1 pt-28 sm:pt-32 lg:pt-34 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* HERO BANNER: Warm Sunset Mountain Landscape matching image   */}
@@ -404,6 +400,8 @@ function ProfileContent() {
                   <img
                     src={user.avatarUrl}
                     alt={user.fullName || "Avatar"}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -915,6 +913,8 @@ function ProfileContent() {
                     <img
                       src={avatarPreview}
                       alt="Avatar Preview"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -1269,6 +1269,8 @@ function ProfileContent() {
                         <img
                           src={b.image || "/hero-resort.jpg"}
                           alt={b.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -1494,6 +1496,8 @@ function ProfileContent() {
                       <img
                         src={fav.image || "/hero-resort.jpg"}
                         alt={fav.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       {/* Top Gradient */}
@@ -1723,8 +1727,6 @@ function ProfileContent() {
         onClose={() => setSelectedInvoiceBooking(null)}
         booking={selectedInvoiceBooking}
       />
-
-      <Footer />
     </div>
   );
 }

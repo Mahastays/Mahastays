@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { api } from "../../lib/api";
 
 interface ReviewItem {
@@ -111,8 +109,6 @@ export default function GuestReviewsPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-roboto antialiased">
-      <Navbar />
-
       <main className="flex-1 pt-28 sm:pt-34 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">
           <span className="text-xs font-bold tracking-widest uppercase text-[#ea110d] bg-red-50 px-3.5 py-1.5 rounded-full inline-block mb-3 font-poppins">
@@ -403,8 +399,6 @@ export default function GuestReviewsPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

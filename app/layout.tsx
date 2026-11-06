@@ -3,6 +3,7 @@ import "./globals.css";
 import { StoreProvider } from "../store/StoreProvider";
 import { ToastContainer } from "../components/ui/Toast";
 import SmoothScroll from "./components/SmoothScroll";
+import ClientLayout from "./components/ClientLayout";
 
 export const viewport: Viewport = {
   themeColor: "#ea110d",
@@ -95,7 +96,9 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-[#ea110d] selection:text-white">
         <StoreProvider>
           <SmoothScroll>
-            {children}
+            <ClientLayout>
+              {children}
+            </ClientLayout>
             <ToastContainer />
           </SmoothScroll>
         </StoreProvider>

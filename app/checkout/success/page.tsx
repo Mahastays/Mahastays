@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
 import api from "@/lib/api";
 import BookingConfirmationView, { BookingConfirmationData } from "../../components/booking/BookingConfirmationView";
 import Link from "next/link";
@@ -147,8 +145,6 @@ function SuccessClientContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between">
-      <Navbar />
-
       <main className="flex-1 w-full pt-20 sm:pt-24 pb-16 bg-white overflow-x-hidden">
         {loading ? (
           <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
@@ -170,8 +166,6 @@ function SuccessClientContent() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

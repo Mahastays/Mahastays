@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Stay } from "./StayCard";
@@ -61,6 +62,22 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when mobile modal is open
+  useEffect(() => {
+    if (isMobileModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileModalOpen]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -303,7 +320,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
     } else if (activeCategory === "experience") {
       router.push(`/experiences?search=${encodeURIComponent(query.trim())}`);
     } else {
-      router.push(`/explore?search=${encodeURIComponent(query.trim())}`);
+      router.push(`/stays?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -582,6 +599,8 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                                   src={stay.image || "/hero-resort.jpg"}
                                   alt={stay.name}
                                   fill
+                                  sizes="48px"
+                                  loading="lazy"
                                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                               </div>
@@ -630,6 +649,8 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                                   src={pkg.images?.[0] || "/hero-resort.jpg"}
                                   alt={pkg.title}
                                   fill
+                                  sizes="48px"
+                                  loading="lazy"
                                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                               </div>
@@ -678,6 +699,8 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                                   src={exp.image || "/hero-resort.jpg"}
                                   alt={exp.title}
                                   fill
+                                  sizes="48px"
+                                  loading="lazy"
                                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                               </div>
@@ -742,24 +765,24 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
         </svg>
       </button>
 
-      {/* ─── Mobile Fullscreen Search Sheet / Modal ──────────────────── */}
-      {isMobileModalOpen && (
-        <div className="fixed inset-0 z-[100] md:hidden bg-white flex flex-col animate-in fade-in duration-200">
+      {/* ─── Mobile Fullscreen Search Sheet / Modal (Mounted to body via Portal) ──────────────────── */}
+      {mounted && isMobileModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] md:hidden bg-white flex flex-col animate-in fade-in duration-150">
           {/* Header Bar */}
-          <div className="p-3.5 border-b border-slate-200 flex items-center gap-2.5">
+          <div className="p-3 border-b border-slate-200 flex items-center gap-2 bg-white sticky top-0 z-10 shadow-xs">
             <button
               type="button"
               onClick={() => setIsMobileModalOpen(false)}
-              className="p-1.5 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100"
-              aria-label="Close"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all shrink-0 cursor-pointer"
+              aria-label="Back"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
-            <div className="flex-1 flex items-center gap-2 px-3.5 py-2 bg-slate-100 rounded-full border border-slate-200 focus-within:bg-white focus-within:border-[#ea110d] transition">
-              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex-1 flex items-center gap-2 px-3.5 h-11 bg-slate-100 rounded-full border border-slate-200/90 focus-within:bg-white focus-within:border-[#ea110d] focus-within:ring-2 focus-within:ring-[#ea110d]/15 transition-all shadow-xs">
+              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                 <circle cx="11" cy="11" r="8" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21L16.65 16.65" />
               </svg>
@@ -767,7 +790,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 ref={mobileInputRef}
                 type="text"
                 autoFocus
-                placeholder="Search location, villa, package..."
+                placeholder="Search stays, packages, places..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -776,11 +799,13 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 className="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder-slate-400 font-medium"
               />
               {query && (
-                <button type="button" onClick={clearSearch} className="p-1 text-slate-400 hover:text-slate-600">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs shrink-0 cursor-pointer"
+                  aria-label="Clear query"
+                >
+                  ✕
                 </button>
               )}
             </div>
@@ -788,29 +813,29 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
             <button
               type="button"
               onClick={handleSubmitSearch}
-              className="px-3.5 py-2 bg-[#ea110d] text-white text-xs font-bold rounded-full shadow-xs shrink-0"
+              className="h-11 px-4 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs font-bold rounded-full shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center"
             >
               Search
             </button>
           </div>
 
           {/* Category Filter Pills on Mobile */}
-          <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-50/50">
+          <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-50/80">
             {[
               { id: "all", label: "All" },
-              { id: "villa", label: "Villas & Stays" },
-              { id: "package", label: "Packages" },
-              { id: "experience", label: "Experiences" },
-              { id: "location", label: "Locations" },
+              { id: "villa", label: "🏡 Villas & Stays" },
+              { id: "package", label: "🎒 Packages" },
+              { id: "experience", label: "🌄 Experiences" },
+              { id: "location", label: "📍 Locations" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveCategory(tab.id as CategoryFilter)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   activeCategory === tab.id
-                    ? "bg-[#ea110d] text-white"
-                    : "bg-white border border-slate-200 text-slate-700"
+                    ? "bg-[#ea110d] text-white shadow-xs"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
                 }`}
               >
                 {tab.label}
@@ -819,20 +844,21 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
           </div>
 
           {/* Results List on Mobile */}
-          <div data-lenis-prevent className="flex-1 overflow-y-auto p-3 divide-y divide-slate-100">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto p-3.5 divide-y divide-slate-100">
             {!query.trim() ? (
-              <div className="space-y-4 pt-2">
+              <div className="space-y-5 pt-1">
+                {/* Popular Destinations in Mahabaleshwar */}
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-poppins block mb-2">
-                    Popular Destinations
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
+                    Popular Destinations in Mahabaleshwar
                   </span>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {POPULAR_LOCATIONS.map((loc) => (
                       <button
                         key={loc.name}
                         type="button"
-                        onClick={() => handleSelect(`/explore?destination=${encodeURIComponent(loc.name)}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 text-slate-800 border border-slate-200 text-xs font-semibold"
+                        onClick={() => handleSelect(`/stays?destination=${encodeURIComponent(loc.name)}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-medium border border-slate-200/60 active:scale-95 transition-all cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5 text-[#ea110d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -844,42 +870,47 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                   </div>
                 </div>
 
+                {/* Browse Categories */}
                 <div className="pt-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-poppins block mb-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
                     Browse Categories
                   </span>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
-                      onClick={() => handleSelect("/explore?type=Villa")}
-                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                      onClick={() => handleSelect("/stays?type=Villa")}
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-left transition-all active:scale-[0.98] cursor-pointer"
                     >
-                      <div className="font-bold text-slate-900 font-poppins">Private Pool Villas</div>
+                      <div className="text-base mb-1">🏡</div>
+                      <div className="text-xs font-bold text-slate-900">Private Pool Villas</div>
                       <div className="text-[10px] text-slate-500">Standalone stays</div>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelect("/packages")}
-                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-left transition-all active:scale-[0.98] cursor-pointer"
                     >
-                      <div className="font-bold text-slate-900 font-poppins">All Packages</div>
-                      <div className="text-[10px] text-slate-500">Couples &amp; Groups</div>
+                      <div className="text-base mb-1">🎒</div>
+                      <div className="text-xs font-bold text-slate-900">Holiday Packages</div>
+                      <div className="text-[10px] text-slate-500">Curated with tours</div>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelect("/experiences")}
-                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-left transition-all active:scale-[0.98] cursor-pointer"
                     >
-                      <div className="font-bold text-slate-900 font-poppins">Experiences</div>
-                      <div className="text-[10px] text-slate-500">Activities &amp; Tours</div>
+                      <div className="text-base mb-1">🌄</div>
+                      <div className="text-xs font-bold text-slate-900">Experiences &amp; Treks</div>
+                      <div className="text-[10px] text-slate-500">Activities &amp; guides</div>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSelect("/explore")}
-                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-left"
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-left transition-all active:scale-[0.98] cursor-pointer"
                     >
-                      <div className="font-bold text-slate-900 font-poppins">All Stays</div>
-                      <div className="text-[10px] text-slate-500">Hotels &amp; Resorts</div>
+                      <div className="text-base mb-1">📍</div>
+                      <div className="text-xs font-bold text-slate-900">Famous Places Map</div>
+                      <div className="text-[10px] text-slate-500">Explore sights</div>
                     </button>
                   </div>
                 </div>
@@ -889,26 +920,27 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 {/* Mobile Locations */}
                 {(activeCategory === "all" || activeCategory === "location") && results.locations.length > 0 && (
                   <div className="py-2.5">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-poppins mb-1.5">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                       Locations ({results.locations.length})
                     </div>
                     {results.locations.map((loc) => (
                       <button
                         key={loc.name}
                         type="button"
-                        onClick={() => handleSelect(`/explore?destination=${encodeURIComponent(loc.name)}`)}
-                        className="w-full flex items-center gap-3 py-2 text-left"
+                        onClick={() => handleSelect(`/stays?destination=${encodeURIComponent(loc.name)}`)}
+                        className="w-full flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-slate-50 text-left transition-colors cursor-pointer"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-red-50 text-[#ea110d] flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-red-50 text-[#ea110d] flex items-center justify-center shrink-0 border border-red-100">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-slate-900 font-poppins">{loc.name}</div>
+                          <div className="text-sm font-bold text-slate-900 truncate">{loc.name}</div>
                           <div className="text-xs text-slate-400 truncate">{loc.description}</div>
                         </div>
+                        <span className="text-slate-400 text-xs">→</span>
                       </button>
                     ))}
                   </div>
@@ -917,24 +949,25 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 {/* Mobile Stays */}
                 {(activeCategory === "all" || activeCategory === "villa") && results.stays.length > 0 && (
                   <div className="py-2.5">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-poppins mb-1.5">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                       Villas &amp; Stays ({results.stays.length})
                     </div>
                     {results.stays.map((stay) => (
                       <button
                         key={stay.id}
                         type="button"
-                        onClick={() => handleSelect(`/explore/${stay.id}`)}
-                        className="w-full flex items-center gap-3 py-2 text-left"
+                        onClick={() => handleSelect(`/stay/${stay.id}`)}
+                        className="w-full flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-slate-50 text-left transition-colors cursor-pointer"
                       >
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                          <Image src={stay.image || "/hero-resort.jpg"} alt={stay.name} fill className="object-cover" />
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                          <Image src={stay.image || "/hero-resort.jpg"} alt={stay.name} fill sizes="56px" loading="lazy" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-slate-900 font-poppins truncate">{stay.name}</div>
-                          <div className="text-[11px] text-slate-500 truncate">{stay.location} • {stay.type}</div>
-                          <div className="text-xs font-bold text-[#ea110d] font-poppins mt-0.5">{stay.price}</div>
+                          <div className="text-xs font-bold text-slate-900 truncate">{stay.name}</div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">{stay.location} • {stay.type}</div>
+                          <div className="text-xs font-black text-[#ea110d] mt-1">{stay.price}</div>
                         </div>
+                        <span className="text-slate-400 text-xs">→</span>
                       </button>
                     ))}
                   </div>
@@ -943,24 +976,25 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 {/* Mobile Packages */}
                 {(activeCategory === "all" || activeCategory === "package") && results.packages.length > 0 && (
                   <div className="py-2.5">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-poppins mb-1.5">
-                      Packages ({results.packages.length})
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Holiday Packages ({results.packages.length})
                     </div>
                     {results.packages.map((pkg) => (
                       <button
                         key={pkg.id}
                         type="button"
                         onClick={() => handleSelect(`/packages/${pkg.id}`)}
-                        className="w-full flex items-center gap-3 py-2 text-left"
+                        className="w-full flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-slate-50 text-left transition-colors cursor-pointer"
                       >
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                          <Image src={pkg.images?.[0] || "/hero-resort.jpg"} alt={pkg.title} fill className="object-cover" />
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                          <Image src={pkg.images?.[0] || "/hero-resort.jpg"} alt={pkg.title} fill sizes="56px" loading="lazy" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-slate-900 font-poppins truncate">{pkg.title}</div>
-                          <div className="text-[11px] text-slate-500 truncate">{pkg.durationDays} Days • {pkg.category}</div>
-                          <div className="text-xs font-bold text-[#ea110d] font-poppins mt-0.5">{pkg.price}</div>
+                          <div className="text-xs font-bold text-slate-900 truncate">{pkg.title}</div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">{pkg.durationDays} Days • {pkg.category}</div>
+                          <div className="text-xs font-black text-[#ea110d] mt-1">{pkg.price}</div>
                         </div>
+                        <span className="text-slate-400 text-xs">→</span>
                       </button>
                     ))}
                   </div>
@@ -969,39 +1003,63 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
                 {/* Mobile Experiences */}
                 {(activeCategory === "all" || activeCategory === "experience") && results.experiences.length > 0 && (
                   <div className="py-2.5">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-poppins mb-1.5">
-                      Experiences ({results.experiences.length})
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Experiences &amp; Treks ({results.experiences.length})
                     </div>
                     {results.experiences.map((exp) => (
                       <button
                         key={exp.id}
                         type="button"
                         onClick={() => handleSelect(`/experiences/${exp.id}`)}
-                        className="w-full flex items-center gap-3 py-2 text-left"
+                        className="w-full flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-slate-50 text-left transition-colors cursor-pointer"
                       >
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                          <Image src={exp.image || "/hero-resort.jpg"} alt={exp.title} fill className="object-cover" />
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                          <Image src={exp.image || "/hero-resort.jpg"} alt={exp.title} fill sizes="56px" loading="lazy" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-slate-900 font-poppins truncate">{exp.title}</div>
-                          <div className="text-[11px] text-slate-500 truncate">{exp.city} • {exp.category}</div>
-                          <div className="text-xs font-bold text-[#ea110d] font-poppins mt-0.5">{exp.price}</div>
+                          <div className="text-xs font-bold text-slate-900 truncate">{exp.title}</div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">{exp.city} • {exp.category}</div>
+                          <div className="text-xs font-black text-[#ea110d] mt-1">{exp.price}</div>
                         </div>
+                        <span className="text-slate-400 text-xs">→</span>
                       </button>
                     ))}
                   </div>
                 )}
 
                 {results.totalCount === 0 && (
-                  <div className="py-12 text-center text-slate-500">
-                    <p className="text-sm font-bold text-slate-800">No matches found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try searching another location or keyword.</p>
+                  <div className="py-14 text-center text-slate-500">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <circle cx="11" cy="11" r="8" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21L16.65 16.65" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">No matches found for &quot;{query}&quot;</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                      Try searching for &quot;Venna Lake&quot;, &quot;Panchgani&quot;, &quot;Villa&quot;, or &quot;Trek&quot;.
+                    </p>
                   </div>
                 )}
               </div>
             )}
           </div>
-        </div>
+
+          {/* Sticky Bottom Bar when query has results */}
+          {query.trim() && results.totalCount > 0 && (
+            <div className="p-3 border-t border-slate-200 bg-white sticky bottom-0 shadow-lg">
+              <button
+                type="button"
+                onClick={handleSubmitSearch}
+                className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-[#ea110d] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm active:scale-[0.99]"
+              >
+                <span>View all {results.totalCount} matching results</span>
+                <span>→</span>
+              </button>
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </>
   );

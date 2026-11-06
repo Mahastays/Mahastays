@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 
 export const metadata: Metadata = {
   title: "Why Mahastays? Verified Quality & Best Rate Guarantee",
@@ -43,8 +41,6 @@ export default function WhyMahastaysPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-roboto antialiased">
-      <Navbar />
-
       <main className="flex-1 pt-28 sm:pt-34 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-14">
           <span className="text-xs font-bold tracking-widest uppercase text-[#ea110d] bg-red-50 px-3.5 py-1.5 rounded-full inline-block mb-3 font-poppins">
@@ -113,8 +109,6 @@ export default function WhyMahastaysPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

@@ -97,6 +97,8 @@ export default function AdBlendBanner({
               <img
                 src={slide.image}
                 alt={slide.title}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
                 className="w-full h-full object-cover object-center scale-101 transition-transform duration-7000 ease-out"
               />
             </div>

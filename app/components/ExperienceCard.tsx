@@ -49,6 +49,8 @@ export default function ExperienceCard({ item, onBook }: ExperienceCardProps) {
       <img
         src={item.image}
         alt={item.title}
+        loading="lazy"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-106"
       />
 

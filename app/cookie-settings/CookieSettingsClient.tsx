@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { toast } from "../../components/ui/Toast";
 
 export default function CookieSettingsPage() {
@@ -29,8 +27,6 @@ export default function CookieSettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-roboto antialiased">
-      <Navbar />
-
       <main className="flex-1 pt-28 sm:pt-34 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -143,8 +139,6 @@ export default function CookieSettingsPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

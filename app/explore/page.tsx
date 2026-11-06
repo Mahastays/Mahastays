@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import ExploreClient from "./ExploreClient";
+import ExplorePlacesClient from "./ExplorePlacesClient";
 
 export const metadata: Metadata = {
-  title: "Explore Verified Luxury Stays, Villas & Resorts",
+  title: "Explore Famous Places & Scenic Wonders of Mahabaleshwar | Mahastays",
   description:
-    "Browse handpicked private pool villas, boutique hillside resorts, and luxury stays in Mahabaleshwar and Panchgani. Filter by location, price, rating, and amenities.",
+    "Interactive map and curated guide to Mahabaleshwar's iconic viewpoints, roaring waterfalls, historic forts, and sacred temples. Plan your Western Ghats adventure.",
   alternates: {
     canonical: "/explore",
   },
 };
 
 export default function ExplorePage() {
-  return <ExploreClient />;
+  return <ExplorePlacesClient />;
 }

@@ -13,8 +13,6 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import api from '@/lib/api';
 import BookingInvoiceModal, { BookingInvoiceData } from '../../components/booking/BookingInvoiceModal';
 
@@ -129,21 +127,18 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-        <Navbar />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center">
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <Loader2 className="w-8 h-8 text-[#ea110d] animate-spin mb-3" />
           <p className="text-sm text-slate-500 font-medium">Generating official GST Tax Invoice…</p>
         </div>
-        <Footer />
       </div>
     );
   }
 
   if (error || !bookingData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-        <Navbar />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center">
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
             <AlertCircle className="w-7 h-7" />
@@ -159,15 +154,13 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
             ← View My Bookings
           </Link>
         </div>
-        <Footer />
       </div>
     );
   }
 
   if (isCancelled) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
-        <Navbar />
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-center">
         <main className="max-w-md mx-auto w-full px-4 pt-32 pb-16 flex-1 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
             <AlertCircle className="w-7 h-7" />
@@ -185,15 +178,13 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
             </Link>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   if (!isPaid) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between">
-        <Navbar />
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-center">
         <main className="max-w-md mx-auto w-full px-4 pt-32 pb-16 flex-1 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
             <AlertCircle className="w-7 h-7" />
@@ -211,17 +202,12 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
             </Link>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-between print:bg-white">
-      <div className="print:hidden">
-        <Navbar />
-      </div>
-
       <main className="max-w-4xl mx-auto w-full px-4 sm:px-6 pt-28 sm:pt-32 pb-16 flex-1 print:p-0 print:m-0 print:max-w-none">
         {/* Top Navigation & Action Bar */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
@@ -267,10 +253,6 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
           booking={bookingData}
         />
       </main>
-
-      <div className="print:hidden">
-        <Footer />
-      </div>
     </div>
   );
 }

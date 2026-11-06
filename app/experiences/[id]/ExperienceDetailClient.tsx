@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
 import { DetailPageSkeleton } from "../../components/Skeletons";
 import { VideoPlayerModal } from "../../components/VideoPlayerModal";
 import { ExperienceTier, ExperienceSlot, ExperienceDetail } from "../experiencesData";
@@ -347,17 +345,13 @@ export default function ExperienceDetailsPage() {
   if (detailLoading || !exp) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] font-roboto">
-        <Navbar />
         <DetailPageSkeleton />
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] font-roboto text-slate-800">
-      <Navbar />
-
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 lg:pt-36 pb-24">
         {/* Breadcrumbs & Action Bar */}
@@ -580,6 +574,8 @@ export default function ExperienceDetailsPage() {
                   <img
                     src={exp.guide?.avatar || (exp as any).vendor?.avatarUrl}
                     alt={exp.guide?.name || "Guide Profile"}
+                    loading="lazy"
+                    decoding="async"
                     className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-sm"
                   />
                 ) : (
@@ -964,6 +960,7 @@ export default function ExperienceDetailsPage() {
                       alt="Action Video Preview"
                       fill
                       sizes="(max-width: 768px) 100vw, 420px"
+                      loading="lazy"
                       className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
@@ -1682,8 +1679,6 @@ export default function ExperienceDetailsPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

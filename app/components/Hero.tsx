@@ -465,12 +465,12 @@ export default function Hero() {
       {/* ─── Horizontal Ad / Special Offers Slider Section (Only shown if active ads exist) ─── */}
       {!isLoadingOffers && offers.length > 0 && (
         <div className="relative -mt-14 sm:-mt-18 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full animate-in fade-in duration-300">
-          <div className="flex items-center gap-3 sm:gap-3.5 w-full">
+          <div className="flex items-center gap-2 sm:gap-3.5 w-full">
             {/* Card 0: Special Offers Intro Card (Fixed on the left, White Theme) */}
-            <div className="w-[150px] sm:w-[170px] h-[130px] shrink-0 rounded-2xl bg-white border border-slate-100 p-3 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.06)] z-10 select-none">
+            <div className="w-[110px] min-[400px]:w-[124px] sm:w-[170px] h-[116px] sm:h-[130px] shrink-0 rounded-2xl bg-white border border-slate-100 p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.06)] z-10 select-none">
               {/* Parasol umbrella + sun lounger + tropical palm leaves illustration */}
               <div className="absolute -right-1 -bottom-1 pointer-events-none">
-                <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-22 h-18 sm:w-24 sm:h-20">
+                <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-13 min-[400px]:w-18 min-[400px]:h-15 sm:w-24 sm:h-20">
                   {/* Tropical Palm leaves */}
                   <path d="M120 100C105 85 90 85 70 95C85 80 100 80 120 100Z" fill="#15803d" opacity="0.65" />
                   <path d="M120 85C100 70 85 75 65 90C80 70 100 68 120 85Z" fill="#16a34a" opacity="0.8" />
@@ -492,15 +492,15 @@ export default function Hero() {
 
               {/* Top row: % Badge and Action Arrow */}
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-6 h-6 rounded-full bg-[#ea110d] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#ea110d] text-white flex items-center justify-center font-black text-[10px] sm:text-xs shadow-xs">
                   %
                 </div>
                 <Link
                   href="/packages"
-                  className="w-7 h-7 rounded-full bg-[#ea110d] hover:bg-[#d00f0c] text-white flex items-center justify-center shadow-xs transition-transform hover:scale-105 active:scale-95"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#ea110d] hover:bg-[#d00f0c] text-white flex items-center justify-center shadow-xs transition-transform hover:scale-105 active:scale-95"
                   aria-label="View Special Offers"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </Link>
@@ -508,10 +508,10 @@ export default function Hero() {
 
               {/* Title & Subtitle */}
               <div className="relative z-10">
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight font-poppins">
+                <h3 className="font-extrabold text-slate-900 text-xs min-[400px]:text-sm sm:text-base leading-tight font-poppins">
                   Special<br />Offers
                 </h3>
-                <p className="text-[10px] text-slate-500 leading-tight mt-1 max-w-[105px]">
+                <p className="text-[8.5px] min-[400px]:text-[9.5px] sm:text-[10px] text-slate-500 leading-tight mt-0.5 sm:mt-1 max-w-[76px] min-[400px]:max-w-[85px] sm:max-w-[105px] line-clamp-2">
                   Exclusive stays at member rates
                 </p>
               </div>
@@ -525,9 +525,9 @@ export default function Hero() {
                   type="button"
                   onClick={slideLeft}
                   aria-label="Slide offers left"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-4 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.15)] border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-[#ea110d] hover:scale-105 active:scale-95 transition-all z-30 cursor-pointer"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
@@ -536,17 +536,17 @@ export default function Hero() {
               {/* Cards Horizontal Track */}
               <div
                 ref={carouselRef}
-                className="flex items-center gap-3 sm:gap-3.5 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth snap-x snap-mandatory"
+                className="flex items-center gap-2 sm:gap-3.5 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth snap-x snap-mandatory"
               >
                 {offers.map((offer) => {
                   const isFav = Boolean(favorites[offer.id]);
                   return (
                     <div
                       key={offer.id}
-                      className="w-[310px] sm:w-[330px] h-[130px] shrink-0 bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-[transform,box-shadow] duration-200 ease-out transform-gpu hover:-translate-y-0.5 flex items-center gap-3 snap-start group relative"
+                      className="w-[255px] min-[400px]:w-[280px] sm:w-[330px] h-[116px] sm:h-[130px] shrink-0 bg-white rounded-2xl p-2 sm:p-3 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-[transform,box-shadow] duration-200 ease-out transform-gpu hover:-translate-y-0.5 flex items-center gap-2.5 sm:gap-3 snap-start group relative"
                     >
                       {/* Left Side: Image with badges */}
-                      <div className="relative w-28 sm:w-30 h-full rounded-xl overflow-hidden shrink-0 bg-slate-100">
+                      <div className="relative w-24 min-[400px]:w-26 sm:w-30 h-full rounded-xl overflow-hidden shrink-0 bg-slate-100">
                         <img
                           src={offer.image}
                           alt={offer.name}
@@ -629,24 +629,24 @@ export default function Hero() {
                       {/* Right Side: Stay Information & Pricing */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
                         <div>
-                          <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 font-poppins truncate leading-snug">
+                          <h4 className="text-[11px] sm:text-[13px] font-bold text-slate-900 font-poppins truncate leading-snug">
                             {offer.name}
                           </h4>
-                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
+                          <p className="text-[9px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
                             {offer.duration} · {offer.view}
                           </p>
                         </div>
 
                         <div className="pt-0.5">
-                          <span className="text-[10px] text-slate-400 line-through block leading-none">
+                          <span className="text-[9px] sm:text-[10px] text-slate-400 line-through block leading-none">
                             ₹{offer.originalPrice.toLocaleString("en-IN")}
                           </span>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-sm sm:text-[15px] font-extrabold text-slate-900 font-poppins leading-tight">
+                          <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5">
+                            <span className="text-xs min-[400px]:text-sm sm:text-[15px] font-extrabold text-slate-900 font-poppins leading-tight">
                               ₹{offer.discountedPrice.toLocaleString("en-IN")}
                             </span>
                             <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              className={`text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded ${
                                 offer.badgeType === "seller"
                                   ? "bg-emerald-50 text-emerald-700"
                                   : offer.badgeType === "new"
@@ -662,10 +662,10 @@ export default function Hero() {
 
                           <Link
                             href={offer.link}
-                            className="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-[#ea110d] inline-flex items-center gap-1 transition-colors mt-1 group-hover:translate-x-0.5"
+                            className="text-[9px] sm:text-[11px] font-bold text-slate-700 hover:text-[#ea110d] inline-flex items-center gap-1 transition-colors mt-0.5 sm:mt-1 group-hover:translate-x-0.5"
                           >
                             <span>View Details</span>
-                            <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                           </Link>

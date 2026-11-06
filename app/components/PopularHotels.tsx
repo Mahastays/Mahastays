@@ -54,7 +54,7 @@ export default function PopularHotels() {
         </div>
 
         <Link
-          href="/explore"
+          href="/stays"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm hover:text-primary hover:border-primary/30 hover:bg-red-50/50 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
           id="popular-view-all-link"
         >

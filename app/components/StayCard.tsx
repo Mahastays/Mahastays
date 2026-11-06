@@ -195,7 +195,7 @@ function StayCard({ stay, onBook }: StayCardProps) {
           </button>
         ) : (
           <Link
-            href={`/explore/${stay.id}`}
+            href={`/stay/${stay.id}`}
             className="w-full py-2.5 sm:py-3 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-full transition-all shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 font-poppins text-center mt-1 block"
           >
             Book now

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import StayCard, { Stay } from "../components/StayCard";
 import { StayCardSkeleton } from "../components/Skeletons";
 import ExploreHotelAdCarousel, { HotelAdSlide } from "../components/ExploreHotelAdCarousel";
@@ -581,9 +579,6 @@ export default function ExplorePage() {
 
   return (
     <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
-      {/* ─── Sticky/Glassmorphic Header ───────────────────────── */}
-      <Navbar />
-
       {/* ─── Above The Hero: Hotel Showcase Ad Carousel (Matching Image Reference) ── */}
       <ExploreHotelAdCarousel onSelectSlide={handleHotelAdSelect} onAdsLoaded={setHasAds} />
 
@@ -861,8 +856,6 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      {/* ─── Pure Black Global Footer ─────────────────────────── */}
-      <Footer />
       {/* ─── Mobile Filter Modal (Bottom Sheet Dialog on small screens) ─── */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">

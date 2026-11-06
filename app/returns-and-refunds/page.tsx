@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 
 export const metadata: Metadata = {
   title: "Cancellation & Refund Policy",
@@ -39,8 +37,6 @@ export default function ReturnsAndRefundsPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-roboto antialiased">
-      <Navbar />
-
       <main className="flex-1 pt-28 sm:pt-34 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -100,8 +96,6 @@ export default function ReturnsAndRefundsPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

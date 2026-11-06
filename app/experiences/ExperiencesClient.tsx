@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import ExperienceCard from "../components/ExperienceCard";
 import { ExperienceCardSkeleton } from "../components/Skeletons";
 import ExperiencesOfferAdCarousel, { ExperienceOfferSlide } from "../components/ExperiencesOfferAdCarousel";
@@ -573,9 +571,6 @@ export default function ExperiencesPage() {
 
   return (
     <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
-      {/* ─── Sticky/Glassmorphic Header ───────────────────────── */}
-      <Navbar />
-
       {/* ─── Above The Hero: Escape to Extraordinary Ad Banner Carousel (Matching Reference) ── */}
       <ExperiencesOfferAdCarousel onSelectSlide={handleExperienceOfferSelect} onAdsLoaded={setHasAds} />
 
@@ -853,8 +848,6 @@ export default function ExperiencesPage() {
         </div>
       </section>
 
-      {/* ─── Pure Black Global Footer ─────────────────────────── */}
-      <Footer />
       {/* ─── Mobile Filter Modal (Bottom Sheet Dialog on small screens) ─── */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">

@@ -82,6 +82,8 @@ export default function AdHeroCarousel({ slides, onCtaClick }: AdHeroCarouselPro
                 <img
                   src={slide.image}
                   alt={slide.title}
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  decoding="async"
                   className="w-full h-full object-cover object-[center_40%] scale-102 transition-transform duration-7000 ease-out"
                 />
                 {/* Subtle vignette on image edge */}
@@ -137,6 +139,8 @@ export default function AdHeroCarousel({ slides, onCtaClick }: AdHeroCarouselPro
                 <img
                   src="/tropical-flower.png"
                   alt="Decorative flower"
+                  loading="lazy"
+                  decoding="async"
                   className="absolute -bottom-8 -right-6 sm:-bottom-10 sm:-right-8 w-44 sm:w-56 lg:w-64 pointer-events-none select-none drop-shadow-[0_8px_20px_rgba(0,0,0,0.4)] opacity-95 transition-transform duration-700 group-hover:scale-105"
                 />
               </div>

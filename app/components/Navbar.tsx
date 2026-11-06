@@ -119,13 +119,13 @@ export default function Navbar() {
         </svg>
       ),
     },
+  
     {
-      name: "Explore",
-      href: "/explore",
+      name: "Stays",
+      href: "/stays",
       icon: (
         <svg className="w-[18px] h-[18px] sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+          <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
         </svg>
       ),
     },
@@ -147,6 +147,14 @@ export default function Navbar() {
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
       ),
+    },  {
+      name: "Explore",
+      href: "/explore",
+      icon: (
+        <svg className="w-[18px] h-[18px] sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 19 21 12 17 5 21 12 2" />
+        </svg>
+      ),
     },
   ];
 
@@ -156,7 +164,7 @@ export default function Navbar() {
     <>
       {/* ─── Top Main Navigation Bar ────────────────────────────── */}
       <header
-        className={`fixed left-0 right-0 z-50 transition-[top,padding] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-transform ${
+        className={`fixed left-0 right-0 z-50 transition-[top,padding] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
           isScrolled
             ? "top-2 sm:top-3.5 px-3 sm:px-6"
             : "top-0 px-0"
@@ -203,9 +211,9 @@ export default function Navbar() {
               const currentPath = pathname || "/";
               const isActive =
                 (item.href === "/" && currentPath === "/") ||
-                (item.href === "/explore" &&
-                  (currentPath === "/explore" ||
-                    currentPath.startsWith("/explore/") ||
+                (item.href === "/stays" &&
+                  (currentPath === "/stays" ||
+                    currentPath.startsWith("/stays/") ||
                     currentPath === "/stay" ||
                     currentPath.startsWith("/stay/"))) ||
                 (item.href === "/packages" &&
@@ -213,7 +221,10 @@ export default function Navbar() {
                     currentPath.startsWith("/packages/"))) ||
                 (item.href === "/experiences" &&
                   (currentPath === "/experiences" ||
-                    currentPath.startsWith("/experiences/")));
+                    currentPath.startsWith("/experiences/"))) || 
+                    (item.href === "/explore" &&
+                  (currentPath === "/explore" ||
+                    (currentPath.startsWith("/explore/") && !currentPath.startsWith("/explore/stay"))));
 
               return (
                 <li key={item.name}>
@@ -261,9 +272,11 @@ export default function Navbar() {
                   <svg className="w-5 h-5 text-slate-700 hover:text-[#ea110d] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#ea110d] text-white text-[9px] font-bold flex items-center justify-center">
-                    {unreadCount}
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#ea110d] text-white text-[9px] font-bold flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
 
                 {/* Thin Vertical Separator */}
@@ -279,7 +292,13 @@ export default function Navbar() {
                   >
                     <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                       {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.fullName || "User Avatar"} className="w-full h-full object-cover" />
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.fullName || "User Avatar"}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <span>{user?.fullName ? user.fullName.charAt(0).toUpperCase() : "A"}</span>
                       )}
@@ -393,7 +412,10 @@ export default function Navbar() {
                 (item.href === "/" && currentPath === "/") ||
                 (item.href === "/explore" &&
                   (currentPath === "/explore" ||
-                    currentPath.startsWith("/explore/") ||
+                    (currentPath.startsWith("/explore/") && !currentPath.startsWith("/explore/stay")))) ||
+                (item.href === "/stays" &&
+                  (currentPath === "/stays" ||
+                    currentPath.startsWith("/stays/") ||
                     currentPath === "/stay" ||
                     currentPath.startsWith("/stay/"))) ||
                 (item.href === "/packages" &&

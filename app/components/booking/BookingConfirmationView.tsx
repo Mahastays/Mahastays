@@ -207,6 +207,8 @@ export default function BookingConfirmationView({ data }: BookingConfirmationVie
                   <img
                     src={defaultImage || "https://images.unsplash.com/photo-1613490493576-7fde63acd811"}
                     alt={data.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 </div>
