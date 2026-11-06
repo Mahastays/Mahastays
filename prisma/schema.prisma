@@ -472,10 +472,13 @@ type MediaImage {
 }
 
 type HostInfo {
-  name       String
-  role       String?
-  experience String?
-  avatar     String?
+  name              String
+  role              String?
+  experience        String?
+  avatar            String?
+  staysCount        String?
+  confirmationBadge String?
+  verified          Boolean? @default(true)
 }
 
 type Highlight {
@@ -484,20 +487,34 @@ type Highlight {
   icon  String?
 }
 
+type KeyFeatureCard {
+  name String
+  desc String?
+  icon String?
+}
+
+type FacilityCategory {
+  category String
+  items    String[]
+  icon     String?
+}
+
 type Amenity {
   name String
   icon String?
 }
 
 type PropertyPolicies {
-  checkInTime                String  @default("14:00")
-  checkOutTime               String  @default("11:00")
+  checkInTime                String   @default("14:00")
+  checkOutTime               String   @default("11:00")
   cancellationPolicy         String?
+  earlyCheckInNote           String?
+  suitabilityRules           String[]
   freeCancellationHours      Int?
   lateCancellationFeePercent Float?
-  petsAllowed                Boolean @default(false)
-  smokingAllowed             Boolean @default(false)
-  coupleFriendly             Boolean @default(true)
+  petsAllowed                Boolean  @default(false)
+  smokingAllowed             Boolean  @default(false)
+  coupleFriendly             Boolean  @default(true)
   maxGuestsPerRoom           Int?
 }
 
@@ -960,13 +977,15 @@ model Property {
   city              String
   country           String           @default("India")
   address           PropertyAddress
-  images            MediaImage[]
-  gallery           String[]
-  videos            String[]
-  host              HostInfo?
-  highlights        Highlight[]
-  amenities         Amenity[]
-  policies          PropertyPolicies
+  images             MediaImage[]
+  gallery            String[]
+  videos             String[]
+  host               HostInfo?
+  highlights         Highlight[]
+  keyAmenities       KeyFeatureCard[]
+  facilityCategories FacilityCategory[]
+  amenities          Amenity[]
+  policies           PropertyPolicies
   rooms             Room[]
   attractions       Attraction[]
   numericPrice      Int // cheapest room base price (derived)
@@ -1002,7 +1021,7 @@ model Package {
   vendorId           String              @db.ObjectId
   vendor             Vendor              @relation(fields: [vendorId], references: [id])
   propertyId         String              @db.ObjectId
-  property           Property            @relation(fields: [propertyId], references: [id])
+  property           Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   packageType        PackageType
   category           PackageCategory
   title              String
@@ -1168,7 +1187,7 @@ model StayBooking {
   userId           String   @db.ObjectId
   user             User     @relation(fields: [userId], references: [id])
   propertyId       String   @db.ObjectId
-  property         Property @relation(fields: [propertyId], references: [id])
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   vendorId         String   @db.ObjectId
 
   roomId       String
@@ -1219,7 +1238,7 @@ model PackageBooking {
   userId           String  @db.ObjectId
   user             User    @relation(fields: [userId], references: [id])
   packageId        String  @db.ObjectId
-  package          Package @relation(fields: [packageId], references: [id])
+  package          Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
   vendorId         String  @db.ObjectId
   hostPropertyId   String  @db.ObjectId
 
@@ -1268,7 +1287,7 @@ model ExperienceBooking {
   userId           String     @db.ObjectId
   user             User       @relation(fields: [userId], references: [id])
   experienceId     String     @db.ObjectId
-  experience       Experience @relation(fields: [experienceId], references: [id])
+  experience       Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
   vendorId         String     @db.ObjectId
 
   tierId            String

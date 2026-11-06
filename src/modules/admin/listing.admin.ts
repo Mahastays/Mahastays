@@ -126,10 +126,21 @@ export function adminListingRouter(kind: ListingKind): Router {
           } : { fullAddress: body.location || 'Venna Lake Road, Mahabaleshwar', lat: 17.9237, lng: 73.6586 },
           host: body.host ? {
             name: body.host.name || 'Host',
-            role: body.host.role || null,
-            experience: body.host.experience || null,
+            role: body.host.role || 'Superhost & Estate Manager',
+            experience: body.host.experience || 'Hosted 100+ groups',
             avatar: body.host.avatar || null,
-          } : undefined,
+            staysCount: body.host.staysCount || null,
+            confirmationBadge: body.host.confirmationBadge || 'Identity Verified',
+            verified: body.host.verified !== undefined ? Boolean(body.host.verified) : true,
+          } : (body.hostName ? {
+            name: body.hostName,
+            role: body.hostRole || 'Superhost & Estate Manager',
+            experience: body.hostExperience || 'Hosted 100+ groups',
+            avatar: body.hostAvatar || null,
+            staysCount: body.staysCount || null,
+            confirmationBadge: body.confirmationBadge || 'Identity Verified',
+            verified: true,
+          } : undefined),
           images,
           highlights: (Array.isArray(body.highlights) && body.highlights.length > 0 ? body.highlights : [
             { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
@@ -139,12 +150,26 @@ export function adminListingRouter(kind: ListingKind): Router {
             desc: typeof h === 'string' ? '' : (h.desc || h.description || ''),
             icon: typeof h === 'string' ? null : (h.icon || null),
           })),
+          keyAmenities: Array.isArray(body.keyAmenities) ? body.keyAmenities.map((k: any) => ({
+            name: typeof k === 'string' ? k : (k.name || k.title || ''),
+            desc: typeof k === 'string' ? null : (k.desc || k.description || null),
+            icon: typeof k === 'string' ? null : (k.icon || null),
+          })) : [],
+          facilityCategories: Array.isArray(body.facilityCategories) ? body.facilityCategories.map((fc: any) => ({
+            category: fc.category || fc.title || '',
+            items: Array.isArray(fc.items) ? fc.items : (Array.isArray(fc.points) ? fc.points : []),
+            icon: fc.icon || null,
+          })) : [],
           amenities: rawAmenities,
           amenityKeys: rawAmenities.map((a: any) => a.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')),
           policies: {
             checkInTime: body.policies?.checkInTime || '14:00',
             checkOutTime: body.policies?.checkOutTime || '11:00',
             cancellationPolicy: body.policies?.cancellationPolicy || null,
+            earlyCheckInNote: body.policies?.earlyCheckInNote || null,
+            suitabilityRules: Array.isArray(body.policies?.suitabilityRules)
+              ? body.policies.suitabilityRules
+              : (Array.isArray(body.rules) ? body.rules : []),
             freeCancellationHours: body.policies?.freeCancellationHours != null ? Number(body.policies.freeCancellationHours) : null,
             lateCancellationFeePercent: body.policies?.lateCancellationFeePercent != null ? Number(body.policies.lateCancellationFeePercent) : null,
             petsAllowed: Boolean(body.policies?.petsAllowed),
@@ -307,9 +332,42 @@ export function adminListingRouter(kind: ListingKind): Router {
               role: body.host.role || null,
               experience: body.host.experience || null,
               avatar: body.host.avatar || null,
+              staysCount: body.host.staysCount || null,
+              confirmationBadge: body.host.confirmationBadge || null,
+              verified: body.host.verified !== undefined ? Boolean(body.host.verified) : true,
             },
           };
         }
+      } else if (body.hostName !== undefined) {
+        data.host = {
+          set: {
+            name: body.hostName || 'Host',
+            role: body.hostRole || 'Superhost & Estate Manager',
+            experience: body.hostExperience || 'Hosted 100+ groups',
+            avatar: body.hostAvatar || null,
+            staysCount: body.staysCount || null,
+            confirmationBadge: body.confirmationBadge || 'Identity Verified',
+            verified: true,
+          },
+        };
+      }
+      if (body.keyAmenities !== undefined) {
+        data.keyAmenities = {
+          set: (body.keyAmenities || []).map((k: any) => ({
+            name: typeof k === 'string' ? k : (k.name || k.title || ''),
+            desc: typeof k === 'string' ? null : (k.desc || k.description || null),
+            icon: typeof k === 'string' ? null : (k.icon || null),
+          })),
+        };
+      }
+      if (body.facilityCategories !== undefined) {
+        data.facilityCategories = {
+          set: (body.facilityCategories || []).map((fc: any) => ({
+            category: fc.category || fc.title || '',
+            items: Array.isArray(fc.items) ? fc.items : (Array.isArray(fc.points) ? fc.points : []),
+            icon: fc.icon || null,
+          })),
+        };
       }
       if (body.highlights !== undefined) {
         data.highlights = {
@@ -329,18 +387,23 @@ export function adminListingRouter(kind: ListingKind): Router {
           })),
         };
       }
-      if (body.policies !== undefined) {
+      if (body.policies !== undefined || body.rules !== undefined) {
+        const pol = body.policies || {};
         data.policies = {
           set: {
-            checkInTime: body.policies?.checkInTime || '14:00',
-            checkOutTime: body.policies?.checkOutTime || '11:00',
-            cancellationPolicy: body.policies?.cancellationPolicy || null,
-            freeCancellationHours: body.policies?.freeCancellationHours != null ? Number(body.policies.freeCancellationHours) : null,
-            lateCancellationFeePercent: body.policies?.lateCancellationFeePercent != null ? Number(body.policies.lateCancellationFeePercent) : null,
-            petsAllowed: Boolean(body.policies?.petsAllowed),
-            smokingAllowed: Boolean(body.policies?.smokingAllowed),
-            coupleFriendly: body.policies?.coupleFriendly !== undefined ? Boolean(body.policies?.coupleFriendly) : true,
-            maxGuestsPerRoom: body.policies?.maxGuestsPerRoom != null ? Number(body.policies.maxGuestsPerRoom) : null,
+            checkInTime: pol.checkInTime || '14:00',
+            checkOutTime: pol.checkOutTime || '11:00',
+            cancellationPolicy: pol.cancellationPolicy || null,
+            earlyCheckInNote: pol.earlyCheckInNote || null,
+            suitabilityRules: Array.isArray(pol.suitabilityRules)
+              ? pol.suitabilityRules
+              : (Array.isArray(body.rules) ? body.rules : []),
+            freeCancellationHours: pol.freeCancellationHours != null ? Number(pol.freeCancellationHours) : null,
+            lateCancellationFeePercent: pol.lateCancellationFeePercent != null ? Number(pol.lateCancellationFeePercent) : null,
+            petsAllowed: Boolean(pol.petsAllowed),
+            smokingAllowed: Boolean(pol.smokingAllowed),
+            coupleFriendly: pol.coupleFriendly !== undefined ? Boolean(pol.coupleFriendly) : true,
+            maxGuestsPerRoom: pol.maxGuestsPerRoom != null ? Number(pol.maxGuestsPerRoom) : null,
           },
         };
       }
@@ -557,10 +620,15 @@ export function adminListingRouter(kind: ListingKind): Router {
     const staff = getStaff(req);
     const id = objectId.parse(req.params.id);
     if (kind === 'property') {
+      // Clean up linked packages and bookings first to satisfy any referential integrity checks
+      await prisma.package.deleteMany({ where: { propertyId: id } });
+      await prisma.stayBooking.deleteMany({ where: { propertyId: id } });
       await prisma.property.delete({ where: { id } });
     } else if (kind === 'package') {
+      await prisma.packageBooking.deleteMany({ where: { packageId: id } });
       await prisma.package.delete({ where: { id } });
     } else {
+      await prisma.experienceBooking.deleteMany({ where: { experienceId: id } });
       await prisma.experience.delete({ where: { id } });
     }
 

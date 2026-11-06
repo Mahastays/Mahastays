@@ -189,6 +189,8 @@ export async function createProperty(vendorId: string, input: CreatePropertyInpu
       videos: input.videos,
       host: input.host ?? { name: vendor.displayName, role: vendor.displayRole, experience: vendor.experienceSummary ?? undefined, avatar: vendor.avatarUrl ?? undefined },
       highlights: input.highlights,
+      keyAmenities: input.keyAmenities || [],
+      facilityCategories: input.facilityCategories || [],
       amenities: input.amenities,
       policies: policiesSchema.parse(input.policies ?? {}),
       rooms: d.rooms,
@@ -228,6 +230,8 @@ export async function updateProperty(vendorId: string, id: string, input: Update
   if (input.videos !== undefined) data.videos = input.videos;
   if (input.host !== undefined) data.host = input.host;
   if (input.highlights !== undefined) data.highlights = input.highlights;
+  if (input.keyAmenities !== undefined) data.keyAmenities = input.keyAmenities;
+  if (input.facilityCategories !== undefined) data.facilityCategories = input.facilityCategories;
   if (input.attractions !== undefined) data.attractions = input.attractions;
   if (input.policies !== undefined) data.policies = policiesSchema.parse(input.policies);
   if (input.bgColor !== undefined) data.bgColor = input.bgColor;

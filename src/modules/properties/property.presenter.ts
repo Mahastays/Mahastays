@@ -52,6 +52,8 @@ export function presentProperty(p: Property, opts: { roomAvailability?: Map<stri
     checkInTime: to12Hour(policies.checkInTime),
     checkOutTime: to12Hour(policies.checkOutTime),
     cancellationPolicy: policies.cancellationPolicy ?? null,
+    earlyCheckInNote: policies.earlyCheckInNote ?? null,
+    suitabilityRules: policies.suitabilityRules ?? [],
     petsAllowed: policies.petsAllowed,
     smokingAllowed: policies.smokingAllowed,
     coupleFriendly: policies.coupleFriendly,

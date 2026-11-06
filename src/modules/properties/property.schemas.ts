@@ -15,6 +15,8 @@ export const policiesSchema = z.object({
   checkInTime: hhmm.default('14:00'),
   checkOutTime: hhmm.default('11:00'),
   cancellationPolicy: v.optionalTrimmed(500),
+  earlyCheckInNote: v.optionalTrimmed(500),
+  suitabilityRules: z.array(z.string()).default([]),
   /** Overrides the platform default (48 h) for this property. */
   freeCancellationHours: z.number().int().min(0).max(24 * 30).optional(),
   lateCancellationFeePercent: z.number().min(0).max(100).optional(),
@@ -67,9 +69,27 @@ const propertyBase = z.object({
   gallery: z.array(v.url).max(60).default([]),
   videos: z.array(v.url).max(10).default([]),
   host: z
-    .object({ name: v.trimmed(2, 100), role: v.optionalTrimmed(100), experience: v.optionalTrimmed(200), avatar: v.url.optional() })
+    .object({
+      name: v.trimmed(1, 100),
+      role: v.optionalTrimmed(100),
+      experience: v.optionalTrimmed(200),
+      avatar: v.optionalTrimmed(1000),
+      staysCount: v.optionalTrimmed(100),
+      confirmationBadge: v.optionalTrimmed(100),
+      verified: z.boolean().optional(),
+    })
     .optional(),
   highlights: z.array(highlightSchema).max(12).default([]),
+  keyAmenities: z.array(z.object({
+    name: z.string(),
+    desc: z.string().optional().nullable(),
+    icon: z.string().optional().nullable(),
+  })).default([]),
+  facilityCategories: z.array(z.object({
+    category: z.string(),
+    items: z.array(z.string()).default([]),
+    icon: z.string().optional().nullable(),
+  })).default([]),
   amenities: z.array(amenitySchema).max(60).default([]),
   policies: policiesSchema.optional(),
   rooms: z.array(roomSchema).min(1).max(30),
