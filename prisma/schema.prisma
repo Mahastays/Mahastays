@@ -1605,3 +1605,34 @@ model Refund {
   @@map("refund_entities")
 }
 
+model Place {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  slug             String   @unique
+  category         String   // viewpoint | waterfall | fort | temple | garden | lake | plateau
+  vicinity         String   // "Mahabaleshwar", "Panchgani", "Tapola", etc.
+  shortDescription String
+  description      String
+  address          String?
+  latitude         Float
+  longitude        Float
+  altitude         String?  // e.g. "1,470 m"
+  images           String[]
+  coverImage       String?
+  timings          String?  // e.g. "6:00 AM – 6:00 PM"
+  entryFee         String?  // e.g. "Free Entry" or "₹20 / person"
+  bestTimeToVisit  String?  // e.g. "Sunrise / Sunset (Oct to June)"
+  highlights       String[]
+  tips             String[]
+  isFeatured       Boolean  @default(false)
+  order            Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([category, isActive])
+  @@index([vicinity, isActive])
+  @@index([isFeatured, order])
+  @@map("places")
+}
+

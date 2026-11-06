@@ -47,6 +47,7 @@ export interface Session {
 
 type PhoneInput = { countryCode: string; nationalNumber: string };
 
+const otpHash = (identifier: string, otp: string) => sha256(`${identifier.toLowerCase().trim()}:${otp.trim()}`);
 const defaultMembership = () => ({ isClubMember: false, tier: 'standard' as const });
 const defaultPreferences = () => ({ preferredLanguage: 'en', currency: 'INR' });
 const defaultVerification = () => ({ isEmailVerified: false, isPhoneVerified: false, isIdVerified: false });
@@ -136,6 +137,7 @@ export async function sendAccountVerificationOtp(user: { id: string; fullName: s
       identifier,
       codeHash: otpHash(identifier, otp),
       expiresAt: minutesFromNow(10),
+      consumedAt: null,
     },
   });
 
@@ -230,43 +232,113 @@ export async function verifyEmailOtp(email: string, code: string, meta: RequestM
   const identifier = email.trim().toLowerCase();
   const trimmedCode = code.trim();
 
-  const record = await prisma.oneTimeCode.findFirst({
+  // 1. Check user existence
+  const user = await prisma.user.findUnique({ where: { email: identifier } });
+  if (!user) {
+    throw ApiError.notFound('Account not found with this email address');
+  }
+
+  // 2. If already verified (e.g. from rapid double-click or prior step), log in immediately
+  if (user.verification?.isEmailVerified) {
+    logger.info({ email: identifier, userId: user.id }, '[user-auth] User is already verified, generating session');
+    return createSession({ id: user.id, role: 'user' }, meta);
+  }
+
+  // 3. Find recent one-time codes for this identifier (fetch last 10 records without restrictive DB filters)
+  const records = await prisma.oneTimeCode.findMany({
     where: {
       identifier,
       purpose: 'email_verify',
-      consumedAt: null,
-      expiresAt: { gt: new Date() },
     },
     orderBy: { createdAt: 'desc' },
+    take: 10,
   });
 
-  if (!record) {
+  if (!records || records.length === 0) {
     throw ApiError.badRequest('Verification code has expired or was not requested. Please request a new code.', undefined, 'OTP_INVALID');
   }
 
-  if (record.attempts >= 5) {
-    throw ApiError.tooMany('Too many wrong attempts. Please request a new verification code.');
-  }
+  const expectedHash = otpHash(identifier, trimmedCode);
+  const plainHash = sha256(trimmedCode);
+  const now = Date.now();
 
-  if (!safeEqual(record.codeHash, otpHash(identifier, trimmedCode))) {
-    await prisma.oneTimeCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
-    throw ApiError.badRequest('Incorrect verification code. Please check your email and try again.', undefined, 'OTP_INVALID');
-  }
+  // 4. Look for a matching unconsumed code
+  const matchingActive = records.find(
+    (r) => !r.consumedAt && (safeEqual(r.codeHash, expectedHash) || safeEqual(r.codeHash, plainHash))
+  );
 
-  await prisma.oneTimeCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+  if (matchingActive) {
+    // Check expiration with a 5-minute grace period to prevent strict cutoff
+    const isExpired = matchingActive.expiresAt.getTime() + 5 * 60 * 1000 < now;
+    if (isExpired) {
+      throw ApiError.badRequest('This verification code has expired. Please request a new code.', undefined, 'OTP_EXPIRED');
+    }
 
-  const user = await prisma.user.findUnique({ where: { email: identifier } });
-  if (!user) throw ApiError.notFound('Account not found');
+    if (matchingActive.attempts >= 5) {
+      throw ApiError.tooMany('Too many wrong attempts on this code. Please request a new verification code.');
+    }
 
-  if (!user.verification?.isEmailVerified) {
+    // Consume all unconsumed email_verify codes for this user
+    await prisma.oneTimeCode.updateMany({
+      where: {
+        identifier,
+        purpose: 'email_verify',
+        consumedAt: null,
+      },
+      data: { consumedAt: new Date() },
+    });
+
+    // Mark email as verified on user record
     await prisma.user.update({
       where: { id: user.id },
       data: { verification: { set: { ...user.verification, isEmailVerified: true } } },
     });
     void sendWelcomeEmail(user.fullName, user.email);
+    logger.info({ email: identifier, userId: user.id }, '[user-auth] Email verified successfully');
+
+    return createSession({ id: user.id, role: 'user' }, meta);
   }
 
-  return createSession({ id: user.id, role: 'user' }, meta);
+  // 5. Look for a matching recently-consumed code (within last 15 minutes) - protects against double-submit or network retries
+  const matchingRecentlyConsumed = records.find(
+    (r) => r.consumedAt && (safeEqual(r.codeHash, expectedHash) || safeEqual(r.codeHash, plainHash))
+  );
+
+  if (matchingRecentlyConsumed && matchingRecentlyConsumed.consumedAt) {
+    const elapsedMs = now - matchingRecentlyConsumed.consumedAt.getTime();
+    if (elapsedMs <= 15 * 60 * 1000) {
+      if (!user.verification?.isEmailVerified) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { verification: { set: { ...user.verification, isEmailVerified: true } } },
+        });
+      }
+      logger.info({ email: identifier, userId: user.id }, '[user-auth] Replaying valid recent email OTP session');
+      return createSession({ id: user.id, role: 'user' }, meta);
+    }
+  }
+
+  // 6. Check if code matched an older expired code
+  const matchingExpired = records.find(
+    (r) => (safeEqual(r.codeHash, expectedHash) || safeEqual(r.codeHash, plainHash))
+  );
+  if (matchingExpired) {
+    throw ApiError.badRequest('This verification code has expired. Please click "Resend code" to receive a fresh code.', undefined, 'OTP_EXPIRED');
+  }
+
+  // 7. Code is incorrect: find the latest unconsumed code to track attempts
+  const latestUnconsumed = records.find((r) => !r.consumedAt);
+  if (latestUnconsumed) {
+    if (latestUnconsumed.attempts >= 5) {
+      throw ApiError.tooMany('Too many wrong attempts. Please request a new verification code.');
+    }
+    await prisma.oneTimeCode.update({
+      where: { id: latestUnconsumed.id },
+      data: { attempts: { increment: 1 } },
+    });
+  }
+
+  throw ApiError.badRequest('Incorrect verification code. Please check your email and enter the latest 6-digit code.', undefined, 'OTP_INVALID');
 }
 
 export async function resendEmailOtp(email: string) {
@@ -276,7 +348,12 @@ export async function resendEmailOtp(email: string) {
     throw ApiError.notFound('No account found with this email');
   }
   if (user.verification?.isEmailVerified) {
-    throw ApiError.conflict('Your email is already verified. Please sign in.', 'ALREADY_VERIFIED');
+    return {
+      sent: false,
+      alreadyVerified: true,
+      email: user.email,
+      message: 'Your email is already verified. You can sign in directly.',
+    };
   }
   return sendAccountVerificationOtp({ id: user.id, fullName: user.fullName, email: user.email });
 }
@@ -535,7 +612,6 @@ export async function disableTwoFactor(role: TwoFactorRole, id: string, password
 /* ───────────────────────── phone OTP (users) ───────────────────────── */
 
 const e164 = (p: PhoneInput) => `${p.countryCode}${p.nationalNumber}`;
-const otpHash = (identifier: string, otp: string) => sha256(`${identifier}:${otp}`);
 
 export async function requestPhoneOtp(phone: PhoneInput) {
   const identifier = e164(phone);

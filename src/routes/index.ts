@@ -10,6 +10,7 @@ import { publicExperienceRouter } from '../modules/experiences/experience.routes
 import { publicHeroSlideRouter } from '../modules/hero-slides/hero-slide.routes';
 import { healthRouter } from '../modules/health/health.routes';
 import { publicLocationsRouter } from '../modules/locations/locations.routes';
+import { publicPlacesRouter } from '../modules/places/places.routes';
 import { notificationRouter } from '../modules/notifications/notification.routes';
 import { publicPackageRouter } from '../modules/packages/package.routes';
 import { paymentRouter } from '../modules/payments/payment.routes';
@@ -31,6 +32,7 @@ apiRouter.use('/users', userRouter);
 apiRouter.use('/vendor', vendorRouter);
 
 apiRouter.use('/locations', publicLocationsRouter);
+apiRouter.use('/places', publicPlacesRouter);
 apiRouter.use('/coupons', couponRouter);
 apiRouter.use('/support', supportRouter);
 apiRouter.use('/notifications', notificationRouter);

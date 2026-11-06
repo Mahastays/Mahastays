@@ -18,6 +18,7 @@ import { makeSubAdminRouter } from './staff.admin';
 import { adminUserRouter } from './user.admin';
 import { adminVendorRouter } from './vendor.admin';
 import { adminHeroSlideRouter } from '../hero-slides/hero-slide.routes';
+import { adminPlacesRouter } from '../places/places.routes';
 
 /** Everything under /api/v1/admin — Admin, Sub-Admin (scoped by permission flags) and Super-Admin. */
 export const adminRouter = Router();
@@ -76,6 +77,7 @@ adminRouter.use('/finance', adminFinanceRouter);
 adminRouter.use('/coupons', adminCouponRouter);
 adminRouter.use('/locations', adminLocationsRouter);
 adminRouter.use('/hero-slides', adminHeroSlideRouter);
+adminRouter.use('/places', adminPlacesRouter);
 adminRouter.use('/support', adminSupportRouter);
 adminRouter.use('/subadmins', makeSubAdminRouter(requireStaff({ admin: 'canManageSubAdmins' })));
 
