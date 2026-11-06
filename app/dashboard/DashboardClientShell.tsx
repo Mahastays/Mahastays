@@ -20,6 +20,7 @@ export const TAB_ROUTES: Record<NavTab, string> = {
   properties: '/dashboard/hotels',
   packages: '/dashboard/packages',
   experiences: '/dashboard/experience',
+  places: '/dashboard/places',
   ads: '/dashboard/ads',
   hero: '/dashboard/hero',
   approvals: '/dashboard/approvals',
@@ -82,6 +83,7 @@ export default function DashboardClientShell({ children }: { children: React.Rea
     if (path.includes('/dashboard/hotels') || path.includes('/dashboard/properties')) return 'properties';
     if (path.includes('/dashboard/packages')) return 'packages';
     if (path.includes('/dashboard/experience')) return 'experiences';
+    if (path.includes('/dashboard/places')) return 'places';
     if (path.includes('/dashboard/hero')) return 'hero';
     if (path.includes('/dashboard/ads')) return 'ads';
     if (path.includes('/dashboard/approvals')) return 'approvals';

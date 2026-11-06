@@ -74,6 +74,10 @@ export default function Header({ currentTab, onOpenCreateModal, onNavigateTab }:
         ? 'Adventure tours, treks, and boating activities awaiting review'
         : 'Create time slots and guided treks across the Sahyadri mountains',
     },
+    places: {
+      title: 'Explore Places & Attractions',
+      subtitle: 'Manage famous landmarks, viewpoints, waterfalls, and coordinates shown on the public Explore map',
+    },
     ads: {
       title: 'Ad Campaigns & Sponsorships',
       subtitle: isAdmin
