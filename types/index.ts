@@ -118,6 +118,11 @@ export interface PropertyItem {
     desc: string;
     icon?: string;
   }>;
+  facilityCategories?: Array<{
+    category: string;
+    items: string[];
+    icon?: string;
+  }>;
   highlights?: Array<{
     title: string;
     desc?: string;

@@ -427,6 +427,91 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
     });
   };
 
+  const DEFAULT_FACILITY_CATEGORIES = [
+    {
+      category: 'Luxury & Recreation',
+      items: ['Private Infinity Heated Pool', 'Open-Air Jacuzzi & Sun Deck', 'Landscaped Lawn & Gazebo', 'Private Balcony with Valley View'],
+    },
+    {
+      category: 'Dining & Culinary',
+      items: ['Dedicated In-House Chef', 'Gourmet Multi-Cuisine Menu', 'Live Barbeque & Bonfire Setup', 'Modern Modular Kitchen'],
+    },
+    {
+      category: 'Entertainment & Tech',
+      items: ['65" 4K Smart TVs with OTT', 'High-Speed Fiber Wi-Fi (300 Mbps)', 'Bluetooth Acoustic Sound System', 'Board Games & Cards Corner'],
+    },
+    {
+      category: 'Comfort & Utilities',
+      items: ['100% Automatic Power Backup', 'Central Air-Conditioning & Heating', 'Premium Linens & Memory Foam Mattresses', 'Daily Housekeeping & Turn-Down'],
+    },
+    {
+      category: 'Safety & Security',
+      items: ['24/7 Gated Security & Caretaker', 'Perimeter CCTV Surveillance', 'Digital Safe in Master Suites', 'First Aid Kit & Doctor on Call'],
+    },
+    {
+      category: 'Family & Pet Friendly',
+      items: ['Pet-Friendly Lawn Area', 'Baby Cot & High Chair on Request', 'Safe Enclosed Villa Grounds', 'Custom Kids Meal Preparation'],
+    },
+  ];
+
+  const facilityCategories = (property?.facilityCategories && property.facilityCategories.length > 0)
+    ? property.facilityCategories
+    : DEFAULT_FACILITY_CATEGORIES;
+
+  const handleFacilityCategoryTitleChange = (catIndex: number, newTitle: string) => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    if (current[catIndex]) {
+      current[catIndex] = { ...current[catIndex], category: newTitle };
+      setProperty({ ...property, facilityCategories: current });
+    }
+  };
+
+  const handleFacilityItemChange = (catIndex: number, itemIndex: number, newVal: string) => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    if (current[catIndex]) {
+      const items = [...current[catIndex].items];
+      items[itemIndex] = newVal;
+      current[catIndex] = { ...current[catIndex], items };
+      setProperty({ ...property, facilityCategories: current });
+    }
+  };
+
+  const handleAddFacilityItem = (catIndex: number) => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    if (current[catIndex]) {
+      const items = [...current[catIndex].items, 'New Amenity Item'];
+      current[catIndex] = { ...current[catIndex], items };
+      setProperty({ ...property, facilityCategories: current });
+    }
+  };
+
+  const handleRemoveFacilityItem = (catIndex: number, itemIndex: number) => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    if (current[catIndex]) {
+      const items = current[catIndex].items.filter((_, i) => i !== itemIndex);
+      current[catIndex] = { ...current[catIndex], items };
+      setProperty({ ...property, facilityCategories: current });
+    }
+  };
+
+  const handleAddFacilityCategory = () => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    const newCat = { category: 'New Category', items: ['Feature Item 1', 'Feature Item 2'] };
+    setProperty({ ...property, facilityCategories: [...current, newCat] });
+  };
+
+  const handleRemoveFacilityCategory = (catIndex: number) => {
+    if (!property) return;
+    const current = [...facilityCategories];
+    const filtered = current.filter((_, i) => i !== catIndex);
+    setProperty({ ...property, facilityCategories: filtered });
+  };
+
   const handleToggleAmenity = (amenityName: string) => {
     if (!property) return;
     const exists = property.amenities.includes(amenityName);
@@ -1191,9 +1276,9 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                       <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Exp:</span>
                       <input
                         type="text"
-                        value={property.host?.experience || 'Host since 2019'}
+                        value={property.host?.experience || ''}
                         onChange={(e) => handleHostChange('experience', e.target.value)}
-                        placeholder="e.g. Host since 2019"
+                        placeholder="e.g. Host since 2021"
                         className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
                     </div>
@@ -1201,9 +1286,9 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                       <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Stays:</span>
                       <input
                         type="text"
-                        value={property.host?.staysCount || '64+ Verified Group Stays'}
+                        value={property.host?.staysCount || ''}
                         onChange={(e) => handleHostChange('staysCount', e.target.value)}
-                        placeholder="e.g. 64+ Verified Group Stays"
+                        placeholder="e.g. 50+ Verified Stays"
                         className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-rose-500"
                       />
                     </div>
@@ -1299,16 +1384,27 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Key Feature Cards ({property.keyAmenities?.length || 0})
                 </span>
-                {isEditMode && (
-                  <button
-                    type="button"
-                    onClick={handleAddKeyAmenity}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#ea110d] hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Feature Card</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {!isEditMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditMode(true)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-[#ea110d] cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Cards</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAddKeyAmenity}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#ea110d] hover:underline cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Feature Card</span>
+                    </button>
+                  )}
+                </div>
               </div>
               {!isEditMode ? (
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
@@ -1316,7 +1412,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                     {(((property.keyAmenities && property.keyAmenities.length > 0))
                       ? property.keyAmenities
                       : [
-                          { name: 'Infinity Pool', desc: 'Heated pool with valley view' },
+                          { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
                           { name: 'Private Chef', desc: 'On-demand dining & BBQ' },
                           { name: 'Butler Service', desc: 'Personalised assistance' },
                           { name: 'High-Speed Wi-Fi', desc: 'Stay connected 250 Mbps' },
@@ -1432,7 +1528,6 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 { id: 'rules', label: 'House Rules', icon: <ShieldCheck className="w-4 h-4" /> },
                 { id: 'location', label: 'Location & Map', icon: <MapPin className="w-4 h-4" /> },
                 { id: 'reviews', label: 'Host & Reviews', icon: <Star className="w-4 h-4" /> },
-                { id: 'all', label: 'All Details', icon: <Layers className="w-4 h-4" /> },
               ].map((tab) => {
                 const isActive = activeDetailTab === tab.id;
                 return (
@@ -1473,7 +1568,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
           </div>
 
           {/* ─── Tab 1: Accommodation Options (Available Room & Suite Types) ─── */}
-          {(activeDetailTab === 'all' || activeDetailTab === 'rooms') && (
+          {activeDetailTab === 'rooms' && (
             <div className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
@@ -1822,7 +1917,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
           )}
 
           {/* ─── Tab 2: About this Resort (7 cols) & Highlights (5 cols) ─── */}
-        {(activeDetailTab === 'all' || activeDetailTab === 'about') && (
+        {activeDetailTab === 'about' && (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
           {/* Left Details & Video Card */}
           <div className="xl:col-span-7 bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between">
@@ -2016,7 +2111,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         )}
 
         {/* ─── Tab 4: House Rules & Policies (4-Column Grid) ─── */}
-        {(activeDetailTab === 'all' || activeDetailTab === 'rules') && (
+        {activeDetailTab === 'rules' && (
         <div id="rules" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2227,75 +2322,122 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         </div>
         )}
 
-        {/* ─── Tab 3: Facilities / What this Resort offers ─── */}
-        {(activeDetailTab === 'all' || activeDetailTab === 'facilities') && (
-        <div id="facilities" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-          <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+        {/* ─── Tab 3: Facilities / What this Resort/Villa offers ─── */}
+        {activeDetailTab === 'facilities' && (
+        <div id="facilities" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h3 className="text-xl font-bold text-slate-900 font-poppins">
-                What this {property.propertyType?.toUpperCase() || 'RESORT'} offers
+                What this {property.propertyType ? (property.propertyType.charAt(0).toUpperCase() + property.propertyType.slice(1).toLowerCase()) : 'Resort'} Offers
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                All amenities have been verified by Mahastays quality inspection team.
+                All facilities and amenities have been verified by Mahastays quality inspection team.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => alert('All resort amenities are verified.')}
-              className="text-xs font-semibold text-slate-700 hover:text-[#ea110d] transition-colors font-poppins cursor-pointer"
-            >
-              View all amenities →
-            </button>
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <button
+                  type="button"
+                  onClick={handleAddFacilityCategory}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Category Card</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditMode(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-all"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Facilities</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Amenities Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-            {ALL_POSSIBLE_AMENITIES.slice(0, 10).map((amenity, idx) => {
-              const isIncluded = property.amenities.includes(amenity);
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => isEditMode && handleToggleAmenity(amenity)}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all ${
-                    isIncluded
-                      ? 'bg-[#f8f9fa] hover:bg-slate-100/90 border-slate-100/80 text-slate-700'
-                      : 'bg-white/40 border-slate-100 text-slate-300 opacity-60'
-                  } ${isEditMode ? 'cursor-pointer hover:border-slate-300' : ''}`}
-                >
-                  <div className="w-9 h-9 rounded-full bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0 text-slate-700">
-                    {idx === 0 ? (
-                      <Waves className="w-4 h-4" />
-                    ) : idx === 1 ? (
-                      <Utensils className="w-4 h-4" />
-                    ) : idx === 2 ? (
-                      <Wifi className="w-4 h-4" />
-                    ) : idx === 3 ? (
-                      <Sparkles className="w-4 h-4" />
-                    ) : idx === 4 ? (
-                      <Building className="w-4 h-4" />
-                    ) : idx === 5 ? (
-                      <BedDouble className="w-4 h-4" />
-                    ) : idx === 6 ? (
-                      <Tv className="w-4 h-4" />
-                    ) : idx === 7 ? (
-                      <Bath className="w-4 h-4" />
-                    ) : idx === 8 ? (
-                      <Car className="w-4 h-4" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
+          {/* Category Cards Grid (Matches User Reference Image 4) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {facilityCategories.map((cat, catIdx) => (
+              <div
+                key={catIdx}
+                className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#ea110d] shrink-0" />
+                      {isEditMode ? (
+                        <input
+                          type="text"
+                          value={cat.category}
+                          onChange={(e) => handleFacilityCategoryTitleChange(catIdx, e.target.value)}
+                          placeholder="Category Title"
+                          className="text-xs font-bold text-slate-900 border-b border-slate-300 w-full p-0.5 bg-transparent focus:outline-hidden"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-slate-900 font-poppins">{cat.category}</span>
+                      )}
+                    </div>
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFacilityCategory(catIdx)}
+                        className="text-slate-400 hover:text-[#ea110d] p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Delete category"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
-                  <span className="text-xs font-medium leading-snug truncate">{amenity}</span>
+
+                  <ul className="space-y-2 text-xs text-slate-600">
+                    {cat.items.map((item, itemIdx) => (
+                      <li key={itemIdx} className="flex items-center gap-2">
+                        <span className="text-[#ea110d] font-bold text-[11px] shrink-0">✓</span>
+                        {isEditMode ? (
+                          <div className="flex items-center gap-1 flex-1">
+                            <input
+                              type="text"
+                              value={item}
+                              onChange={(e) => handleFacilityItemChange(catIdx, itemIdx, e.target.value)}
+                              className="text-xs text-slate-700 border-b border-slate-200 flex-1 p-0.5 bg-transparent focus:outline-hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFacilityItem(catIdx, itemIdx)}
+                              className="text-slate-400 hover:text-red-500 p-0.5 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span>{item}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              );
-            })}
+
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddFacilityItem(catIdx)}
+                    className="mt-3.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#ea110d] hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Item</span>
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
         )}
 
         {/* ─── Tab 5: Location & Map ─── */}
-        {(activeDetailTab === 'all' || activeDetailTab === 'location') && (
+        {activeDetailTab === 'location' && (
           <div id="location">
             <LocationMapPicker
               propertyName={property.name}
@@ -2332,7 +2474,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         )}
 
         {/* ─── Tab 6: Reviews & Ratings ─── */}
-        {(activeDetailTab === 'all' || activeDetailTab === 'reviews') && (
+        {activeDetailTab === 'reviews' && (
         <div id="reviews" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
             <div>

@@ -324,6 +324,38 @@ export default function CreatePropertyPageView() {
       },
       rooms: [primaryRoom],
       amenities: selectedAmenities,
+      keyAmenities: [
+        { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
+        { name: 'Private Chef', desc: 'On-demand dining & BBQ' },
+        { name: 'Butler Service', desc: 'Personalised assistance' },
+        { name: 'High-Speed Wi-Fi', desc: 'Stay connected 250 Mbps' },
+      ],
+      facilityCategories: [
+        {
+          category: 'Luxury & Recreation',
+          items: ['Private Infinity Heated Pool', 'Open-Air Jacuzzi & Sun Deck', 'Landscaped Lawn & Gazebo', 'Private Balcony with Valley View'],
+        },
+        {
+          category: 'Dining & Culinary',
+          items: ['Dedicated In-House Chef', 'Gourmet Multi-Cuisine Menu', 'Live Barbeque & Bonfire Setup', 'Modern Modular Kitchen'],
+        },
+        {
+          category: 'Entertainment & Tech',
+          items: ['65" 4K Smart TVs with OTT', 'High-Speed Fiber Wi-Fi (300 Mbps)', 'Bluetooth Acoustic Sound System', 'Board Games & Cards Corner'],
+        },
+        {
+          category: 'Comfort & Utilities',
+          items: ['100% Automatic Power Backup', 'Central Air-Conditioning & Heating', 'Premium Linens & Memory Foam Mattresses', 'Daily Housekeeping & Turn-Down'],
+        },
+        {
+          category: 'Safety & Security',
+          items: ['24/7 Gated Security & Caretaker', 'Perimeter CCTV Surveillance', 'Digital Safe in Master Suites', 'First Aid Kit & Doctor on Call'],
+        },
+        {
+          category: 'Family & Pet Friendly',
+          items: ['Pet-Friendly Lawn Area', 'Baby Cot & High Chair on Request', 'Safe Enclosed Villa Grounds', 'Custom Kids Meal Preparation'],
+        },
+      ],
       highlights: highlights.map((text) => ({ title: text, desc: '' })),
       policies: {
         checkInTime,
