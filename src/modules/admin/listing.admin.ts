@@ -142,10 +142,7 @@ export function adminListingRouter(kind: ListingKind): Router {
             verified: true,
           } : undefined),
           images,
-          highlights: (Array.isArray(body.highlights) && body.highlights.length > 0 ? body.highlights : [
-            { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
-            { title: 'Private infinity pool with heating', desc: 'Heated luxury pool deck' },
-          ]).map((h: any) => ({
+          highlights: (Array.isArray(body.highlights) ? body.highlights : []).map((h: any) => ({
             title: typeof h === 'string' ? h : (h.title || ''),
             desc: typeof h === 'string' ? '' : (h.desc || h.description || ''),
             icon: typeof h === 'string' ? null : (h.icon || null),
