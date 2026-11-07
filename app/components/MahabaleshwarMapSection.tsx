@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ZoomIn, ZoomOut, Crosshair, X, MapPin, ArrowRight } from "lucide-react";
+import { ZoomIn, ZoomOut, Crosshair, X, ArrowRight } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProperties } from "@/store/slices/propertyslice";
 import { fetchExperiences } from "@/store/slices/experienceslice";
@@ -24,8 +24,36 @@ interface MapPlaceItem {
   featured?: boolean;
 }
 
-// Center of Mahabaleshwar / Panchgani region
-const MAHABALESHWAR_CENTER = { lat: 17.9350, lng: 73.6900 };
+// Center of Mahabaleshwar & Panchgani region
+const MAHABALESHWAR_CENTER = { lat: 17.9250, lng: 73.7400 };
+
+// Web Mercator projection helpers
+function lng2tile(lng: number, zoom: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, zoom);
+}
+
+function lat2tile(lat: number, zoom: number): number {
+  const rad = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * Math.pow(2, zoom);
+}
+
+function tile2lng(x: number, zoom: number): number {
+  return (x / Math.pow(2, zoom)) * 360 - 180;
+}
+
+function tile2lat(y: number, zoom: number): number {
+  const n = Math.PI - (2 * Math.PI * y) / Math.pow(2, zoom);
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+function parseCoord(val: any): number | null {
+  if (typeof val === "number" && !isNaN(val) && isFinite(val) && val !== 0) return val;
+  if (typeof val === "string") {
+    const n = parseFloat(val.trim());
+    if (!isNaN(n) && isFinite(n) && n !== 0) return n;
+  }
+  return null;
+}
 
 export default function MahabaleshwarMapSection() {
   const dispatch = useAppDispatch();
@@ -40,101 +68,99 @@ export default function MahabaleshwarMapSection() {
   // Map state
   const [center, setCenter] = useState(MAHABALESHWAR_CENTER);
   const [zoom, setZoom] = useState(13);
+  const [mapSize, setMapSize] = useState({ width: 1000, height: 600 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     dispatch(fetchProperties());
     dispatch(fetchExperiences());
   }, [dispatch]);
 
-  // Transform actual database properties and experiences into physical coordinates
+  // Track map container dimensions dynamically
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const updateSize = () => {
+      if (mapContainerRef.current) {
+        setMapSize({
+          width: mapContainerRef.current.clientWidth || 1000,
+          height: mapContainerRef.current.clientHeight || 600,
+        });
+      }
+    };
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(mapContainerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Transform actual database properties and experiences using their exact latitude and longitude
   const allPlaces: MapPlaceItem[] = useMemo(() => {
     const list: MapPlaceItem[] = [];
 
-    // Helper to resolve coordinates for stays
+    // Helper to resolve coordinates for stays using real latitude and longitude
     const resolveStayCoords = (prop: any, idx: number) => {
-      if (
-        typeof prop.address?.lat === "number" &&
-        prop.address.lat >= 17.5 &&
-        prop.address.lat <= 18.2 &&
-        typeof prop.address?.lng === "number" &&
-        prop.address.lng >= 73.4 &&
-        prop.address.lng <= 74.0
-      ) {
-        return { lat: prop.address.lat, lng: prop.address.lng };
-      }
-      if (
-        typeof prop.mapCoordinates?.lat === "number" &&
-        prop.mapCoordinates.lat >= 17.5 &&
-        prop.mapCoordinates.lat <= 18.2
-      ) {
-        return { lat: prop.mapCoordinates.lat, lng: prop.mapCoordinates.lng };
-      }
-
-      const text = `${prop.name || ""} ${prop.location || ""} ${prop.address?.fullAddress || ""} ${prop.city || ""}`.toLowerCase();
-      if (text.includes("venna")) return { lat: 17.9290 + (idx % 2) * 0.003, lng: 73.6740 + (idx % 2) * 0.003 };
-      if (text.includes("panchgani") || text.includes("table")) return { lat: 17.9237 + (idx % 2) * 0.004, lng: 73.8010 + (idx % 2) * 0.004 };
-      if (text.includes("arthur") || text.includes("savitri")) return { lat: 17.9850 + (idx % 2) * 0.003, lng: 73.6180 + (idx % 2) * 0.003 };
-      if (text.includes("kate") || text.includes("needle")) return { lat: 17.9333 + (idx % 2) * 0.003, lng: 73.6933 + (idx % 2) * 0.003 };
-      if (text.includes("lingmala")) return { lat: 17.9180 + (idx % 2) * 0.003, lng: 73.6980 + (idx % 2) * 0.003 };
-      if (text.includes("old mahabaleshwar")) return { lat: 17.9480 + (idx % 2) * 0.003, lng: 73.6620 + (idx % 2) * 0.003 };
-      if (text.includes("tapola")) return { lat: 17.8200 + (idx % 2) * 0.004, lng: 73.7120 + (idx % 2) * 0.004 };
-
-      // Clustered default spots across the valley
-      const defaults = [
-        { lat: 17.9237, lng: 73.6586 }, // Mahabaleshwar center
-        { lat: 17.9295, lng: 73.6710 }, // Venna side
-        { lat: 17.9380, lng: 73.6840 }, // Kate's Point road
-        { lat: 17.9210, lng: 73.7450 }, // Panchgani highway
-        { lat: 17.9260, lng: 73.7920 }, // Panchgani slopes
-        { lat: 17.9150, lng: 73.6680 }, // Forest ridge
+      // 1. Check all candidate fields where latitude & longitude are stored in DB
+      const candidates: Array<[any, any]> = [
+        [prop.address?.lat, prop.address?.lng],
+        [prop.mapCoordinates?.lat, prop.mapCoordinates?.lng],
+        [prop.coordinates?.lat, prop.coordinates?.lng],
+        [prop.latitude, prop.longitude],
+        [prop.lat, prop.lng],
       ];
-      const pt = defaults[idx % defaults.length];
+
+      for (const [rawLat, rawLng] of candidates) {
+        const lat = parseCoord(rawLat);
+        const lng = parseCoord(rawLng);
+        if (lat !== null && lng !== null) {
+          return { lat, lng };
+        }
+      }
+
+      // 2. Only fallback if coordinates were completely omitted in DB
+      const text = `${prop.name || ""} ${prop.location || ""} ${prop.address?.fullAddress || ""} ${prop.city || ""}`.toLowerCase();
+      if (text.includes("panchgani") || text.includes("table")) return { lat: 17.9237, lng: 73.8010 };
+      if (text.includes("venna")) return { lat: 17.9290, lng: 73.6740 };
+      if (text.includes("arthur")) return { lat: 17.9850, lng: 73.6180 };
+      if (text.includes("kate")) return { lat: 17.9333, lng: 73.6933 };
+      if (text.includes("lingmala")) return { lat: 17.9180, lng: 73.6980 };
+      if (text.includes("tapola")) return { lat: 17.8200, lng: 73.7120 };
+
       return {
-        lat: pt.lat + (((idx * 7) % 11) - 5) * 0.002,
-        lng: pt.lng + (((idx * 13) % 11) - 5) * 0.002,
+        lat: 17.9237 + (((idx * 7) % 11) - 5) * 0.003,
+        lng: 73.7400 + (((idx * 13) % 11) - 5) * 0.003,
       };
     };
 
-    // Helper to resolve coordinates for experiences
+    // Helper to resolve coordinates for experiences using real latitude and longitude
     const resolveExpCoords = (exp: any, idx: number) => {
-      if (
-        typeof exp.coordinates?.lat === "number" &&
-        exp.coordinates.lat >= 17.5 &&
-        exp.coordinates.lat <= 18.2 &&
-        typeof exp.coordinates?.lng === "number" &&
-        exp.coordinates.lng >= 73.4 &&
-        exp.coordinates.lng <= 74.0
-      ) {
-        return { lat: exp.coordinates.lat, lng: exp.coordinates.lng };
+      const candidates: Array<[any, any]> = [
+        [exp.coordinates?.lat, exp.coordinates?.lng],
+        [exp.mapCoordinates?.lat, exp.mapCoordinates?.lng],
+        [exp.address?.lat, exp.address?.lng],
+        [exp.latitude, exp.longitude],
+        [exp.lat, exp.lng],
+      ];
+
+      for (const [rawLat, rawLng] of candidates) {
+        const lat = parseCoord(rawLat);
+        const lng = parseCoord(rawLng);
+        if (lat !== null && lng !== null) {
+          return { lat, lng };
+        }
       }
 
       const text = `${exp.title || ""} ${exp.name || ""} ${exp.meetingPoint || ""} ${exp.city || ""}`.toLowerCase();
-      if (text.includes("trek") || text.includes("arthur") || text.includes("sunrise")) {
-        return { lat: 17.9820 + (idx % 2) * 0.003, lng: 73.6210 + (idx % 2) * 0.003 };
-      }
-      if (text.includes("boat") || text.includes("venna")) {
-        return { lat: 17.9310 + (idx % 2) * 0.002, lng: 73.6760 + (idx % 2) * 0.002 };
-      }
-      if (text.includes("paraglid") || text.includes("panchgani")) {
-        return { lat: 17.9280 + (idx % 2) * 0.003, lng: 73.8050 + (idx % 2) * 0.003 };
-      }
-      if (text.includes("waterfall") || text.includes("canyon") || text.includes("lingmala")) {
-        return { lat: 17.9150 + (idx % 2) * 0.003, lng: 73.7020 + (idx % 2) * 0.003 };
-      }
+      if (text.includes("trek") || text.includes("arthur")) return { lat: 17.9820, lng: 73.6210 };
+      if (text.includes("boat") || text.includes("venna")) return { lat: 17.9310, lng: 73.6760 };
+      if (text.includes("paraglid") || text.includes("panchgani")) return { lat: 17.9280, lng: 73.8050 };
 
-      const defaults = [
-        { lat: 17.9780, lng: 73.6250 }, // Arthur's Seat
-        { lat: 17.9300, lng: 73.6780 }, // Venna Lake Club
-        { lat: 17.9250, lng: 73.7950 }, // Panchgani Plateau
-        { lat: 17.9160, lng: 73.6950 }, // Lingmala Forest
-        { lat: 17.9340, lng: 73.6890 }, // Kate's Point
-      ];
-      const pt = defaults[idx % defaults.length];
       return {
-        lat: pt.lat + (((idx * 9) % 11) - 5) * 0.002,
-        lng: pt.lng + (((idx * 11) % 11) - 5) * 0.002,
+        lat: 17.9300 + (((idx * 9) % 11) - 5) * 0.003,
+        lng: 73.7400 + (((idx * 11) % 11) - 5) * 0.003,
       };
     };
 
@@ -210,83 +236,118 @@ export default function MahabaleshwarMapSection() {
     return allPlaces.find((p) => p.id === activeItemId) || null;
   }, [allPlaces, activeItemId]);
 
-  // Calculate dynamic bounding box for real OpenStreetMap
-  const delta = useMemo(() => {
-    switch (zoom) {
-      case 15:
-        return { lng: 0.05, lat: 0.03 };
-      case 14:
-        return { lng: 0.09, lat: 0.05 };
-      case 12:
-        return { lng: 0.22, lat: 0.12 };
-      case 11:
-        return { lng: 0.32, lat: 0.18 };
-      case 13:
-      default:
-        return { lng: 0.14, lat: 0.08 };
+  // Generate hardware-accelerated slippy map tile grid
+  const tileGrid = useMemo(() => {
+    const { width, height } = mapSize;
+    const centerTileX = lng2tile(center.lng, zoom);
+    const centerTileY = lat2tile(center.lat, zoom);
+    const maxTiles = Math.pow(2, zoom);
+
+    // Render viewport tiles plus extra 1.5 tiles buffer on each side for butter-smooth panning
+    const halfTilesW = width / 512 + 1.5;
+    const halfTilesH = height / 512 + 1.5;
+
+    const minX = Math.floor(centerTileX - halfTilesW);
+    const maxX = Math.ceil(centerTileX + halfTilesW);
+    const minY = Math.max(0, Math.floor(centerTileY - halfTilesH));
+    const maxY = Math.min(maxTiles - 1, Math.ceil(centerTileY + halfTilesH));
+
+    const tiles: Array<{
+      key: string;
+      url: string;
+      fallbackUrl: string;
+      left: number;
+      top: number;
+    }> = [];
+
+    for (let ty = minY; ty <= maxY; ty++) {
+      for (let tx = minX; tx <= maxX; tx++) {
+        const wrappedX = ((tx % maxTiles) + maxTiles) % maxTiles;
+        const left = (tx - centerTileX) * 256 + width / 2;
+        const top = (ty - centerTileY) * 256 + height / 2;
+        tiles.push({
+          key: `${zoom}-${tx}-${ty}`,
+          url: `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`,
+          fallbackUrl: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${wrappedX}/${ty}.png`,
+          left,
+          top,
+        });
+      }
     }
-  }, [zoom]);
 
-  const minLng = center.lng - delta.lng;
-  const maxLng = center.lng + delta.lng;
-  const minLat = center.lat - delta.lat;
-  const maxLat = center.lat + delta.lat;
+    return tiles;
+  }, [center, zoom, mapSize]);
 
-  // Convert GPS coordinates into container percentage
+  // Calculate screen position for a marker based on exact latitude and longitude
   const getMarkerPosition = (lat: number, lng: number) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * 100;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * 100;
-    return {
-      left: `${Math.min(93, Math.max(7, x))}%`,
-      top: `${Math.min(88, Math.max(12, y))}%`,
-      rawX: x,
-      rawY: y,
-    };
+    const centerTileX = lng2tile(center.lng, zoom);
+    const centerTileY = lat2tile(center.lat, zoom);
+    const mTileX = lng2tile(lng, zoom);
+    const mTileY = lat2tile(lat, zoom);
+
+    const left = (mTileX - centerTileX) * 256 + mapSize.width / 2;
+    const top = (mTileY - centerTileY) * 256 + mapSize.height / 2;
+    const isNearTop = top < 160;
+
+    return { left, top, isNearTop };
   };
 
   // Zoom controls
-  const handleZoomIn = () => setZoom((z) => Math.min(15, z + 1));
-  const handleZoomOut = () => setZoom((z) => Math.max(11, z - 1));
+  const handleZoomIn = () => setZoom((z) => Math.min(16, z + 1));
+  const handleZoomOut = () => setZoom((z) => Math.max(10, z - 1));
   const handleResetCenter = () => {
     setCenter(MAHABALESHWAR_CENTER);
     setZoom(13);
   };
 
-  // Panning map with drag
+  // Dragging event handlers with smooth CSS translation
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only drag when clicking background, not buttons or markers
     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) return;
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    isDraggingRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-    setDragStart({ x: e.clientX, y: e.clientY });
-
-    const latSpan = maxLat - minLat;
-    const lngSpan = maxLng - minLng;
-    const latShift = (dy / (mapContainerRef.current?.clientHeight || 600)) * latSpan;
-    const lngShift = -(dx / (mapContainerRef.current?.clientWidth || 1000)) * lngSpan;
-
-    setCenter((prev) => ({
-      lat: Math.min(18.1, Math.max(17.7, prev.lat + latShift)),
-      lng: Math.min(74.0, Math.max(73.4, prev.lng + lngShift)),
-    }));
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setDragOffset({ x: dx, y: dy });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleEndDrag = () => {
+    if (!isDraggingRef.current) return;
+    setIsDragging(false);
+    isDraggingRef.current = false;
 
-  // Real OpenStreetMap embed source
-  const mapIframeSrc = useMemo(() => {
-    const bMinLng = minLng.toFixed(5);
-    const bMinLat = minLat.toFixed(5);
-    const bMaxLng = maxLng.toFixed(5);
-    const bMaxLat = maxLat.toFixed(5);
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bMinLng}%2C${bMinLat}%2C${bMaxLng}%2C${bMaxLat}&layer=mapnik`;
-  }, [minLng, minLat, maxLng, maxLat]);
+    setDragOffset((curr) => {
+      if (curr.x !== 0 || curr.y !== 0) {
+        const centerTileX = lng2tile(center.lng, zoom) - curr.x / 256;
+        const centerTileY = lat2tile(center.lat, zoom) - curr.y / 256;
+        const newLat = Math.min(85, Math.max(-85, tile2lat(centerTileY, zoom)));
+        const newLng = Math.min(180, Math.max(-180, tile2lng(centerTileX, zoom)));
+        setCenter({ lat: newLat, lng: newLng });
+      }
+      return { x: 0, y: 0 };
+    });
+  };
+
+  // Touch event handlers for mobile devices
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) return;
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      isDraggingRef.current = true;
+      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - dragStartRef.current.x;
+    const dy = e.touches[0].clientY - dragStartRef.current.y;
+    setDragOffset({ x: dx, y: dy });
+  };
 
   const staysCount = allPlaces.filter((p) => p.category === "stay").length;
   const expCount = allPlaces.filter((p) => p.category === "experience").length;
@@ -298,7 +359,7 @@ export default function MahabaleshwarMapSection() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold mb-2">
             <span className="w-2 h-2 rounded-full bg-[#ea110d] animate-pulse" />
-            <span>Interactive Map</span>
+            <span>Interactive Destination Map</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Explore Mahabaleshwar &amp; Handpicked Stays
@@ -350,29 +411,56 @@ export default function MahabaleshwarMapSection() {
         </div>
       </div>
 
-      {/* ─── Actual Real Map Container ───────────────────────────────── */}
+      {/* ─── Ultra-Smooth Slippy Map Container ───────────────────────────────── */}
       <div
         ref={mapContainerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        className={`relative w-full h-[520px] sm:h-[580px] lg:h-[620px] rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-slate-100 select-none ${
+        onMouseUp={handleEndDrag}
+        onMouseLeave={handleEndDrag}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleEndDrag}
+        className={`relative w-full h-[520px] sm:h-[580px] lg:h-[620px] rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-[#e6ede8] select-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         aria-label="Mahabaleshwar Regional Map"
       >
-        {/* Real OpenStreetMap Layer */}
-        <div className="absolute inset-0 pointer-events-none">
-          <iframe
-            title="Mahabaleshwar Actual Real Map"
-            src={mapIframeSrc}
-            className="w-full h-full border-0 pointer-events-none filter contrast-105"
-            tabIndex={-1}
-          />
+        {/* Hardware-Accelerated Interactive Tile Layer */}
+        <div
+          className="absolute inset-0 pointer-events-none select-none will-change-transform"
+          style={{
+            transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+          }}
+        >
+          {tileGrid.map((tile) => (
+            <img
+              key={tile.key}
+              src={tile.url}
+              alt=""
+              width={256}
+              height={256}
+              loading="eager"
+              decoding="async"
+              className="absolute pointer-events-none select-none"
+              style={{
+                left: `${tile.left}px`,
+                top: `${tile.top}px`,
+                width: "256px",
+                height: "256px",
+              }}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.dataset.fallback) {
+                  target.dataset.fallback = "true";
+                  target.src = tile.fallbackUrl;
+                }
+              }}
+            />
+          ))}
         </div>
 
-        {/* Map Pan / Zoom Controls in Top Right */}
+        {/* Map Controls: Zoom In / Zoom Out / Reset Center */}
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 p-1 shadow-md">
           <button
             type="button"
@@ -405,25 +493,45 @@ export default function MahabaleshwarMapSection() {
           </button>
         </div>
 
+        {/* Attribution Notice */}
+        <div className="absolute bottom-1 right-2 z-10 text-[10px] text-slate-500 bg-white/80 px-2 py-0.5 rounded backdrop-blur-xs pointer-events-none">
+          Report a problem | &copy; <span className="font-semibold">OpenStreetMap</span> contributors
+        </div>
+
         {/* ─── LIVE MARKER PINS ON MAP ─────────────────────────────── */}
-        <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute inset-0 pointer-events-none will-change-transform"
+          style={{
+            transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+          }}
+        >
           {displayedPlaces.map((place) => {
             const pos = getMarkerPosition(place.lat, place.lng);
             const isSelected = activeItemId === place.id;
             const isStay = place.category === "stay";
 
+            // Only render markers reasonably near the viewport
+            if (
+              pos.left < -100 ||
+              pos.left > mapSize.width + 100 ||
+              pos.top < -100 ||
+              pos.top > mapSize.height + 100
+            ) {
+              return null;
+            }
+
             return (
               <div
                 key={place.id}
-                style={{ left: pos.left, top: pos.top }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group transition-all duration-200 z-10"
+                style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group transition-transform duration-150 z-10"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveItemId(isSelected ? null : place.id);
                 }}
               >
                 <div
-                  className={`relative flex flex-col items-center transition-transform duration-200 ${
+                  className={`relative flex flex-col items-center transition-transform duration-150 ${
                     isSelected ? "scale-115 z-30" : "scale-100 hover:scale-110"
                   }`}
                 >
@@ -481,19 +589,23 @@ export default function MahabaleshwarMapSection() {
         {/* ─── SMALL POPUP CARD ON CLICK (Only required info) ──────────── */}
         {activeItem && (() => {
           const pos = getMarkerPosition(activeItem.lat, activeItem.lng);
-          const isNearTop = pos.rawY < 35;
           const isStay = activeItem.category === "stay";
 
           return (
-            <>
+            <div
+              className="absolute inset-0 pointer-events-none z-30"
+              style={{
+                transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+              }}
+            >
               {/* DESKTOP & TABLET FLOATING MINI-CARD (Near Clicked Pin) */}
               <div
                 style={{
-                  left: pos.left,
-                  top: pos.top,
+                  left: `${pos.left}px`,
+                  top: `${pos.top}px`,
                 }}
-                className={`hidden sm:block absolute z-30 pointer-events-auto transition-all duration-200 -translate-x-1/2 ${
-                  isNearTop ? "mt-7" : "-translate-y-full -mt-7"
+                className={`hidden sm:block absolute pointer-events-auto transition-all duration-150 -translate-x-1/2 ${
+                  pos.isNearTop ? "mt-7" : "-translate-y-full -mt-7"
                 }`}
               >
                 <div className="w-[270px] bg-white rounded-2xl p-2.5 shadow-xl border border-slate-200 relative animate-in fade-in zoom-in-95">
@@ -550,7 +662,7 @@ export default function MahabaleshwarMapSection() {
                   </div>
 
                   {/* Arrow Pointer */}
-                  {isNearTop ? (
+                  {pos.isNearTop ? (
                     <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-l border-t border-slate-200" />
                   ) : (
                     <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-r border-b border-slate-200" />
@@ -559,7 +671,7 @@ export default function MahabaleshwarMapSection() {
               </div>
 
               {/* MOBILE DOCKED MINI-CARD (Bottom of Map) */}
-              <div className="sm:hidden absolute bottom-3 left-3 right-3 z-30 pointer-events-auto animate-in slide-in-from-bottom-2 fade-in duration-200">
+              <div className="sm:hidden absolute bottom-3 left-3 right-3 pointer-events-auto animate-in slide-in-from-bottom-2 fade-in duration-200">
                 <div className="bg-white rounded-2xl p-2.5 shadow-xl border border-slate-200 relative flex items-center gap-3">
                   <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                     <img
@@ -609,7 +721,7 @@ export default function MahabaleshwarMapSection() {
                   </button>
                 </div>
               </div>
-            </>
+            </div>
           );
         })()}
       </div>

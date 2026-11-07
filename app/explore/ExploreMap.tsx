@@ -8,7 +8,6 @@ import {
   ZoomIn,
   ZoomOut,
   Crosshair,
-  Layers,
   ExternalLink,
   ChevronRight,
   Clock,
@@ -49,6 +48,25 @@ interface ExploreMapProps {
 // Center of Mahabaleshwar / Panchgani region
 const MAHABALESHWAR_CENTER = { lat: 17.9250, lng: 73.6800 };
 
+// Web Mercator projection helpers
+function lng2tile(lng: number, zoom: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, zoom);
+}
+
+function lat2tile(lat: number, zoom: number): number {
+  const rad = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * Math.pow(2, zoom);
+}
+
+function tile2lng(x: number, zoom: number): number {
+  return (x / Math.pow(2, zoom)) * 360 - 180;
+}
+
+function tile2lat(y: number, zoom: number): number {
+  const n = Math.PI - (2 * Math.PI * y) / Math.pow(2, zoom);
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
 export default function ExploreMap({
   places,
   selectedPlaceId,
@@ -60,13 +78,33 @@ export default function ExploreMap({
 
   // Map view state
   const [center, setCenter] = useState(MAHABALESHWAR_CENTER);
-  const [zoom, setZoom] = useState(13); // Zoom delta range
-  const [mapStyle, setMapStyle] = useState<"light" | "topo" | "satellite">("light");
+  const [zoom, setZoom] = useState(13);
   const [selectedPlace, setSelectedPlace] = useState<PlaceMarker | null>(null);
 
-  // Drag-to-pan state
+  // Drag-to-pan state with hardware-accelerated transform
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [mapSize, setMapSize] = useState({ width: 1000, height: 600 });
+
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+
+  // Measure container dimensions dynamically
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      if (containerRef.current) {
+        setMapSize({
+          width: containerRef.current.clientWidth || 1000,
+          height: containerRef.current.clientHeight || 600,
+        });
+      }
+    };
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Sync selectedPlaceId if passed externally
   useEffect(() => {
@@ -103,39 +141,62 @@ export default function ExploreMap({
     });
   }, [places, activeCategory, searchQuery]);
 
-  // Compute bounding box coordinates for OpenStreetMap / CartoDB tile embed
-  const delta = useMemo(() => {
-    switch (zoom) {
-      case 15:
-        return 0.035;
-      case 14:
-        return 0.06;
-      case 12:
-        return 0.16;
-      case 11:
-        return 0.28;
-      case 13:
-      default:
-        return 0.10;
+  // Compute slippy tile grid
+  const tileGrid = useMemo(() => {
+    const { width, height } = mapSize;
+    const centerTileX = lng2tile(center.lng, zoom);
+    const centerTileY = lat2tile(center.lat, zoom);
+    const maxTiles = Math.pow(2, zoom);
+
+    const halfTilesW = width / 512 + 1.5;
+    const halfTilesH = height / 512 + 1.5;
+
+    const minX = Math.floor(centerTileX - halfTilesW);
+    const maxX = Math.ceil(centerTileX + halfTilesW);
+    const minY = Math.max(0, Math.floor(centerTileY - halfTilesH));
+    const maxY = Math.min(maxTiles - 1, Math.ceil(centerTileY + halfTilesH));
+
+    const tiles: Array<{
+      key: string;
+      url: string;
+      fallbackUrl: string;
+      left: number;
+      top: number;
+    }> = [];
+
+    for (let ty = minY; ty <= maxY; ty++) {
+      for (let tx = minX; tx <= maxX; tx++) {
+        const wrappedX = ((tx % maxTiles) + maxTiles) % maxTiles;
+        const left = (tx - centerTileX) * 256 + width / 2;
+        const top = (ty - centerTileY) * 256 + height / 2;
+        tiles.push({
+          key: `${zoom}-${tx}-${ty}`,
+          url: `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`,
+          fallbackUrl: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${wrappedX}/${ty}.png`,
+          left,
+          top,
+        });
+      }
     }
-  }, [zoom]);
 
-  // Bounding box for map rendering
-  const minLng = center.lng - delta;
-  const maxLng = center.lng + delta;
-  const minLat = center.lat - delta * 0.55;
-  const maxLat = center.lat + delta * 0.55;
+    return tiles;
+  }, [center, zoom, mapSize]);
 
-  // Convert GPS coordinates into percentage positions inside container
+  // Convert GPS coordinates into pixel positions inside container
   const getMarkerPosition = (lat: number, lng: number) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * 100;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * 100;
-    return { left: `${Math.min(94, Math.max(6, x))}%`, top: `${Math.min(90, Math.max(10, y))}%` };
+    const centerTileX = lng2tile(center.lng, zoom);
+    const centerTileY = lat2tile(center.lat, zoom);
+    const mTileX = lng2tile(lng, zoom);
+    const mTileY = lat2tile(lat, zoom);
+
+    const left = (mTileX - centerTileX) * 256 + mapSize.width / 2;
+    const top = (mTileY - centerTileY) * 256 + mapSize.height / 2;
+    return { left, top };
   };
 
   // Zoom controls
-  const handleZoomIn = () => setZoom((z) => Math.min(15, z + 1));
-  const handleZoomOut = () => setZoom((z) => Math.max(11, z - 1));
+  const handleZoomIn = () => setZoom((z) => Math.min(16, z + 1));
+  const handleZoomOut = () => setZoom((z) => Math.max(10, z - 1));
   const handleResetCenter = () => {
     setCenter(MAHABALESHWAR_CENTER);
     setZoom(13);
@@ -151,59 +212,80 @@ export default function ExploreMap({
 
   // Drag mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) return;
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    isDraggingRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-    setDragStart({ x: e.clientX, y: e.clientY });
-
-    // Convert pixel drag to lat/lng delta
-    const latSpan = maxLat - minLat;
-    const lngSpan = maxLng - minLng;
-    const latShift = (dy / (containerRef.current?.clientHeight || 600)) * latSpan;
-    const lngShift = -(dx / (containerRef.current?.clientWidth || 1000)) * lngSpan;
-
-    setCenter((prev) => ({
-      lat: Math.min(18.2, Math.max(17.6, prev.lat + latShift)),
-      lng: Math.min(74.1, Math.max(73.3, prev.lng + lngShift)),
-    }));
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setDragOffset({ x: dx, y: dy });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleEndDrag = () => {
+    if (!isDraggingRef.current) return;
+    setIsDragging(false);
+    isDraggingRef.current = false;
 
-  // Map layer URL
-  const mapIframeSrc = useMemo(() => {
-    const bMinLng = minLng.toFixed(5);
-    const bMinLat = minLat.toFixed(5);
-    const bMaxLng = maxLng.toFixed(5);
-    const bMaxLat = maxLat.toFixed(5);
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bMinLng}%2C${bMinLat}%2C${bMaxLng}%2C${bMaxLat}&layer=mapnik`;
-  }, [minLng, minLat, maxLng, maxLat]);
+    setDragOffset((curr) => {
+      if (curr.x !== 0 || curr.y !== 0) {
+        const centerTileX = lng2tile(center.lng, zoom) - curr.x / 256;
+        const centerTileY = lat2tile(center.lat, zoom) - curr.y / 256;
+        const newLat = Math.min(85, Math.max(-85, tile2lat(centerTileY, zoom)));
+        const newLng = Math.min(180, Math.max(-180, tile2lng(centerTileX, zoom)));
+        setCenter({ lat: newLat, lng: newLng });
+      }
+      return { x: 0, y: 0 };
+    });
+  };
 
   return (
     <div
       ref={containerRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      className={`relative w-full h-[580px] sm:h-[640px] lg:h-[700px] overflow-hidden select-none ${
+      onMouseUp={handleEndDrag}
+      onMouseLeave={handleEndDrag}
+      className={`relative w-full h-[580px] sm:h-[640px] lg:h-[700px] overflow-hidden select-none bg-[#e6ede8] ${
         isDragging ? "cursor-grabbing" : "cursor-grab"
       }`}
       aria-label="Interactive Map of Famous Places in Mahabaleshwar"
     >
-      {/* ─── BASE MAP LAYER: Clean, High-Contrast Map ────────────────────── */}
-      <div className="absolute inset-0 pointer-events-none">
-        <iframe
-          title="Mahabaleshwar Regional Map"
-          src={mapIframeSrc}
-          className="w-full h-full border-0 filter grayscale contrast-115 brightness-105 pointer-events-none"
-          tabIndex={-1}
-        />
+      {/* ─── BASE MAP LAYER: Smooth Slippy Tile Layer ────────────────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none select-none will-change-transform"
+        style={{
+          transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+        }}
+      >
+        {tileGrid.map((tile) => (
+          <img
+            key={tile.key}
+            src={tile.url}
+            alt=""
+            width={256}
+            height={256}
+            loading="eager"
+            decoding="async"
+            className="absolute pointer-events-none select-none"
+            style={{
+              left: `${tile.left}px`,
+              top: `${tile.top}px`,
+              width: "256px",
+              height: "256px",
+            }}
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.dataset.fallback) {
+                target.dataset.fallback = "true";
+                target.src = tile.fallbackUrl;
+              }
+            }}
+          />
+        ))}
       </div>
 
       {/* ─── TOP & BOTTOM GRADIENT MASKS (Smoothly fades from navbar into map) ─── */}
@@ -211,7 +293,7 @@ export default function ExploreMap({
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.78) 18%, rgba(255,255,255,0.1) 42%, rgba(255,255,255,0.1) 65%, rgba(255,255,255,0.85) 90%, #ffffff 100%)",
+            "linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.65) 15%, rgba(255,255,255,0.02) 35%, rgba(255,255,255,0.02) 70%, rgba(255,255,255,0.85) 92%, #ffffff 100%)",
         }}
       />
 
@@ -250,8 +332,18 @@ export default function ExploreMap({
         </div>
       </div>
 
+      {/* Attribution */}
+      <div className="absolute bottom-2 right-4 z-10 text-[10px] text-slate-500 bg-white/80 px-2 py-0.5 rounded backdrop-blur-xs pointer-events-none">
+        &copy; <span className="font-semibold">OpenStreetMap</span> contributors
+      </div>
+
       {/* ─── LIVE MARKER PINS ON MAP ───────────────────────────────────────── */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div
+        className="absolute inset-0 pointer-events-none will-change-transform"
+        style={{
+          transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`,
+        }}
+      >
         {displayedPlaces.map((place) => {
           const pos = getMarkerPosition(place.latitude, place.longitude);
           const isSelected = selectedPlace?.id === place.id;
@@ -260,22 +352,32 @@ export default function ExploreMap({
             place.images[0] ||
             "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80";
 
+          // Avoid rendering outside visible screen area
+          if (
+            pos.left < -100 ||
+            pos.left > mapSize.width + 100 ||
+            pos.top < -100 ||
+            pos.top > mapSize.height + 100
+          ) {
+            return null;
+          }
+
           return (
             <div
               key={place.id}
-              style={{ left: pos.left, top: pos.top }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group transition-all duration-300"
+              style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group transition-transform duration-150"
               onClick={() => handleMarkerClick(place)}
             >
               {/* Marker Container */}
               <div
-                className={`relative flex flex-col items-center transition-transform duration-300 ${
+                className={`relative flex flex-col items-center transition-transform duration-150 ${
                   isSelected ? "scale-115 z-30" : "scale-100 hover:scale-110 z-10"
                 }`}
               >
-                {/* Circular Image Pin with Red Accent Ring (Exact like Reference Image 1) */}
+                {/* Circular Image Pin with Red Accent Ring */}
                 <div
-                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 transition-all duration-300 relative shadow-md ${
+                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 transition-all duration-150 relative shadow-md ${
                     isSelected
                       ? "border-[#ea110d] ring-4 ring-[#ea110d]/20 scale-105"
                       : "border-white group-hover:border-[#ea110d] ring-2 ring-slate-900/10"
@@ -303,100 +405,66 @@ export default function ExploreMap({
                 >
                   {place.name.split(" ")[0]}
                 </div>
-
-                {/* Pin Tip Arrow */}
-                <div
-                  className={`w-2 h-2 rotate-45 -mt-1 ${
-                    isSelected ? "bg-slate-900" : "bg-white border-r border-b border-slate-200"
-                  }`}
-                />
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* ─── ACTIVE PLACE FLOATING CARD (Center-Bottom of Map - Exactly like Reference Image 1) ─── */}
+      {/* ─── BOTTOM FLOATING DETAIL CARD (Selected Place) ───────────────────── */}
       {selectedPlace && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[92%] sm:w-[420px] max-w-md animate-in fade-in slide-in-from-bottom-3 duration-300 pointer-events-auto">
-          <div className="bg-white/98 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-[0_16px_40px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] p-3.5 sm:p-4">
-            <div className="flex gap-3 sm:gap-4 items-start">
-              {/* Place Thumbnail */}
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100">
-                <img
-                  src={
-                    selectedPlace.coverImage ||
-                    selectedPlace.images[0] ||
-                    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
-                  }
-                  alt={selectedPlace.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-slate-900/85 text-white backdrop-blur-xs">
-                  {selectedPlace.category}
-                </span>
-              </div>
-
-              {/* Place Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-[#ea110d] shrink-0" />
-                  <span className="truncate">{selectedPlace.vicinity}</span>
-                  {selectedPlace.altitude && (
-                    <>
-                      <span>•</span>
-                      <span className="text-slate-600 font-semibold">{selectedPlace.altitude}</span>
-                    </>
-                  )}
+        <div className="absolute bottom-6 left-4 sm:left-8 right-4 sm:right-auto z-20 pointer-events-auto max-w-md w-full animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white/98 backdrop-blur-md rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xl flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                  <Image
+                    src={
+                      selectedPlace.coverImage ||
+                      selectedPlace.images[0] ||
+                      "https://images.unsplash.com/photo-1506744038136-46273834b3fb"
+                    }
+                    alt={selectedPlace.name}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
                 </div>
-
-                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate mt-0.5 font-poppins">
-                  {selectedPlace.name}
-                </h3>
-
-                <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                  {selectedPlace.shortDescription}
-                </p>
-
-                {/* Key Spec Badges */}
-                <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-600">
-                  {selectedPlace.timings && (
-                    <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
-                      <Clock className="w-2.5 h-2.5 text-slate-500" />
-                      {selectedPlace.timings.split("(")[0]}
-                    </span>
-                  )}
-                  {selectedPlace.entryFee && (
-                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold">
-                      {selectedPlace.entryFee.split("(")[0]}
-                    </span>
-                  )}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#ea110d]">
+                    {selectedPlace.category}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
+                    {selectedPlace.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3 h-3 text-slate-400" />
+                    <span>{selectedPlace.vicinity}</span>
+                    {selectedPlace.altitude && (
+                      <span className="text-slate-400 font-medium">
+                        • {selectedPlace.altitude}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+              {selectedPlace.shortDescription}
+            </p>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+              <span className="text-slate-500 font-medium">
+                {selectedPlace.timings || "Open Daily: Sunrise to Sunset"}
+              </span>
               <Link
-                href={`/explore/${selectedPlace.slug}`}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98"
+                href={`/explore/${selectedPlace.slug || selectedPlace.id}`}
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#ea110d] hover:underline"
               >
-                <span>Explore Place Details</span>
+                <span>View Details</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
-
-              <a
-                href={`https://www.google.com/maps?q=${selectedPlace.latitude},${selectedPlace.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition flex items-center justify-center gap-1.5"
-                title="Get Directions in Google Maps"
-              >
-                <Compass className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline">Directions</span>
-              </a>
             </div>
           </div>
         </div>
@@ -404,4 +472,3 @@ export default function ExploreMap({
     </div>
   );
 }
-

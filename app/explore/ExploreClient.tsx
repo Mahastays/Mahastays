@@ -131,9 +131,19 @@ export default function ExplorePage() {
       price: property.price || `₹${property.numericPrice?.toLocaleString("en-IN")}`,
       numericPrice: property.numericPrice,
       inrPrice: property.inrPrice || property.numericPrice,
-      rating: property.rating || "4.8",
+      rating: property.rating || "",
+      reviewsCount: property.reviewsCount,
       description: property.description,
       tags: property.tags || [],
+      badge: property.badge || undefined,
+      tagline: property.tagline || undefined,
+      amenities:
+        property.amenities?.map((a: any) => (typeof a === "string" ? a : a.name)) ||
+        (property as any).amenityNames ||
+        [],
+      highlights:
+        property.highlights?.map((h: any) => (typeof h === "string" ? h : h.title)) ||
+        [],
       image:
         typeof property.images?.[0] === "string"
           ? property.images[0]

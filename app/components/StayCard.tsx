@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo } from "react";
+import { useState, memo, useMemo } from "react";
 import Link from "next/link";
 import { useWishlistItem } from "@/lib/wishlist";
 
@@ -11,6 +11,7 @@ export interface Stay {
   numericPrice?: number;
   inrPrice?: number;
   rating: string | number;
+  reviewsCount?: number;
   description: string;
   tags: string[];
   image: string;
@@ -20,7 +21,10 @@ export interface Stay {
   location?: string;
   city?: string;
   country?: string;
-  amenities?: string[];
+  amenities?: any[];
+  badge?: string;
+  tagline?: string;
+  highlights?: any[];
   featured?: boolean;
   acceptingBookings?: boolean;
 }
@@ -44,6 +48,91 @@ function StayCard({ stay, onBook }: StayCardProps) {
     url: `/explore/${stay.id}`,
   });
   const [imgSrc, setImgSrc] = useState(stay.image || "/hero-resort.jpg");
+
+  // Feature points for the reviews line (fills the blank space beside rating badge)
+  const featurePoints = useMemo(() => {
+    const points: string[] = [];
+    const seen = new Set<string>();
+
+    const add = (val?: string | null) => {
+      if (!val) return;
+      const clean = String(val).trim();
+      if (!clean) return;
+      if (clean.length > 25) return;
+      const lower = clean.toLowerCase();
+      if (seen.has(lower)) return;
+      seen.add(lower);
+      points.push(clean);
+    };
+
+    // 1. Explicit tags provided on stay
+    if (Array.isArray(stay.tags)) {
+      stay.tags.forEach((t) => add(t));
+    }
+
+    // 2. Property Badge (e.g. "Top Rated Villa", "Luxury Stay", "Best Seller")
+    if (stay.badge) {
+      add(stay.badge);
+    }
+
+    // 3. BHK extracted from name or description (e.g. "3 BHK", "4 BHK", "2 BHK", "Studio")
+    const textSource = `${stay.name || ""} ${stay.description || ""} ${stay.tagline || ""}`;
+    const bhkMatch = textSource.match(/\b([1-9]\s*BHK|Studio)\b/i);
+    if (bhkMatch) {
+      add(bhkMatch[0].toUpperCase());
+    }
+
+    // 4. Property Type if not already added
+    if (stay.type) {
+      add(stay.type);
+    }
+
+    // 5. Explicit amenities / amenityNames passed
+    if (Array.isArray(stay.amenities)) {
+      stay.amenities.forEach((a) => {
+        if (typeof a === "string") add(a);
+        else if (a && typeof a.name === "string") add(a.name);
+      });
+    }
+
+    // 6. Highlights titles if passed
+    if (Array.isArray(stay.highlights)) {
+      stay.highlights.forEach((h) => {
+        if (typeof h === "string") add(h);
+        else if (h && typeof h.title === "string") add(h.title);
+      });
+    }
+
+    // 7. Common popular features extracted from name or description
+    const popularKeywords = [
+      { pattern: /\b(private\s+pool|infinity\s+pool|swimming\s+pool|pool)\b/i, label: "Private Pool" },
+      { pattern: /\b(valley\s+view|mountain\s+view|scenic\s+view)\b/i, label: "Valley View" },
+      { pattern: /\b(chef\s+on\s+demand|private\s+chef|chef|home\s+cooked)\b/i, label: "Chef on Demand" },
+      { pattern: /\b(lawn|garden|private\s+lawn)\b/i, label: "Garden & Lawn" },
+      { pattern: /\b(bonfire|campfire)\b/i, label: "Bonfire" },
+      { pattern: /\b(free\s+wifi|wifi)\b/i, label: "Free WiFi" },
+      { pattern: /\b(jacuzzi|hot\s+tub)\b/i, label: "Jacuzzi" },
+      { pattern: /\b(pet\s+friendly|pets\s+allowed)\b/i, label: "Pet Friendly" },
+      { pattern: /\b(near\s+mapro|mapro\s+garden)\b/i, label: "Near Mapro" },
+      { pattern: /\b(near\s+venna\s+lake|venna\s+lake)\b/i, label: "Near Venna Lake" },
+      { pattern: /\b(ac|air\s+conditioning)\b/i, label: "AC" },
+    ];
+
+    for (const { pattern, label } of popularKeywords) {
+      if (points.length >= 3) break;
+      if (pattern.test(textSource)) {
+        add(label);
+      }
+    }
+
+    // Fallback if still empty
+    if (points.length === 0) {
+      if (stay.location) add(stay.location.split(",")[0].trim());
+      add("Verified Stay");
+    }
+
+    return points.slice(0, 3);
+  }, [stay]);
 
   return (
     <article
@@ -140,13 +229,13 @@ function StayCard({ stay, onBook }: StayCardProps) {
             {stay.description}
           </p>
 
-          {/* Rating and Tags Row */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          {/* Rating and Featured Text Points Row */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5 min-h-[26px]">
             {stay.rating && Number(stay.rating) > 0 ? (
-              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-amber-900 shrink-0">
+              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[11px] font-bold text-amber-900 shrink-0 shadow-2xs">
                 <svg
-                  width="12"
-                  height="12"
+                  width="11"
+                  height="11"
                   viewBox="0 0 24 24"
                   fill="#f59e0b"
                   stroke="#f59e0b"
@@ -158,19 +247,24 @@ function StayCard({ stay, onBook }: StayCardProps) {
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
                 <span>{stay.rating}</span>
+                {stay.reviewsCount !== undefined && stay.reviewsCount > 0 && (
+                  <span className="text-amber-800/70 font-normal text-[10px]">({stay.reviewsCount})</span>
+                )}
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 shrink-0">
+              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 shrink-0">
                 <span>New</span>
               </div>
             )}
 
-            {stay.tags.slice(0, 2).map((tag) => (
+            {/* Small featured text points filling the reviews line */}
+            {featurePoints.map((point) => (
               <span
-                key={tag}
-                className="inline-block bg-slate-100 text-slate-700 border border-slate-200/80 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap font-poppins"
+                key={point}
+                className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors font-poppins"
               >
-                {tag}
+                <span className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+                <span className="truncate max-w-[130px]">{point}</span>
               </span>
             ))}
           </div>

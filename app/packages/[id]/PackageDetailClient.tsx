@@ -76,9 +76,9 @@ export default function PackageDetailsPage() {
       title: p.title || p.name || "Curated Package",
       name: p.name || p.title || "Curated Package",
       badge: p.badge || "Verified Package",
-      rating: p.rating || (p.ratingScore ? `${p.ratingScore}/5 ★` : "4.9/5 ★"),
-      ratingScore: p.ratingScore || 4.9,
-      reviewsCount: p.reviewsCount || 0,
+      rating: typeof p.rating === "number" ? p.rating : 0,
+      ratingScore: typeof p.rating === "number" ? p.rating : 0,
+      reviewsCount: typeof p.reviewsCount === "number" ? p.reviewsCount : 0,
       duration: p.duration || `${p.durationDays || 3} Days / ${p.durationNights || 2} Nights`,
       durationDays: p.durationDays || 3,
       durationNights: p.durationNights || 2,
@@ -223,6 +223,11 @@ export default function PackageDetailsPage() {
       loadPackageReviews();
     }
   }, [pkg?.id, packageId]);
+
+  const realCount = realReviews.length > 0 ? realReviews.length : (typeof pkg?.reviewsCount === "number" ? pkg.reviewsCount : 0);
+  const realRating = realReviews.length > 0
+    ? (realReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / realReviews.length).toFixed(1)
+    : (typeof pkg?.rating === "number" && pkg.rating > 0 ? Number(pkg.rating).toFixed(1) : null);
 
   const handlePostReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,11 +425,21 @@ export default function PackageDetailsPage() {
             <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-slate-100 text-slate-700">
               {pkg.category || "Luxury Holiday"}
             </span>
-            <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
-              <span>★</span>
-              <span className="text-slate-800">{pkg.rating || 4.92}</span>
-              <span className="text-slate-400 font-normal">({pkg.reviewsCount || 94} traveler reviews)</span>
-            </div>
+            {realCount > 0 && realRating ? (
+              <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
+                <span>★</span>
+                <span className="text-slate-800">{realRating}</span>
+                <span className="text-slate-400 font-normal">
+                  ({realCount} {realCount === 1 ? "traveler review" : "traveler reviews"})
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-slate-400 font-medium font-poppins ml-1">
+                <span className="text-amber-400">★</span>
+                <span className="text-slate-700 font-bold">New</span>
+                <span className="text-slate-400 font-normal">(0 reviews)</span>
+              </div>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-poppins">
@@ -1272,12 +1287,20 @@ export default function PackageDetailsPage() {
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 font-poppins flex items-center gap-2">
                       <span>Traveler Reviews &amp; Ratings</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                        ★ {pkg.rating || 4.92} / 5.0
-                      </span>
+                      {realCount > 0 && realRating ? (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                          ★ {realRating} / 5.0
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200">
+                          ★ New (No ratings yet)
+                        </span>
+                      )}
                     </h3>
                     <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Based on {pkg.reviewsCount || 94} verified holiday package bookings
+                      {realCount > 0
+                        ? `Based on ${realCount} verified ${realCount === 1 ? "holiday package booking" : "holiday package bookings"}`
+                        : "No verified reviews written for this package yet"}
                     </p>
                   </div>
                   <button
@@ -1289,26 +1312,28 @@ export default function PackageDetailsPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {[
-                    { label: "Itinerary & Pacing", score: "5.0" },
-                    { label: "Accommodation Quality", score: "4.9" },
-                    { label: "Food & Dining", score: "4.9" },
-                    { label: "Chauffeur & Vehicle", score: "4.9" },
-                    { label: "Guide Support", score: "5.0" },
-                    { label: "Value for Money", score: "4.8" },
-                  ].map((cat, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-600 font-medium">{cat.label}</span>
-                        <span className="text-slate-900 font-bold">{cat.score}</span>
+                {realCount > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[
+                      { label: "Itinerary & Pacing", score: realRating || "5.0" },
+                      { label: "Accommodation Quality", score: realRating || "5.0" },
+                      { label: "Food & Dining", score: realRating || "5.0" },
+                      { label: "Chauffeur & Vehicle", score: realRating || "5.0" },
+                      { label: "Guide Support", score: realRating || "5.0" },
+                      { label: "Value for Money", score: realRating || "5.0" },
+                    ].map((cat, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-600 font-medium">{cat.label}</span>
+                          <span className="text-slate-900 font-bold">{cat.score}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-slate-900 rounded-full w-[98%]" />
+                        </div>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-slate-900 rounded-full w-[98%]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="space-y-4 pt-2">
                   {reviewsLoading ? (

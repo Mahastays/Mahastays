@@ -31,6 +31,16 @@ export default function PopularHotels() {
           ? property.images[0]
           : property.images?.[0]?.url || property.gallery?.[0] || "",
       type: (property.type as any) || (property.propertyType === "villa" ? "Villa" : "Resort"),
+      badge: property.badge || undefined,
+      tagline: property.tagline || undefined,
+      reviewsCount: property.reviewsCount,
+      amenities:
+        property.amenities?.map((a: any) => (typeof a === "string" ? a : a.name)) ||
+        (property as any).amenityNames ||
+        [],
+      highlights:
+        property.highlights?.map((h: any) => (typeof h === "string" ? h : h.title)) ||
+        [],
       location: property.location || "",
       city: property.city || "",
       country: property.country || "India",

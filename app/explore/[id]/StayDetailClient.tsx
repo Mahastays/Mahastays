@@ -83,8 +83,8 @@ export default function StayBookingDetailsPage() {
       numericPrice: p.numericPrice || 5000,
       inrPrice: p.inrPrice || p.numericPrice || 5000,
       originalPrice: p.originalPrice || Math.round((p.numericPrice || 5000) * 1.2),
-      rating: p.rating || 4.8,
-      reviewsCount: p.reviewsCount || 0,
+      rating: typeof p.rating === "number" ? p.rating : 0,
+      reviewsCount: typeof p.reviewsCount === "number" ? p.reviewsCount : 0,
       description: p.description || "",
       longDescription: p.longDescription || p.description || "",
       location: p.location || "Mahabaleshwar",
@@ -198,7 +198,7 @@ export default function StayBookingDetailsPage() {
     price: stay?.price || "",
     numericPrice: stay?.numericPrice || stay?.inrPrice || 0,
     image: allPhotos[0] || "/hero-resort.jpg",
-    rating: stay?.rating || 4.8,
+    rating: stay?.rating || 0,
     category: stay?.type || "Villa",
     url: `/explore/${stay?.id || stayId}`,
   });
@@ -208,6 +208,7 @@ export default function StayBookingDetailsPage() {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [writeReviewOpen, setWriteReviewOpen] = useState(false);
   const [realReviews, setRealReviews] = useState<any[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<{ average: number; count: number } | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [newReviewAuthor, setNewReviewAuthor] = useState("");
   const [newReviewLocation, setNewReviewLocation] = useState("");
@@ -225,12 +226,22 @@ export default function StayBookingDetailsPage() {
       if (Array.isArray(data)) {
         setRealReviews(data);
       }
+      if (res.data?.meta?.summary) {
+        setReviewSummary(res.data.meta.summary);
+      }
     } catch {
       // offline / not found
     } finally {
       setReviewsLoading(false);
     }
   };
+
+  const realCount = reviewSummary?.count ?? (realReviews.length > 0 ? realReviews.length : (typeof stay?.reviewsCount === "number" ? stay.reviewsCount : 0));
+  const realRating = reviewSummary && reviewSummary.count > 0 && reviewSummary.average > 0
+    ? reviewSummary.average.toFixed(1)
+    : realReviews.length > 0
+    ? (realReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / realReviews.length).toFixed(1)
+    : (typeof stay?.rating === "number" && stay.rating > 0 ? Number(stay.rating).toFixed(1) : null);
 
   useEffect(() => {
     if (stay?.id || stayId) {
@@ -448,11 +459,21 @@ export default function StayBookingDetailsPage() {
             <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-slate-100 text-slate-700">
               {stay.type || "Private Villa"}
             </span>
-            <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
-              <span>★</span>
-              <span className="text-slate-800">{stay.rating || 4.96}</span>
-              <span className="text-slate-400 font-normal">({stay.reviewsCount || 128} verified reviews)</span>
-            </div>
+            {realCount > 0 && realRating ? (
+              <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
+                <span>★</span>
+                <span className="text-slate-800">{realRating}</span>
+                <span className="text-slate-400 font-normal">
+                  ({realCount} {realCount === 1 ? "verified review" : "verified reviews"})
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-slate-400 font-medium font-poppins ml-1">
+                <span className="text-amber-400">★</span>
+                <span className="text-slate-700 font-bold">New</span>
+                <span className="text-slate-400 font-normal">(0 reviews)</span>
+              </div>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-poppins">
@@ -1269,12 +1290,20 @@ export default function StayBookingDetailsPage() {
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 font-poppins flex items-center gap-2">
                       <span>Guest Reviews &amp; Ratings</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                        ★ {stay.rating || 4.96} / 5.0
-                      </span>
+                      {realCount > 0 && realRating ? (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                          ★ {realRating} / 5.0
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200">
+                          ★ New (No ratings yet)
+                        </span>
+                      )}
                     </h3>
                     <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Based on {stay.reviewsCount || 128} verified group and family stays
+                      {realCount > 0
+                        ? `Based on ${realCount} verified ${realCount === 1 ? "group or family stay" : "group and family stays"}`
+                        : "No verified reviews written for this property yet"}
                     </p>
                   </div>
                   <button
@@ -1286,27 +1315,36 @@ export default function StayBookingDetailsPage() {
                   </button>
                 </div>
 
-                {/* Rating Categories Breakdown */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {[
-                    { label: "Cleanliness", score: "4.9" },
-                    { label: "Accuracy", score: "5.0" },
-                    { label: "Communication", score: "4.9" },
-                    { label: "Location", score: "4.8" },
-                    { label: "Check-in", score: "5.0" },
-                    { label: "Value for Money", score: "4.9" },
-                  ].map((cat, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-600 font-medium">{cat.label}</span>
-                        <span className="text-slate-900 font-bold">{cat.score}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-slate-900 rounded-full w-[98%]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {/* Rating Categories Breakdown (Only shown when verified reviews exist) */}
+                {realCount > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {(stay.ratingBreakdown && stay.ratingBreakdown.length > 0
+                      ? stay.ratingBreakdown
+                      : [
+                          { label: "Cleanliness", score: realRating || "5.0" },
+                          { label: "Accuracy", score: realRating || "5.0" },
+                          { label: "Communication", score: realRating || "5.0" },
+                          { label: "Location", score: realRating || "5.0" },
+                          { label: "Check-in", score: realRating || "5.0" },
+                          { label: "Value for Money", score: realRating || "5.0" },
+                        ]
+                    ).map((cat: any, i: number) => {
+                      const numScore = parseFloat(cat.score) || 5.0;
+                      const pct = Math.min(100, Math.round((numScore / 5) * 100));
+                      return (
+                        <div key={i} className="flex flex-col gap-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-600 font-medium">{cat.label}</span>
+                            <span className="text-slate-900 font-bold">{cat.score}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-slate-900 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Review Cards */}
                 <div className="space-y-4 pt-2">
