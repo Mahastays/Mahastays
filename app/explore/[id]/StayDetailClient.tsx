@@ -614,47 +614,37 @@ export default function StayBookingDetailsPage() {
               </div>
             </div>
 
-            {/* Quick Feature Cards Strip */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
-                {(((stay as any).keyAmenities && (stay as any).keyAmenities.length > 0)
-                  ? (stay as any).keyAmenities.map((ka: any) => ({
-                      title: ka.name || ka.title,
-                      desc: ka.desc || ka.description,
-                    }))
-                  : (stay.highlights && stay.highlights.length > 0)
-                  ? stay.highlights.slice(0, 4).map((h: any) => ({
-                      title: h.title,
-                      desc: h.desc || (h as any).description,
-                    }))
-                  : [
-                      { title: "Infinity Pool Deck", desc: "Heated pool with valley view" },
-                      { title: "Private Chef", desc: "On-demand dining & BBQ" },
-                      { title: "Butler Service", desc: "Personalised assistance" },
-                      { title: "High-Speed Wi-Fi", desc: "Stay connected 250 Mbps" },
-                    ]
-                ).map((h: any, i: number) => (
-                  <div
-                    key={i}
-                    title={h.desc ? `${h.title} • ${h.desc}` : h.title}
-                    className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
-                  >
-                    <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
-                      <Image
-                        src="/brand/mahastays-logo-main.png"
-                        alt="Mahastays"
-                        width={22}
-                        height={22}
-                        className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
-                      />
-                    </div>
-                    <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
-                      {h.title}
-                    </span>
-                  </div>
-                ))}
+            {/* Quick Feature Cards Strip (Strictly separate from highlights; only renders if keyAmenities has items) */}
+            {Boolean((stay as any).keyAmenities && (stay as any).keyAmenities.length > 0) && (
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+                <div className={`grid grid-cols-2 ${(stay as any).keyAmenities.length >= 4 ? 'sm:grid-cols-4' : (stay as any).keyAmenities.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80`}>
+                  {(stay as any).keyAmenities.map((ka: any, i: number) => {
+                    const title = ka.name || ka.title;
+                    const desc = ka.desc || ka.description;
+                    return (
+                      <div
+                        key={i}
+                        title={desc ? `${title} • ${desc}` : title}
+                        className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                      >
+                        <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                          <Image
+                            src="/brand/mahastays-logo-main.png"
+                            alt="Mahastays"
+                            width={22}
+                            height={22}
+                            className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                          />
+                        </div>
+                        <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                          {title}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Sticky Navigation Tabs Bar with Left/Right Slide Buttons & White Gradient */}
             <div
@@ -1003,44 +993,38 @@ export default function StayBookingDetailsPage() {
                   </div>
                 </div>
 
-                {/* Highlights & Key Features */}
+                {/* Property Highlights */}
                 <div className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-slate-900 font-poppins">
-                      Highlights &amp; Key Features
+                      Property Highlights
                     </h3>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange("facilities")}
-                      className="text-xs font-bold text-[#ea110d] hover:underline font-poppins"
-                    >
-                      View all facilities →
-                    </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {(stay.highlights || [
-                      { title: "Infinity Pool Deck", description: "Heated pool with valley view", icon: "pool" },
-                      { title: "Private Chef", description: "On-demand dining & barbecue", icon: "chef" },
-                      { title: "Butler Service", description: "Personalised assistance", icon: "bell" },
-                      { title: "High-Speed Wi-Fi", description: "Stay connected 250 Mbps", icon: "wifi" },
-                      { title: "Billiards Room", description: "Indoor entertainment", icon: "game" },
-                      { title: "BBQ Grill", description: "Outdoor sunset dining", icon: "fire" },
-                      { title: "Smart TV", description: "Streaming access & Netflix", icon: "tv" },
-                      { title: "Private Parking", description: "On-site secure parking", icon: "car" },
-                    ]).map((item, idx) => (
-                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 font-poppins">{item.title}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">{item.desc || (item as any).description}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {stay.highlights && stay.highlights.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {stay.highlights.map((item: any, idx: number) => {
+                        const title = typeof item === "string" ? item : item.title;
+                        const desc = typeof item === "string" ? "" : (item.desc || item.description);
+                        return (
+                          <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                              <svg className="w-4 h-4 text-[#ea110d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 font-poppins">{title}</div>
+                              {desc && (
+                                <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">{desc}</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No highlights added by the host.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1163,21 +1147,20 @@ export default function StayBookingDetailsPage() {
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Suitability &amp; Rules</div>
-                      <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
-                        {(((stay.policies?.suitabilityRules && stay.policies.suitabilityRules.length > 0)
-                          ? stay.policies.suitabilityRules
-                          : ((stay as any).suitabilityRules && (stay as any).suitabilityRules.length > 0)
-                          ? (stay as any).suitabilityRules
-                          : [
-                              "Pets allowed on request",
-                              "Smoking in outdoor garden areas only",
-                              "Group and family friendly",
-                              `Max ${stay.policies?.maxGuestsPerRoom || 12} guests per unit`,
-                            ]
-                        ) as string[]).map((rule, idx) => (
-                          <li key={idx}>• {rule}</li>
-                        ))}
-                      </ul>
+                      {((stay.policies?.suitabilityRules && stay.policies.suitabilityRules.length > 0) || ((stay as any).suitabilityRules && (stay as any).suitabilityRules.length > 0)) ? (
+                        <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
+                          {((stay.policies?.suitabilityRules && stay.policies.suitabilityRules.length > 0)
+                            ? stay.policies.suitabilityRules
+                            : (stay as any).suitabilityRules
+                          ).map((rule: string, idx: number) => (
+                            <li key={idx}>• {rule}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1 italic">
+                          No specific suitability rules added by the host.
+                        </p>
+                      )}
                     </div>
                   </div>
 
