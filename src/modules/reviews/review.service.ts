@@ -84,6 +84,7 @@ export async function createReview(userId: string | undefined, input: CreateRevi
     }),
     prisma.user.update({ where: { id: effectiveUserId }, data: { reviewsWrittenCount: { increment: 1 } } }),
   ]);
+  await recomputeRating(target.type, target.id);
   return presentReview(review, { viewerId: effectiveUserId });
 }
 
