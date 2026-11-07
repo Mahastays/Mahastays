@@ -412,11 +412,8 @@ export const createPropertyAsync = createAsyncThunk(
           images: r.images?.length ? r.images : newProp.images,
           amenities: r.amenities?.length ? r.amenities : ['Breakfast included'],
         })),
-        amenities: newProp.amenities?.map((name) => ({ name })) || [{ name: 'Free WiFi' }],
-        highlights: newProp.highlights?.length ? newProp.highlights : [
-          { title: 'Stunning valley & waterfall view', desc: 'Panoramic Western Ghats vistas' },
-          { title: 'Private infinity pool with heating', desc: 'Heated luxury pool deck' },
-        ],
+        amenities: newProp.amenities?.map((name) => ({ name })) || [],
+        highlights: newProp.highlights || [],
         host: newProp.host,
         keyAmenities: newProp.keyAmenities,
         facilityCategories: newProp.facilityCategories,

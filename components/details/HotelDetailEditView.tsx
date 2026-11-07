@@ -951,7 +951,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                     className="w-full text-xl sm:text-2xl font-extrabold text-slate-900 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-rose-500"
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
                       Property Tagline
@@ -961,6 +961,18 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                       value={property.tagline || ''}
                       onChange={(e) => handleFieldChange('tagline', e.target.value)}
                       placeholder="e.g. Exclusive 4BHK Standalone Sanctuary"
+                      className="w-full text-xs font-medium text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                      Badge (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={property.badge || ''}
+                      onChange={(e) => handleFieldChange('badge', e.target.value)}
+                      placeholder="e.g. Top Rated Villa"
                       className="w-full text-xs font-medium text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-rose-500"
                     />
                   </div>
@@ -1036,28 +1048,24 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
               </div>
             )}
 
-            {/* Badge Chips Row - Clean Monochrome SVG Icons */}
+            {/* Badge Chips Row */}
             <div className="flex items-center gap-2 mt-3.5 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold font-poppins">
-                <Award className="w-3.5 h-3.5 text-slate-700" />
-                <span>Top Rated {property.propertyType || 'Villa'}</span>
-              </span>
+              {property.badge && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-[#ea110d] text-xs font-bold font-poppins border border-red-100">
+                  <Award className="w-3.5 h-3.5" />
+                  <span>{property.badge}</span>
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold font-poppins">
                 <Building className="w-3.5 h-3.5 text-slate-700" />
                 <span>{property.propertyType?.toUpperCase() || 'VILLA'}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold font-poppins">
-                <Sparkles className="w-3.5 h-3.5 text-slate-700" />
-                <span>Valley View</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold font-poppins">
-                <Waves className="w-3.5 h-3.5 text-slate-700" />
-                <span>Private Pool</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold font-poppins">
-                <Utensils className="w-3.5 h-3.5 text-slate-700" />
-                <span>Chef on Demand</span>
-              </span>
+              {property.city && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium font-poppins">
+                  <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{property.city}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1407,38 +1415,36 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                 </div>
               </div>
               {!isEditMode ? (
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
-                    {(((property.keyAmenities && property.keyAmenities.length > 0))
-                      ? property.keyAmenities
-                      : [
-                          { name: 'Infinity Pool Deck', desc: 'Heated pool with valley view' },
-                          { name: 'Private Chef', desc: 'On-demand dining & BBQ' },
-                          { name: 'Butler Service', desc: 'Personalised assistance' },
-                          { name: 'High-Speed Wi-Fi', desc: 'Stay connected 250 Mbps' },
-                        ]
-                    ).map((amenity, idx) => (
-                      <div
-                        key={idx}
-                        title={amenity.desc ? `${amenity.name} • ${amenity.desc}` : amenity.name}
-                        className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
-                      >
-                        <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
-                          <Image
-                            src="/brand/mahastays-logo-main.png"
-                            alt="Mahastays"
-                            width={22}
-                            height={22}
-                            className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
-                          />
+                (property.keyAmenities && property.keyAmenities.length > 0) ? (
+                  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
+                      {property.keyAmenities.map((amenity, idx) => (
+                        <div
+                          key={idx}
+                          title={amenity.desc ? `${amenity.name} • ${amenity.desc}` : amenity.name}
+                          className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                        >
+                          <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                            <Image
+                              src="/brand/mahastays-logo-main.png"
+                              alt="Mahastays"
+                              width={22}
+                              height={22}
+                              className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                            />
+                          </div>
+                          <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                            {amenity.name}
+                          </span>
                         </div>
-                        <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
-                          {amenity.name}
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="py-2.5 text-center text-xs text-slate-400 italic">
+                    No custom feature cards added. Click &quot;Edit Cards&quot; to add cards to this strip.
+                  </div>
+                )
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                   {(property.keyAmenities || []).length === 0 ? (
@@ -2060,15 +2066,8 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
               </div>
 
               <div className="flex flex-col gap-3">
-                {(property.highlights && property.highlights.length > 0
-                  ? property.highlights
-                  : [
-                      { title: 'Stunning valley & waterfall view' },
-                      { title: 'Private infinity pool with heating' },
-                      { title: 'Dedicated chef and butler service' },
-                      { title: 'Perfect for family stays & celebrations' },
-                    ]
-                ).map((hl, idx) => (
+                {(property.highlights && property.highlights.length > 0) ? (
+                  property.highlights.map((hl, idx) => (
                   <div
                     key={idx}
                     className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 last:border-b-0"
@@ -2098,7 +2097,12 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                       <span className="text-slate-400 text-xs">›</span>
                     )}
                   </div>
-                ))}
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 italic">
+                  {isEditMode ? 'No highlights added. Click "Add" above to add a highlight.' : 'No highlights listed.'}
+                </p>
+              )}
               </div>
             </div>
 
@@ -2229,12 +2233,8 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                   )}
                 </div>
                 <div className="text-[11px] text-slate-600 space-y-2 mt-2">
-                  {(property.policies?.suitabilityRules || [
-                    'Pets allowed (on request)',
-                    'Smoking in outdoor areas',
-                    'Group & bachelor friendly',
-                    'Max 12 guests per estate',
-                  ]).map((rule, idx) => (
+                  {(property.policies?.suitabilityRules && property.policies.suitabilityRules.length > 0) ? (
+                    property.policies.suitabilityRules.map((rule, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-1.5">
                       {isEditMode ? (
                         <>
@@ -2257,7 +2257,12 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
                         <p>• {rule}</p>
                       )}
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 italic">
+                    {isEditMode ? 'No suitability rules added. Click "Add Rule" to add a rule.' : 'No suitability rules specified.'}
+                  </p>
+                )}
                 </div>
               </div>
             </div>

@@ -90,7 +90,7 @@ export default function CreatePropertyPageView() {
   const [name, setName] = useState('');
   const [propertyType, setPropertyType] = useState<PropertyType>('resort');
   const [tagline, setTagline] = useState('');
-  const [badge, setBadge] = useState('Trending Mountain View');
+  const [badge, setBadge] = useState('');
   const [description, setDescription] = useState('');
   const [numericPrice, setNumericPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
@@ -154,12 +154,7 @@ export default function CreatePropertyPageView() {
   };
 
   // Highlights Bullets
-  const [highlights, setHighlights] = useState<string[]>([
-    'Stunning valley & waterfall view deck',
-    'Private infinity pool with heating option',
-    'Dedicated chef and personalised butler service',
-    'High-speed optical Wi-Fi across premises',
-  ]);
+  const [highlights, setHighlights] = useState<string[]>([]);
   const [newHighlight, setNewHighlight] = useState('');
 
   // Selected Amenities
@@ -177,11 +172,7 @@ export default function CreatePropertyPageView() {
   const [roomUnitsCount, setRoomUnitsCount] = useState('4');
 
   // House Rules
-  const [rules, setRules] = useState<string[]>([
-    'Valid government-issued photo ID required for all adult guests at check-in',
-    'Smoking permitted in outdoor designated balcony areas only',
-    'Quiet hours observed between 10:00 PM and 07:00 AM for serenity',
-  ]);
+  const [rules, setRules] = useState<string[]>([]);
   const [newRule, setNewRule] = useState('');
 
   // Host Details
