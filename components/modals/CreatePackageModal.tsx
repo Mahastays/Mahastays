@@ -22,6 +22,8 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
   const [category, setCategory] = useState<PackageCategory>('Honeymoon');
   const [durationDays, setDurationDays] = useState('3');
   const [durationNights, setDurationNights] = useState('2');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [personLimit, setPersonLimit] = useState('6');
   const [numericPrice, setNumericPrice] = useState('');
   const [shortDesc, setShortDesc] = useState('');
   const [thumbnail, setThumbnail] = useState('');
@@ -57,6 +59,8 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
       propertyName: matchedProp?.name || '',
       vendorId: user?.vendorId || user?.id || '',
       vendorName: user?.businessName || user?.name || '',
+      priceType,
+      personLimit: parseInt(personLimit, 10) || 6,
       packageType,
       category,
       durationDays: parseInt(durationDays, 10) || 1,
@@ -169,13 +173,40 @@ export default function CreatePackageModal({ isOpen, onClose }: CreatePackageMod
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">Price (₹ / Person)</label>
+              <label className="font-semibold text-slate-700 dark:text-slate-300">
+                Price (₹ {priceType === 'per_night' ? '/ Night' : '/ Person'})
+              </label>
               <input
                 type="number"
                 value={numericPrice}
                 onChange={(e) => setNumericPrice(e.target.value)}
                 className="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
                 required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">Pricing Model</label>
+              <select
+                value={priceType}
+                onChange={(e) => setPriceType(e.target.value as any)}
+                className="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+              >
+                <option value="per_person">👤 Per Person (Increases with guests)</option>
+                <option value="per_night">🌙 Per Night / Flat</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">Person Limit (Max Guests)</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="6"
+                value={personLimit}
+                onChange={(e) => setPersonLimit(e.target.value)}
+                className="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
               />
             </div>
           </div>

@@ -83,6 +83,8 @@ export default function CreatePackagePageView() {
   const [durationNights, setDurationNights] = useState('2');
   const [numericPrice, setNumericPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [personLimit, setPersonLimit] = useState('6');
   const [city, setCity] = useState('Mahabaleshwar');
   const [location, setLocation] = useState('Venna Lake Road, Mahabaleshwar');
   const [destinations, setDestinations] = useState('Plot 12, Venna Lake & Panchgani Viewpoints');
@@ -312,6 +314,8 @@ export default function CreatePackagePageView() {
 
     const newPackagePayload: Partial<PackageItem> = {
       title: title.trim(),
+      priceType,
+      personLimit: parseInt(personLimit, 10) || 6,
       propertyId: selectedPropertyId || '',
       propertyName: matchedProp?.name || '',
       vendorId: assignedVendorId,
@@ -584,6 +588,34 @@ export default function CreatePackagePageView() {
                 placeholder="11550"
                 value={numericPrice}
                 onChange={(e) => setNumericPrice(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Pricing Model
+              </label>
+              <select
+                value={priceType}
+                onChange={(e) => setPriceType(e.target.value as any)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <option value="per_person">👤 Per Person (Multiplies by guests)</option>
+                <option value="per_night">🌙 Per Night / Flat (Fixed night price)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Person Limit (Max Guests)
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="6"
+                value={personLimit}
+                onChange={(e) => setPersonLimit(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>

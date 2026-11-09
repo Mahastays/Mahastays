@@ -76,6 +76,8 @@ export default function CreateExperiencePageView() {
   const [location, setLocation] = useState('Arthur Seat Base, Mahabaleshwar');
   const [numericPrice, setNumericPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [personLimit, setPersonLimit] = useState('15');
   const [description, setDescription] = useState('');
   const [maxGroupSize, setMaxGroupSize] = useState('15');
   const [idealFor, setIdealFor] = useState('Nature Lovers, Trekkers & Adventure Seekers');
@@ -291,6 +293,8 @@ export default function CreateExperiencePageView() {
 
     const newExperiencePayload: Partial<ExperienceItem> = {
       title: title.trim(),
+      priceType,
+      personLimit: parseInt(personLimit, 10) || 15,
       vendorId: assignedVendorId,
       vendorName: assignedVendorName,
       category,
@@ -529,13 +533,41 @@ export default function CreateExperiencePageView() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Price Per Participant (₹) <span className="text-rose-500">*</span>
+                Starting Price (₹) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
                 placeholder="683"
                 value={numericPrice}
                 onChange={(e) => setNumericPrice(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Pricing Model
+              </label>
+              <select
+                value={priceType}
+                onChange={(e) => setPriceType(e.target.value as any)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <option value="per_person">👤 Per Person (Multiplies by participants)</option>
+                <option value="per_night">🌙 Per Night / Flat Session</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Person Limit (Max Participants)
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="15"
+                value={personLimit}
+                onChange={(e) => setPersonLimit(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>

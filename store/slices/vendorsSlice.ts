@@ -206,25 +206,50 @@ export const createVendorAsync = createAsyncThunk(
 export const verifyVendorKYCAsync = createAsyncThunk(
   'vendors/verifyKYC',
   async ({ vendorId, approve, reason }: { vendorId: string; approve: boolean; reason?: string }, { getState }) => {
+    let apiUpdated: any = null;
     try {
-      await api.patch(`/admin/vendors/${vendorId}/kyc`, { approve, reason });
+      if (approve) {
+        // Try quick approve route first
+        try {
+          const res = await api.post(`/admin/vendors/${vendorId}/approve`);
+          apiUpdated = res.data?.data;
+        } catch {
+          const res = await api.patch(`/admin/vendors/${vendorId}/kyc`, { approve: true, reason });
+          apiUpdated = res.data?.data;
+        }
+      } else {
+        const res = await api.patch(`/admin/vendors/${vendorId}/kyc`, { approve: false, reason });
+        apiUpdated = res.data?.data;
+      }
     } catch {
-      // Offline fallback
+      try {
+        const res = await api.post(`/admin/vendors/${vendorId}/verify`, {
+          decision: approve ? 'approve' : 'reject',
+          reason,
+        });
+        apiUpdated = res.data?.data;
+      } catch (err) {
+        console.warn('Backend vendor approval call failed, updating local state:', err);
+      }
     }
     const state = getState() as { vendors: VendorsState };
-    const next = state.vendors.items.map((v) =>
-      v.id === vendorId
-        ? {
-            ...v,
-            compliance: {
-              ...v.compliance,
-              verificationStatus: (approve ? 'approved' : 'rejected') as any,
-              rejectionReason: approve ? undefined : reason,
-            },
-            status: (approve ? 'active' : 'on_hold') as any,
-          }
-        : v
-    );
+    const next = state.vendors.items.map((v) => {
+      const isMatch =
+        v.id === vendorId ||
+        v.vendorCode === vendorId ||
+        v.vendorCode?.toLowerCase() === vendorId.toLowerCase();
+      if (!isMatch) return v;
+      if (apiUpdated) return { ...v, ...apiUpdated };
+      return {
+        ...v,
+        compliance: {
+          ...v.compliance,
+          verificationStatus: (approve ? 'approved' : 'rejected') as any,
+          rejectionReason: approve ? undefined : reason,
+        },
+        status: (approve ? 'active' : 'on_hold') as any,
+      };
+    });
     saveVendors(next);
     return next;
   }
@@ -236,20 +261,27 @@ export const verifyVendorBankAsync = createAsyncThunk(
     try {
       await api.patch(`/admin/vendors/${vendorId}/bank`, { verified });
     } catch {
-      // Offline fallback
+      try {
+        await api.post(`/admin/vendors/${vendorId}/bank/verify`, { verified });
+      } catch (err) {
+        console.warn('Backend vendor bank verification call failed:', err);
+      }
     }
     const state = getState() as { vendors: VendorsState };
-    const next = state.vendors.items.map((v) =>
-      v.id === vendorId
-        ? {
-            ...v,
-            banking: {
-              ...v.banking,
-              isAccountVerified: verified,
-            },
-          }
-        : v
-    );
+    const next = state.vendors.items.map((v) => {
+      const isMatch =
+        v.id === vendorId ||
+        v.vendorCode === vendorId ||
+        v.vendorCode?.toLowerCase() === vendorId.toLowerCase();
+      if (!isMatch) return v;
+      return {
+        ...v,
+        banking: {
+          ...v.banking,
+          isAccountVerified: verified,
+        },
+      };
+    });
     saveVendors(next);
     return next;
   }

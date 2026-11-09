@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import {
   MapPin,
   Search,
@@ -26,8 +27,10 @@ import {
   AlertCircle,
   ChevronDown,
   X,
+  UploadCloud,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { uploadImageToCloudinary } from '@/lib/upload';
 
 export interface Place {
   id: string;
@@ -124,6 +127,45 @@ export default function PlacesView() {
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleModalUploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploadingPhotos(true);
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await uploadImageToCloudinary(file, 'listing_media');
+        if (res?.url) {
+          newUrls.push(res.url);
+        }
+      }
+
+      if (newUrls.length > 0) {
+        setFormData((prev) => {
+          const existing = prev.imagesText
+            .split('\n')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+          const combined = [...existing, ...newUrls];
+          return {
+            ...prev,
+            imagesText: combined.join('\n'),
+            coverImage: prev.coverImage || combined[0] || '',
+          };
+        });
+      }
+    } catch (err: any) {
+      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+    } finally {
+      setIsUploadingPhotos(false);
+      if (modalFileInputRef.current) modalFileInputRef.current.value = '';
+    }
+  };
 
   // Fetch places from backend
   const fetchPlaces = async () => {
@@ -390,14 +432,13 @@ export default function PlacesView() {
             <span>View Public Page</span>
           </a>
 
-          <button
-            type="button"
-            onClick={handleOpenCreate}
+          <Link
+            href="/dashboard/places/new"
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Place</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -540,17 +581,23 @@ export default function PlacesView() {
                     {/* Place Info */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative">
+                        <Link
+                          href={`/dashboard/places/${place.id}`}
+                          className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative block group/img hover:opacity-90"
+                        >
                           <img
                             src={place.coverImage || place.images[0] || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80'}
                             alt={place.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
                           />
-                        </div>
+                        </Link>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-900 dark:text-white truncate">
+                          <Link
+                            href={`/dashboard/places/${place.id}`}
+                            className="font-bold text-slate-900 dark:text-white hover:text-rose-600 truncate block transition-colors"
+                          >
                             {place.name}
-                          </div>
+                          </Link>
                           <div className="text-[11px] text-slate-400 font-mono truncate">
                             /explore/{place.slug}
                           </div>
@@ -637,14 +684,13 @@ export default function PlacesView() {
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(place)}
-                          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
-                          title="Edit place"
+                        <Link
+                          href={`/dashboard/places/${place.id}`}
+                          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition inline-flex items-center"
+                          title="Edit place on separate page"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
-                        </button>
+                        </Link>
 
                         <button
                           type="button"
@@ -703,13 +749,24 @@ export default function PlacesView() {
                   {editingPlace ? `Edit Place: ${editingPlace.name}` : 'Add New Place to Explore Map'}
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {editingPlace && (
+                  <Link
+                    href={`/dashboard/places/${editingPlace.id}`}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 hover:underline"
+                  >
+                    <span>Full Edit Page</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {formError && (
@@ -928,14 +985,73 @@ export default function PlacesView() {
                 </div>
               </div>
 
-              {/* Photo URLs */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Photo URLs (One per line)
-                </label>
+              {/* Photo URLs & Image Upload */}
+              <div className="space-y-2">
+                <input
+                  ref={modalFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleModalUploadPhotos}
+                />
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Photos &amp; Visuals
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => modalFileInputRef.current?.click()}
+                    disabled={isUploadingPhotos}
+                    className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploadingPhotos ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>+ Upload Photos from Device</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Thumbnails preview */}
+                {formData.imagesText.split('\n').filter((u) => u.trim().startsWith('http')).length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    {formData.imagesText
+                      .split('\n')
+                      .filter((u) => u.trim().startsWith('http'))
+                      .map((url, i) => (
+                        <div key={i} className="relative w-16 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-200 group">
+                          <img src={url.trim()} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const remaining = formData.imagesText
+                                .split('\n')
+                                .filter((u) => u.trim() !== url.trim());
+                              setFormData({
+                                ...formData,
+                                imagesText: remaining.join('\n'),
+                                coverImage: formData.coverImage === url.trim() ? remaining[0] || '' : formData.coverImage,
+                              });
+                            }}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
                 <textarea
-                  rows={3}
-                  placeholder="https://images.unsplash.com/...&#10;https://images.unsplash.com/..."
+                  rows={2}
+                  placeholder="Paste direct URLs (one per line) or use the upload button above..."
                   value={formData.imagesText}
                   onChange={(e) => setFormData({ ...formData, imagesText: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-rose-500 font-mono text-slate-900 dark:text-white"

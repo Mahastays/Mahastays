@@ -225,11 +225,15 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
     : [];
 
   const selectedTier = tiers[selectedTierIndex] || tiers[0];
+  const isPerNight = pkg.priceType === 'per_night';
+  const personLimit = pkg.personLimit || 6;
   const pricePerPerson = selectedTier.pricePerPerson || pkg.numericPrice || 8500;
   const originalPricePerPerson = selectedTier.originalPrice || pricePerPerson + 3000;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
-  const baseCost = pricePerPerson * Math.max(1, adults) + Math.round(pricePerPerson * 0.6) * children;
+  const baseCost = isPerNight
+    ? pricePerPerson * Math.max(1, pkg.durationNights || 1)
+    : pricePerPerson * Math.max(1, adults) + Math.round(pricePerPerson * 0.6) * children;
 
   // Custom Pricing, Discounts & GST Rules
   const pricingRules = pkg.pricingRules || {};
@@ -2643,6 +2647,62 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                     <span className="text-[10px] text-amber-600 font-normal">Saves on &ldquo;Save to Backend&rdquo;</span>
                   </div>
 
+                  {/* 0. Pricing Model (Per Person vs Per Night) */}
+                  <div className="space-y-1.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Price Model</span>
+                      <span className="text-[10px] text-rose-600 font-bold uppercase">{pkg.priceType || 'per_person'}</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPkg({ ...pkg, priceType: 'per_person' })}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition ${
+                          (pkg.priceType || 'per_person') === 'per_person'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        👤 Per Person
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPkg({ ...pkg, priceType: 'per_night' })}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition ${
+                          pkg.priceType === 'per_night'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        🌙 Per Night / Flat
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      {(pkg.priceType || 'per_person') === 'per_person'
+                        ? 'Price multiplies with each person added.'
+                        : 'Flat package price per night with maximum guest limit.'}
+                    </p>
+                  </div>
+
+                  {/* 0B. Person Limit */}
+                  <div className="space-y-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Person Limit (Max Guests)</span>
+                      <span className="text-[10px] text-slate-400">Capacity</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={pkg.personLimit || 6}
+                        onChange={(e) => setPkg({ ...pkg, personLimit: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                        className="w-20 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800"
+                      />
+                      <span className="text-[11px] text-slate-500 font-medium">travelers limit</span>
+                    </div>
+                  </div>
+
                   {/* 1. Discount Percentage */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
@@ -2768,9 +2828,19 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                 </div>
               )}
 
+              {/* Person Limit Exceeded Warning */}
+              {adults + children > personLimit && (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                  <span className="font-bold block">⚠️ Traveler limit exceeded!</span>
+                  <span>This package is limited to {personLimit} guests ({isPerNight ? 'per-night flat rate' : 'max capacity'}). You have {adults + children} travelers.</span>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>
-                  ₹{pricePerPerson.toLocaleString('en-IN')} × {adults} adults
+                  {isPerNight
+                    ? `₹${pricePerPerson.toLocaleString('en-IN')} / night × ${Math.max(1, pkg.durationNights || 1)} nights (flat up to ${personLimit} guests)`
+                    : `₹${pricePerPerson.toLocaleString('en-IN')} × ${adults} adults${children > 0 ? ` + ${children} kids` : ''}`}
                 </span>
                 <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString('en-IN')}</span>
               </div>

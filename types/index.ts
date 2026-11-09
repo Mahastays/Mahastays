@@ -193,6 +193,8 @@ export interface PackageItem {
   propertyName: string;
   title: string;
   badge?: string;
+  priceType?: 'per_person' | 'per_night';
+  personLimit?: number;
   packageType: PackageType;
   category: PackageCategory;
   durationDays: number;
@@ -280,6 +282,8 @@ export interface ExperienceItem {
   vendorId: string;
   vendorName: string;
   title: string;
+  priceType?: 'per_person' | 'per_night';
+  personLimit?: number;
   category: string;
   difficulty: Difficulty;
   duration: string;

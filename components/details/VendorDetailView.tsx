@@ -10,6 +10,7 @@ import {
   XCircle,
   Clock,
   ShieldCheck,
+  ShieldAlert,
   CreditCard,
   FileCheck,
   Phone,
@@ -74,7 +75,7 @@ const isDummyVal = (val?: string | null) => {
 export default function VendorDetailView({ id }: VendorDetailViewProps) {
   const router = useRouter();
   const { user, activeViewMode } = useAuth();
-  const isAdmin = activeViewMode === 'admin' && user?.role === 'admin';
+  const isAdmin = activeViewMode === 'admin' || user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'sub_admin';
   const {
     vendors,
     properties,
@@ -441,9 +442,28 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
   const isPending = vendor.compliance?.verificationStatus === 'pending' || vendor.compliance?.verificationStatus === 'under_review';
   const isBankVerified = vendor.banking?.isAccountVerified ?? true;
 
-  const handleToggleKYC = () => {
-    verifyVendorKYC(vendor.id, !isApproved);
+  const handleToggleKYC = async () => {
+    const nextApproved = !isApproved;
+    // Immediate optimistic state update
+    setApiVendor((prev) => {
+      const base = prev || vendor;
+      return {
+        ...base,
+        status: nextApproved ? 'active' : 'on_hold',
+        compliance: {
+          ...base.compliance,
+          verificationStatus: nextApproved ? 'approved' : 'under_review',
+        },
+      };
+    });
     showToast(isApproved ? 'Vendor KYC status updated to Under Review' : 'Vendor KYC Approved & Activated Successfully!');
+    try {
+      await verifyVendorKYC(vendor.id, nextApproved);
+      // Fetch fresh data from backend
+      await fetchVendorDetail();
+    } catch (err: any) {
+      console.warn('KYC toggle error:', err);
+    }
   };
 
   const handleToggleBank = () => {
@@ -793,6 +813,49 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
         </div>
       </div>
 
+      {/* Pending Approval Alert Banner with Direct Action */}
+      {!isApproved ? (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                Vendor Partner KYC Verification Pending
+              </h4>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                This vendor account is awaiting administrative approval. Approve now to activate their account and permit property listings.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleKYC}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition active:scale-95 shrink-0 cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Approve Vendor &amp; Activate</span>
+          </button>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-between gap-3 text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+              Vendor Partner Verified &amp; Active — Permitted to receive guest bookings and list stays/experiences.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleKYC}
+            className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 dark:text-amber-400 underline cursor-pointer shrink-0"
+          >
+            Revoke / Set Under Review
+          </button>
+        </div>
+      )}
+
       {/* Navigation Tab Bar */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
         <button
@@ -1011,6 +1074,24 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
               >
                 KYC Status: {vendor.compliance?.verificationStatus?.toUpperCase() || 'PENDING'}
               </span>
+              {!isApproved ? (
+                <button
+                  type="button"
+                  onClick={handleToggleKYC}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition active:scale-95 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Approve KYC</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleToggleKYC}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium text-amber-700 hover:text-amber-800 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 transition cursor-pointer"
+                >
+                  <span>Revoke</span>
+                </button>
+              )}
             </div>
           </div>
 

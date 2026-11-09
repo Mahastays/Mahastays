@@ -21,6 +21,8 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [duration, setDuration] = useState('4 Hours');
   const [city, setCity] = useState('Mahabaleshwar');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [personLimit, setPersonLimit] = useState('15');
   const [numericPrice, setNumericPrice] = useState('');
   const [description, setDescription] = useState('');
   const [guideName, setGuideName] = useState('');
@@ -55,6 +57,8 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
       difficulty,
       duration,
       city,
+      priceType,
+      personLimit: parseInt(personLimit, 10) || 15,
       numericPrice: parseInt(numericPrice, 10) || 0,
       description: description.trim(),
       image: imageUrl.trim(),
@@ -146,9 +150,11 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">Price per Person (₹)</label>
+              <label className="font-semibold text-slate-700 dark:text-slate-300">
+                Price (₹ {priceType === 'per_night' ? '/ Session' : '/ Person'})
+              </label>
               <input
                 type="number"
                 value={numericPrice}
@@ -157,6 +163,31 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 required
               />
             </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">Pricing Model</label>
+              <select
+                value={priceType}
+                onChange={(e) => setPriceType(e.target.value as any)}
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+              >
+                <option value="per_person">👤 Per Person</option>
+                <option value="per_night">🌙 Per Night / Flat</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">Person Limit</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="15"
+                value={personLimit}
+                onChange={(e) => setPersonLimit(e.target.value)}
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+              />
+            </div>
+          </div>
 
             <div className="space-y-1">
               <label className="font-semibold text-slate-700 dark:text-slate-300">Lead Guide Name</label>
@@ -168,7 +199,6 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 required
               />
             </div>
-          </div>
 
           <div className="space-y-1">
             <label className="font-semibold text-slate-700 dark:text-slate-300">Description</label>
