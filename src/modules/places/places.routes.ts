@@ -74,6 +74,15 @@ adminPlacesRouter.get('/', requireStaff({ admin: true, sub_admin: true }), async
 });
 
 /**
+ * GET /api/v1/admin/places/:id
+ * Fetch place details by ID (for admin edit page).
+ */
+adminPlacesRouter.get('/:id', requireStaff({ admin: true, sub_admin: true }), async (req, res) => {
+  const place = await svc.getPlaceById(String(req.params.id));
+  ok(res, place);
+});
+
+/**
  * POST /api/v1/admin/places
  * Create a new place.
  */

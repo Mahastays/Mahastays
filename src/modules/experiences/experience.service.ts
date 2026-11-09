@@ -178,6 +178,8 @@ export async function createExperience(vendorId: string, input: CreateExperience
       locationId: input.locationId,
       duration: input.duration,
       category: input.category,
+      priceType: input.priceType ?? 'per_person',
+      personLimit: input.personLimit ?? null,
       numericPrice: derived.numericPrice,
       originalPrice: derived.originalPrice,
       difficulty: input.difficulty,
@@ -220,6 +222,8 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   if (input.locationId !== undefined) data.locationId = input.locationId;
   if (input.duration !== undefined) data.duration = input.duration;
   if (input.category !== undefined) data.category = input.category;
+  if (input.priceType !== undefined) data.priceType = input.priceType;
+  if (input.personLimit !== undefined) data.personLimit = input.personLimit;
   if (input.difficulty !== undefined) data.difficulty = input.difficulty;
   if (input.ageLimit !== undefined) data.ageLimit = input.ageLimit;
   if (input.groupSize !== undefined) data.groupSize = input.groupSize;

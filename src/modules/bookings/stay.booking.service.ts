@@ -1,3 +1,4 @@
+import type { Room } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { lockService } from '../../services/lock.service';
 import { getPaymentGateway } from '../../services/payment/gateway';
@@ -20,7 +21,7 @@ import { presentStayBooking } from './booking.presenter';
 import type { StayBookingInput } from './booking.schemas';
 import { calculateSettlement, calculateStayPricing, type StayLedger } from './pricing.engine';
 
-function validateStayRequest(input: StayBookingInput, room: { maxGuests: number; capacity: { adults: number; children: number }; count: number }) {
+function validateStayRequest(input: StayBookingInput, room: Room, property?: { rooms: Room[] } | null) {
   const today = todayIST();
   const nights = diffDays(input.checkInDate, input.checkOutDate);
   const bad = (message: string, code: string, details?: unknown) => ApiError.unprocessable(message, details, code);
@@ -31,8 +32,26 @@ function validateStayRequest(input: StayBookingInput, room: { maxGuests: number;
   if (diffDays(today, input.checkInDate) > MAX_ADVANCE_BOOKING_DAYS) throw bad('Bookings open up to 18 months in advance', 'TOO_FAR_AHEAD');
 
   const { adults, children } = input.guests;
+  const totalGuests = adults + children;
   if (input.quantity > room.count) throw bad(`Only ${room.count} of this room type exist`, 'QUANTITY_EXCEEDS_ROOMS');
-  if (adults + children > room.maxGuests * input.quantity) throw bad(`This room fits at most ${room.maxGuests * input.quantity} guests`, 'TOO_MANY_GUESTS');
+  
+  if (totalGuests > room.maxGuests * input.quantity) {
+    const otherRoom = property?.rooms?.find(
+      (r) => r.roomId !== room.roomId && r.maxGuests * input.quantity >= totalGuests
+    );
+    if (otherRoom) {
+      throw bad(
+        `Selected room fits up to ${room.maxGuests * input.quantity} guests. Your party has ${totalGuests} guests. Please choose a larger room (e.g. ${otherRoom.name}, fits up to ${otherRoom.maxGuests} guests) or book multiple rooms.`,
+        'TOO_MANY_GUESTS',
+        { maxGuests: room.maxGuests, alternativeRoom: otherRoom.name, alternativeRoomId: otherRoom.roomId }
+      );
+    }
+    throw bad(
+      `Sorry, maximum capacity exceeded. This room fits at most ${room.maxGuests * input.quantity} guests. Please choose another stay or book multiple rooms.`,
+      'TOO_MANY_GUESTS',
+      { maxGuests: room.maxGuests }
+    );
+  }
   if (adults > room.capacity.adults * input.quantity) throw bad(`This room fits at most ${room.capacity.adults * input.quantity} adults`, 'TOO_MANY_ADULTS');
 }
 
@@ -52,7 +71,7 @@ async function prepareStay(input: StayBookingInput, viewerId?: string) {
   const vendor = await loadBookableVendor(property.vendorId);
   const room = property.rooms.find((r) => r.roomId === input.roomId);
   if (!room) throw ApiError.notFound('Room');
-  validateStayRequest(input, room);
+  validateStayRequest(input, room, property);
 
   const isMember = await isActiveClubMember(viewerId);
   const ledger = calculateStayPricing(

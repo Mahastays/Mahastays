@@ -38,6 +38,8 @@ const packageBase = z.object({
   category: z.enum(PACKAGE_CATEGORIES),
   title: v.trimmed(3, 150),
   badge: v.optionalTrimmed(60),
+  priceType: z.enum(['per_person', 'per_night']).default('per_person').optional(),
+  personLimit: z.number().int().min(1).max(200).optional(),
   durationDays: z.number().int().min(1).max(30),
   durationNights: z.number().int().min(0).max(29),
   location: v.trimmed(3, 250),

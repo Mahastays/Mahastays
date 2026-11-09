@@ -4,9 +4,8 @@ import { omit } from '../../utils/object';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const priceLabel = (n: number) => `From ${formatInr(n)} / person`;
-// NOTE: the spec shows "/ couple" on cards but its ledger multiplies the tier price by the number of adults,
-// i.e. the price is PER PERSON. The API follows the ledger — see README → "Spec observations".
+const priceLabel = (n: number, priceType?: string | null) =>
+  priceType === 'per_night' ? `From ${formatInr(n)} / night` : `From ${formatInr(n)} / person`;
 
 export function presentPackage(
   pk: Package,
@@ -25,10 +24,12 @@ export function presentPackage(
     rating: `${pk.rating.toFixed(1)}/5 ★`,
     ratingScore: pk.rating,
     duration: `${pk.durationDays} Days / ${pk.durationNights} Nights`,
-    price: priceLabel(startingPrice),
+    priceType: pk.priceType ?? 'per_person',
+    personLimit: pk.personLimit ?? pk.pricing?.maxGuests ?? null,
+    price: priceLabel(startingPrice, pk.priceType),
     numericPrice: startingPrice,
     pricingRules: pk.pricingRules ?? null,
-    pricingUnit: 'person' as const,
+    pricingUnit: pk.priceType === 'per_night' ? ('night' as const) : ('person' as const),
     fullDesc: pk.overview ?? pk.description ?? pk.shortDesc,
     hostProperty: extra.property
       ? {
@@ -78,11 +79,13 @@ export function presentPackageCard(pk: Package, extra: Record<string, unknown> =
     locationId: pk.locationId,
     city: pk.city,
     country: pk.country,
-    price: priceLabel(startingPrice),
+    priceType: pk.priceType ?? 'per_person',
+    personLimit: pk.personLimit ?? pk.pricing?.maxGuests ?? null,
+    price: priceLabel(startingPrice, pk.priceType),
     numericPrice: startingPrice,
     originalPrice: pk.originalPrice,
     pricingRules: pk.pricingRules ?? null,
-    pricingUnit: 'person' as const,
+    pricingUnit: pk.priceType === 'per_night' ? ('night' as const) : ('person' as const),
     shortDesc: pk.shortDesc,
     thumbnail: pk.thumbnail,
     featured: pk.featured,

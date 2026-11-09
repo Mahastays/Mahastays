@@ -147,6 +147,8 @@ export async function createPackage(vendorId: string, input: CreatePackageInput)
       category: input.category,
       title: input.title,
       badge: input.badge,
+      priceType: input.priceType ?? 'per_person',
+      personLimit: input.personLimit ?? input.pricing?.maxGuests ?? null,
       durationDays: input.durationDays,
       durationNights: input.durationNights,
       location: input.location,
@@ -197,6 +199,8 @@ export async function updatePackage(vendorId: string, id: string, input: UpdateP
   if (input.category !== undefined) data.category = input.category;
   if (input.title !== undefined) data.title = input.title;
   if (input.badge !== undefined) data.badge = input.badge;
+  if (input.priceType !== undefined) data.priceType = input.priceType;
+  if (input.personLimit !== undefined) data.personLimit = input.personLimit;
   if (input.durationDays !== undefined) data.durationDays = input.durationDays;
   if (input.durationNights !== undefined) data.durationNights = input.durationNights;
   if (input.location !== undefined) data.location = input.location;

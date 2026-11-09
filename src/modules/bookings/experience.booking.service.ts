@@ -43,10 +43,24 @@ async function prepareExperience(input: ExperienceBookingInput, viewerId?: strin
   if (input.activityDate < today) throw bad('Activity date cannot be in the past', 'DATE_IN_PAST');
   if (diffDays(today, input.activityDate) > MAX_ADVANCE_BOOKING_DAYS) throw bad('Bookings open up to 18 months in advance', 'TOO_FAR_AHEAD');
   const participants = input.participants.adults + input.participants.children;
+  const effectiveMaxParticipants = exp.personLimit || slot.capacity;
+  if (participants > effectiveMaxParticipants) {
+    throw bad(
+      `This experience accommodates up to ${effectiveMaxParticipants} participants. You selected ${participants}. Please choose another session or reduce participant count.`,
+      'PARTICIPANT_COUNT',
+      { maxParticipants: effectiveMaxParticipants }
+    );
+  }
 
   const isMember = await isActiveClubMember(viewerId);
   const ledger = calculateExperiencePricing(
-    { pricePerPerson: tier.pricePerPerson, adults: input.participants.adults, children: input.participants.children, isClubMember: isMember },
+    {
+      pricePerPerson: tier.pricePerPerson,
+      priceType: (exp.priceType as any) ?? 'per_person',
+      adults: input.participants.adults,
+      children: input.participants.children,
+      isClubMember: isMember,
+    },
     toPricingConfig(config),
   );
   return { exp, vendor, tier, slot, participants, isMember, ledger };

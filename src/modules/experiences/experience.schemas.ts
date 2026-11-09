@@ -40,6 +40,8 @@ const experienceBase = z.object({
   locationId: v.optionalTrimmed(80),
   duration: v.trimmed(2, 100),
   category: z.enum(EXPERIENCE_CATEGORIES),
+  priceType: z.enum(['per_person', 'per_night']).default('per_person').optional(),
+  personLimit: z.number().int().min(1).max(2000).optional(),
   difficulty: z.enum(DIFFICULTIES).default('Easy'),
   ageLimit: v.optionalTrimmed(60),
   groupSize: v.optionalTrimmed(80),

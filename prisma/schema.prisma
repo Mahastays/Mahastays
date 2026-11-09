@@ -1026,6 +1026,8 @@ model Package {
   category           PackageCategory
   title              String
   badge              String?
+  priceType          String?             @default("per_person") // "per_person" | "per_night"
+  personLimit        Int?                // max guests allowed
   durationDays       Int
   durationNights     Int
   location           String
@@ -1087,6 +1089,8 @@ model Experience {
   serviceableLocation ServiceableLocation?
   duration           String
   category           String // "Trekking" | "Culture & Food" | "Cruises" | "Safari & Desert" | "Adventure"
+  priceType          String?            @default("per_person") // "per_person" | "per_night"
+  personLimit        Int?               // max participants allowed
   numericPrice       Int // cheapest tier price per person (derived)
   originalPrice      Int?
   difficulty         Difficulty         @default(Easy)

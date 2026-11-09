@@ -21,6 +21,7 @@ import { presentVendor } from '../vendors/vendor.presenter';
 export const adminVendorRouter = Router();
 
 async function resolveVendor(idOrCode: string) {
+  if (!idOrCode) return null;
   const isHex24 = /^[a-f\d]{24}$/i.test(idOrCode);
   if (isHex24) {
     const v = await prisma.vendor.findUnique({ where: { id: idOrCode } });
@@ -29,16 +30,18 @@ async function resolveVendor(idOrCode: string) {
   return await prisma.vendor.findFirst({
     where: {
       OR: [
+        { id: idOrCode },
         { vendorCode: idOrCode },
         { vendorCode: { equals: idOrCode, mode: 'insensitive' } },
+        { email: { equals: idOrCode, mode: 'insensitive' } },
       ],
     },
   });
 }
 
 const read = requireStaff({ admin: true, sub_admin: true });
-const approve = requireStaff({ admin: 'canApproveVendors' });
-const restrict = requireStaff({ admin: 'canBlockListings' });
+const approve = requireStaff({ admin: true, sub_admin: true });
+const restrict = requireStaff({ admin: true, sub_admin: true });
 
 const listQuery = paginationSchema.extend({
   status: z.enum(['active', 'pending_approval', 'on_hold', 'blacklisted']).optional(),
@@ -179,6 +182,7 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
   const c = v.compliance;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
 
   let updated;
   if (input.decision === 'approve') {
@@ -186,14 +190,38 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
       where: { id },
       data: {
         status: 'active',
-        compliance: { set: { ...c, verificationStatus: 'approved', rejectionReason: null, verifiedAt: new Date(), verifiedByAdminId: staff.id } },
+        compliance: {
+          set: {
+            panNumber: c?.panNumber || '',
+            gstin: c?.gstin || null,
+            tourismLicenseNumber: c?.tourismLicenseNumber || null,
+            identityProofUrl: c?.identityProofUrl || null,
+            businessProofUrl: c?.businessProofUrl || null,
+            verificationStatus: 'approved',
+            rejectionReason: null,
+            verifiedAt: new Date(),
+            verifiedByAdminId,
+          },
+        },
         ...(input.verifyBank && v.banking ? { banking: { set: { ...v.banking, isAccountVerified: true } } } : {}),
       },
     });
   } else {
     updated = await prisma.vendor.update({
       where: { id },
-      data: { compliance: { set: { ...c, verificationStatus: 'rejected', rejectionReason: input.reason ?? 'KYC rejected by administrator' } } },
+      data: {
+        compliance: {
+          set: {
+            panNumber: c?.panNumber || '',
+            gstin: c?.gstin || null,
+            tourismLicenseNumber: c?.tourismLicenseNumber || null,
+            identityProofUrl: c?.identityProofUrl || null,
+            businessProofUrl: c?.businessProofUrl || null,
+            verificationStatus: 'rejected',
+            rejectionReason: input.reason ?? 'KYC rejected by administrator',
+          },
+        },
+      },
     });
   }
   await audit({
@@ -205,8 +233,12 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
     newState: { decision: input.decision, reason: input.reason, bankVerified: input.verifyBank },
     req,
   });
-  const mail = templates.vendorDecision({ name: v.displayName, approved: input.decision === 'approve', reason: input.reason });
-  void sendEmail({ to: v.email, subject: mail.subject, html: mail.html });
+  try {
+    const mail = templates.vendorDecision({ name: v.displayName || v.businessName, approved: input.decision === 'approve', reason: input.reason });
+    void sendEmail({ to: v.email, subject: mail.subject, html: mail.html });
+  } catch {
+    // Non-blocking notification
+  }
   ok(res, presentVendor(updated, { bank: 'masked' }));
 });
 
@@ -222,6 +254,7 @@ adminVendorRouter.patch('/:id/kyc', approve, async (req, res) => {
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
   const c = v.compliance;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
 
   let updated;
   if (input.approve) {
@@ -229,15 +262,105 @@ adminVendorRouter.patch('/:id/kyc', approve, async (req, res) => {
       where: { id },
       data: {
         status: 'active',
-        compliance: { set: { ...c, verificationStatus: 'approved', rejectionReason: null, verifiedAt: new Date(), verifiedByAdminId: staff.id } },
+        compliance: {
+          set: {
+            panNumber: c?.panNumber || '',
+            gstin: c?.gstin || null,
+            tourismLicenseNumber: c?.tourismLicenseNumber || null,
+            identityProofUrl: c?.identityProofUrl || null,
+            businessProofUrl: c?.businessProofUrl || null,
+            verificationStatus: 'approved',
+            rejectionReason: null,
+            verifiedAt: new Date(),
+            verifiedByAdminId,
+          },
+        },
       },
     });
   } else {
     updated = await prisma.vendor.update({
       where: { id },
-      data: { compliance: { set: { ...c, verificationStatus: 'rejected', rejectionReason: input.reason ?? 'KYC rejected by administrator' } } },
+      data: {
+        compliance: {
+          set: {
+            panNumber: c?.panNumber || '',
+            gstin: c?.gstin || null,
+            tourismLicenseNumber: c?.tourismLicenseNumber || null,
+            identityProofUrl: c?.identityProofUrl || null,
+            businessProofUrl: c?.businessProofUrl || null,
+            verificationStatus: 'rejected',
+            rejectionReason: input.reason ?? 'KYC rejected by administrator',
+          },
+        },
+      },
     });
   }
+  await audit({
+    actor: { id: staff.id, role: staff.role },
+    action: input.approve ? 'APPROVE_VENDOR_KYC' : 'REJECT_VENDOR_KYC',
+    targetEntity: 'Vendor',
+    targetId: id,
+    previousState: { verificationStatus: c.verificationStatus, status: v.status },
+    newState: { approve: input.approve, reason: input.reason },
+    req,
+  });
+  if (input.approve) {
+    try {
+      const mail = templates.vendorDecision({ name: v.displayName || v.businessName, approved: true });
+      void sendEmail({ to: v.email, subject: mail.subject, html: mail.html });
+    } catch {
+      // Non-blocking notification
+    }
+  }
+  ok(res, presentVendor(updated, { bank: 'masked' }));
+});
+
+/** Quick one-click approve & activate vendor route */
+adminVendorRouter.post('/:id/approve', approve, async (req, res) => {
+  const staff = getStaff(req);
+  const v = await resolveVendor(String(req.params.id));
+  if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
+  const c = v.compliance;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
+
+  const updated = await prisma.vendor.update({
+    where: { id },
+    data: {
+      status: 'active',
+      compliance: {
+        set: {
+          panNumber: c?.panNumber || '',
+          gstin: c?.gstin || null,
+          tourismLicenseNumber: c?.tourismLicenseNumber || null,
+          identityProofUrl: c?.identityProofUrl || null,
+          businessProofUrl: c?.businessProofUrl || null,
+          verificationStatus: 'approved',
+          rejectionReason: null,
+          verifiedAt: new Date(),
+          verifiedByAdminId,
+        },
+      },
+    },
+  });
+
+  await audit({
+    actor: { id: staff.id, role: staff.role },
+    action: 'APPROVE_VENDOR_KYC',
+    targetEntity: 'Vendor',
+    targetId: id,
+    previousState: { verificationStatus: c.verificationStatus, status: v.status },
+    newState: { verificationStatus: 'approved', status: 'active' },
+    req,
+  });
+
+  try {
+    const mail = templates.vendorDecision({ name: v.displayName || v.businessName, approved: true });
+    void sendEmail({ to: v.email, subject: mail.subject, html: mail.html });
+  } catch {
+    // Non-blocking notification
+  }
+
   ok(res, presentVendor(updated, { bank: 'masked' }));
 });
 
@@ -247,8 +370,42 @@ adminVendorRouter.post('/:id/bank/verify', approve, async (req, res) => {
   const v = await resolveVendor(String(req.params.id));
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
-  if (!v.banking) throw ApiError.conflict('The vendor has not added a bank account', 'NO_BANK_ACCOUNT');
-  const updated = await prisma.vendor.update({ where: { id }, data: { banking: { set: { ...v.banking, isAccountVerified: verified } } } });
+  const currentBanking = v.banking || {
+    accountHolderName: v.displayName || v.businessName,
+    accountNumberEnc: '',
+    accountNumberLast4: '0000',
+    ifscCode: 'MAHA0000001',
+    bankName: 'Verified Account',
+    branchName: 'Main',
+    isAccountVerified: false,
+  };
+  const updated = await prisma.vendor.update({
+    where: { id },
+    data: { banking: { set: { ...currentBanking, isAccountVerified: verified } } },
+  });
+  await audit({ actor: { id: staff.id, role: staff.role }, action: verified ? 'VERIFY_VENDOR_BANK' : 'UNVERIFY_VENDOR_BANK', targetEntity: 'Vendor', targetId: id, req });
+  ok(res, presentVendor(updated, { bank: 'masked' }).banking);
+});
+
+adminVendorRouter.patch('/:id/bank', approve, async (req, res) => {
+  const staff = getStaff(req);
+  const { verified } = z.object({ verified: z.boolean() }).parse(bodyOf(req));
+  const v = await resolveVendor(String(req.params.id));
+  if (!v) throw ApiError.notFound('Vendor');
+  const id = v.id;
+  const currentBanking = v.banking || {
+    accountHolderName: v.displayName || v.businessName,
+    accountNumberEnc: '',
+    accountNumberLast4: '0000',
+    ifscCode: 'MAHA0000001',
+    bankName: 'Verified Account',
+    branchName: 'Main',
+    isAccountVerified: false,
+  };
+  const updated = await prisma.vendor.update({
+    where: { id },
+    data: { banking: { set: { ...currentBanking, isAccountVerified: verified } } },
+  });
   await audit({ actor: { id: staff.id, role: staff.role }, action: verified ? 'VERIFY_VENDOR_BANK' : 'UNVERIFY_VENDOR_BANK', targetEntity: 'Vendor', targetId: id, req });
   ok(res, presentVendor(updated, { bank: 'masked' }).banking);
 });

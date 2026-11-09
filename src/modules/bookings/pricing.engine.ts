@@ -73,6 +73,8 @@ export function calculateStayPricing(input: StayPricingInput, cfg: PricingConfig
 
 export interface PackagePricingInput {
   pricePerPerson: number;
+  priceType?: 'per_person' | 'per_night' | string;
+  durationNights?: number;
   /** Explicit child price from the package; otherwise PlatformConfig child % (60%) of the adult price. */
   childPrice?: number | null;
   adults: number;
@@ -84,6 +86,7 @@ export interface PackagePricingInput {
 
 export interface PackageLedger {
   pricePerPerson: number;
+  priceType: 'per_person' | 'per_night';
   adultsCost: number;
   childrenCost: number;
   weekendSurcharge: number;
@@ -96,9 +99,11 @@ export interface PackageLedger {
 }
 
 export function calculatePackagePricing(input: PackagePricingInput, cfg: PricingConfig): PackageLedger {
-  const adultsCost = input.pricePerPerson * input.adults;
-  const childUnit = input.childPrice ?? pct(input.pricePerPerson, cfg.packageChildPricePercent);
-  const childrenCost = childUnit * input.children;
+  const isPerNight = input.priceType === 'per_night';
+  const nights = Math.max(1, input.durationNights || 1);
+  const adultsCost = isPerNight ? input.pricePerPerson * nights : input.pricePerPerson * input.adults;
+  const childUnit = isPerNight ? 0 : (input.childPrice ?? pct(input.pricePerPerson, cfg.packageChildPricePercent));
+  const childrenCost = isPerNight ? 0 : childUnit * input.children;
   const weekendSurcharge = cfg.dynamicPricingEnabled && isWeekendNight(input.startDate) ? (input.weekendSurcharge ?? 0) : 0;
   const baseCost = adultsCost + childrenCost + weekendSurcharge;
   const memberDiscount = input.isClubMember ? pct(baseCost, cfg.clubMemberDiscountPercent) : 0;
@@ -106,6 +111,7 @@ export function calculatePackagePricing(input: PackagePricingInput, cfg: Pricing
   const taxesGst = pct(taxableAmount, cfg.gstPackagesPercent);
   return {
     pricePerPerson: input.pricePerPerson,
+    priceType: isPerNight ? 'per_night' : 'per_person',
     adultsCost,
     childrenCost,
     weekendSurcharge,
@@ -122,6 +128,7 @@ export function calculatePackagePricing(input: PackagePricingInput, cfg: Pricing
 
 export interface ExperiencePricingInput {
   pricePerPerson: number;
+  priceType?: 'per_person' | 'per_night' | string;
   adults: number;
   children: number;
   isClubMember: boolean;
@@ -129,6 +136,7 @@ export interface ExperiencePricingInput {
 
 export interface ExperienceLedger {
   pricePerPerson: number;
+  priceType: 'per_person' | 'per_night';
   adultsCost: number;
   childrenCost: number;
   baseCost: number;
@@ -141,16 +149,20 @@ export interface ExperienceLedger {
 }
 
 export function calculateExperiencePricing(input: ExperiencePricingInput, cfg: PricingConfig): ExperienceLedger {
+  const isPerNight = input.priceType === 'per_night';
   const participants = input.adults + input.children;
-  const adultsCost = input.pricePerPerson * input.adults;
-  const childrenCost = pct(input.pricePerPerson, cfg.experienceChildPricePercent) * input.children;
+  const adultsCost = isPerNight ? input.pricePerPerson : input.pricePerPerson * input.adults;
+  const childrenCost = isPerNight ? 0 : pct(input.pricePerPerson, cfg.experienceChildPricePercent) * input.children;
   const baseCost = adultsCost + childrenCost;
   const memberDiscount = input.isClubMember ? pct(baseCost, cfg.clubMemberDiscountPercent) : 0;
-  const gearInsuranceFee = pct(input.pricePerPerson, cfg.gearInsuranceFeeRatePercent) * participants;
+  const gearInsuranceFee = isPerNight
+    ? pct(input.pricePerPerson, cfg.gearInsuranceFeeRatePercent)
+    : pct(input.pricePerPerson, cfg.gearInsuranceFeeRatePercent) * participants;
   const taxableAmount = baseCost - memberDiscount + gearInsuranceFee;
   const taxesGst = pct(taxableAmount, cfg.gstExperiencesPercent);
   return {
     pricePerPerson: input.pricePerPerson,
+    priceType: isPerNight ? 'per_night' : 'per_person',
     adultsCost,
     childrenCost,
     baseCost,

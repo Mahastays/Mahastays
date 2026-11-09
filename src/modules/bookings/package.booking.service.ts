@@ -43,14 +43,21 @@ async function preparePackage(input: PackageBookingInput, viewerId?: string) {
     throw bad('This package is not available for the selected dates', 'OUTSIDE_VALIDITY', { validFrom: pkg.validFrom, validTill: pkg.validTill });
   }
   const total = input.travelers.adults + input.travelers.children;
-  if (total < pkg.pricing.minGuests || total > pkg.pricing.maxGuests) {
-    throw bad(`This package is for ${pkg.pricing.minGuests}–${pkg.pricing.maxGuests} travellers`, 'TRAVELLER_COUNT', { minGuests: pkg.pricing.minGuests, maxGuests: pkg.pricing.maxGuests });
+  const effectiveMaxGuests = pkg.personLimit || pkg.pricing.maxGuests;
+  if (total < pkg.pricing.minGuests || total > effectiveMaxGuests) {
+    throw bad(
+      `This package accommodates ${pkg.pricing.minGuests}–${effectiveMaxGuests} travelers. You selected ${total}. Please adjust traveler count or choose another package.`,
+      'TRAVELLER_COUNT',
+      { minGuests: pkg.pricing.minGuests, maxGuests: effectiveMaxGuests }
+    );
   }
 
   const isMember = await isActiveClubMember(viewerId);
   const ledger = calculatePackagePricing(
     {
       pricePerPerson: tier.pricePerPerson,
+      priceType: (pkg.priceType as any) ?? 'per_person',
+      durationNights: pkg.durationNights,
       childPrice: pkg.pricing.childPrice,
       adults: input.travelers.adults,
       children: input.travelers.children,
