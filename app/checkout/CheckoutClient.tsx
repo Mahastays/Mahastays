@@ -66,6 +66,10 @@ function CheckoutContent() {
   const discountParam = searchParams.get("discount");
   const feeParam = searchParams.get("cleaningFee");
   const gstParam = searchParams.get("gst");
+  const priceTypeParam = searchParams.get("priceType");
+  const personLimitParam = searchParams.get("personLimit");
+  const priceType = priceTypeParam === "per_night" ? "per_night" : "per_person";
+  const personLimit = personLimitParam ? parseInt(personLimitParam, 10) : null;
 
   // Form State
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -133,6 +137,9 @@ function CheckoutContent() {
   const customGstPercent = gstParam !== null ? parseInt(gstParam, 10) : null;
   const discountPercent = customDiscountPercent !== null ? customDiscountPercent : 8;
 
+  const totalTravelers = Math.max(1, adults + children);
+  const isLimitExceeded = personLimit !== null && totalTravelers > personLimit;
+
   let baseCost = 0;
   let memberDiscount = 0;
   let fee = 0;
@@ -147,15 +154,15 @@ function CheckoutContent() {
     taxes = Math.round((baseCost - memberDiscount + fee) * gstRate);
     grandTotal = baseCost - memberDiscount + fee + taxes;
   } else if (bookingType === "package") {
-    const totalTravelers = Math.max(1, adults + children);
-    baseCost = priceParam * totalTravelers;
+    baseCost = priceType === "per_night" ? priceParam * nights : priceParam * totalTravelers;
     memberDiscount = Math.round(baseCost * (discountPercent / 100));
     fee = customFee !== null ? customFee : 0;
     const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
     taxes = Math.round((baseCost - memberDiscount + fee) * gstRate);
     grandTotal = baseCost - memberDiscount + fee + taxes;
   } else {
-    baseCost = priceParam * adults + Math.round(priceParam * 0.7 * children);
+    // experience
+    baseCost = priceType === "per_night" ? priceParam : (priceParam * adults + Math.round(priceParam * 0.7 * children));
     memberDiscount = Math.round(baseCost * (discountPercent / 100));
     fee = customFee !== null ? customFee : 0;
     const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
@@ -341,6 +348,13 @@ function CheckoutContent() {
 
     const cleanPhoneDigits = extractPhone(formData.phone);
 
+    if (isLimitExceeded) {
+      const msg = `Booking capacity exceeded. The maximum limit for this ${bookingType} is ${personLimit} persons (${totalTravelers} selected).`;
+      setErrorMsg(msg);
+      toast.error(msg, "Limit Exceeded");
+      return;
+    }
+
     if (!formData.fullName.trim() || !formData.email.trim()) {
       const msg = "Please fill in your Name and Email Address.";
       setErrorMsg(msg);
@@ -366,6 +380,7 @@ function CheckoutContent() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
       const payload = {
         bookingType,
+        priceType,
         itemId,
         tierOrRoomId,
         tierOrRoomName,
@@ -763,6 +778,23 @@ function CheckoutContent() {
                 </div>
               )}
 
+              {/* Capacity Limit Exceeded Warning Banner */}
+              {isLimitExceeded && (
+                <div className="bg-red-50 border border-red-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 font-bold text-lg shadow-sm">
+                    !
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-red-950 font-poppins">
+                      Guest Capacity Exceeded
+                    </h4>
+                    <p className="text-xs text-red-900 mt-1 leading-relaxed">
+                      This {bookingType} allows a maximum of {personLimit} persons, but {totalTravelers} travelers are currently selected ({adults} Adults, {children} Children). Please reduce traveler count to complete booking.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Account Authentication Banner */}
               {!isLoggedIn ? (
                 <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
@@ -1069,11 +1101,11 @@ function CheckoutContent() {
                 {/* Primary Submit Button */}
                 <button
                   type="submit"
-                  disabled={isLoading || !platformBookingsEnabled}
+                  disabled={isLoading || !platformBookingsEnabled || isLimitExceeded}
                   className={`w-full py-4 px-6 sm:py-3.5 sm:px-6 rounded-2xl text-white font-bold tracking-wide font-poppins transition-all flex items-center justify-center ${
                     isLoading ? 'justify-center' : 'sm:justify-between'
                   } ${
-                    !platformBookingsEnabled
+                    !platformBookingsEnabled || isLimitExceeded
                       ? 'bg-slate-400 cursor-not-allowed shadow-none'
                       : 'bg-[#ea110d] hover:bg-[#d00f0c] active:scale-[0.99] shadow-xl shadow-red-500/25 cursor-pointer disabled:opacity-85'
                   }`}
@@ -1103,6 +1135,8 @@ function CheckoutContent() {
                     <span className="font-extrabold text-sm font-poppins">
                       {!platformBookingsEnabled
                         ? "Platform Bookings Paused"
+                        : isLimitExceeded
+                        ? `Guest Limit Exceeded (Max ${personLimit})`
                         : !isLoggedIn
                         ? `Log In to Book (₹${finalGrandTotal.toLocaleString("en-IN")})`
                         : extractPhone(formData.phone).length !== 10
@@ -1118,6 +1152,8 @@ function CheckoutContent() {
                       <span className="text-base sm:text-lg font-extrabold font-poppins">
                         {!platformBookingsEnabled
                           ? "Platform Bookings Paused by Administration"
+                          : isLimitExceeded
+                          ? `Capacity Exceeded (Max ${personLimit} persons)`
                           : !isLoggedIn
                           ? `Log In to Book (₹${finalGrandTotal.toLocaleString("en-IN")})`
                           : extractPhone(formData.phone).length !== 10
@@ -1452,9 +1488,11 @@ function CheckoutContent() {
                 <div className="flex justify-between">
                   <span>
                     ₹{priceParam.toLocaleString("en-IN")}{" "}
-                    {bookingType === "experience"
-                      ? `× ${adults} adults`
-                      : `× ${nights} nights`}
+                    {bookingType === "stay"
+                      ? `× ${nights} nights`
+                      : priceType === "per_night"
+                        ? `(flat per night × ${bookingType === "package" ? nights : 1})`
+                        : `× ${totalTravelers} travelers`}
                   </span>
                   <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString("en-IN")}</span>
                 </div>

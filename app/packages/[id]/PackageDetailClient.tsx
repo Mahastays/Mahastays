@@ -122,6 +122,8 @@ export default function PackageDetailsPage() {
       totalBookings: p.totalBookings || 0,
       featured: p.featured,
       acceptingBookings: p.acceptingBookings !== false,
+      priceType: p.priceType || 'per_person',
+      personLimit: p.personLimit || p.pricing?.maxGuests || 10,
       pricingRules: p.pricingRules || (selectedPackage as any)?.pricingRules || null,
     };
   }, [selectedPackage, packageId]);
@@ -278,6 +280,12 @@ export default function PackageDetailsPage() {
   }, [pkg?.tiers, selectedTierId]);
 
   // Calculations
+  const priceType: 'per_person' | 'per_night' = (pkg as any)?.priceType === 'per_night' ? 'per_night' : 'per_person';
+  const isPerNight = priceType === 'per_night';
+  const personLimit = (pkg as any)?.personLimit || (pkg as any)?.pricing?.maxGuests || 10;
+  const totalGuests = adults + children;
+  const isPersonLimitExceeded = totalGuests > personLimit;
+
   const pricePerPerson = selectedTier?.pricePerPerson || pkg?.numericPrice || 14999;
   const originalPricePerPerson = selectedTier?.originalPrice || pkg?.originalPrice || 19999;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
@@ -293,8 +301,8 @@ export default function PackageDetailsPage() {
     : (pricingRules?.includeGst === false ? 0 : 18);
   const gstRate = gstPercent / 100;
 
-  const totalGuests = adults + children;
-  const basePrice = pricePerPerson * totalGuests;
+  const durationNights = Math.max(1, pkg?.durationNights || 1);
+  const basePrice = isPerNight ? pricePerPerson * durationNights : pricePerPerson * totalGuests;
   const discountAmount = Math.round(basePrice * (memberDiscountPercent / 100));
   const taxesAndGst = Math.round((basePrice - discountAmount + feeAmount) * gstRate);
   const grandTotal = Math.max(0, basePrice - discountAmount + feeAmount + taxesAndGst);
@@ -1390,7 +1398,12 @@ export default function PackageDetailsPage() {
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins">
                     ₹{pricePerPerson.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-slate-500 font-normal"> / person</span>
+                  <span className="text-xs text-slate-500 font-normal"> / {isPerNight ? "night" : "person"}</span>
+                  {isPerNight && (
+                    <span className="block text-[11px] text-slate-500 font-medium mt-0.5">
+                      Max limit: {personLimit} guests per booking
+                    </span>
+                  )}
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-slate-400 line-through block font-poppins">
@@ -1527,6 +1540,25 @@ export default function PackageDetailsPage() {
                     This holiday package is temporarily not accepting reservations. Please check back shortly or reach out to concierge.
                   </p>
                 </div>
+              ) : isPersonLimitExceeded ? (
+                <div className="space-y-2.5">
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-2">
+                    <svg className="w-4 h-4 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    <div className="text-xs">
+                      <span className="font-bold">Guest limit exceeded: </span>
+                      <span>This package accommodates a maximum of {personLimit} guests ({totalGuests} selected). Sorry, please reduce the guest count to proceed.</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm font-poppins cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <span>Guest Limit Exceeded (Max {personLimit})</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -1541,6 +1573,8 @@ export default function PackageDetailsPage() {
                       adults: String(adults),
                       children: String(children),
                       price: String(pricePerPerson),
+                      priceType: priceType,
+                      personLimit: String(personLimit),
                       discount: String(memberDiscountPercent),
                       cleaningFee: String(includeFee ? feeAmount : 0),
                       gst: String(gstPercent),
@@ -1568,7 +1602,9 @@ export default function PackageDetailsPage() {
               <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>
-                    ₹{pricePerPerson.toLocaleString("en-IN")} × {totalGuests} travelers
+                    {isPerNight
+                      ? `₹${pricePerPerson.toLocaleString("en-IN")} / night × ${durationNights} nights (${totalGuests} travelers)`
+                      : `₹${pricePerPerson.toLocaleString("en-IN")} × ${totalGuests} travelers`}
                   </span>
                   <span className="font-semibold text-slate-900">₹{basePrice.toLocaleString("en-IN")}</span>
                 </div>
@@ -1626,30 +1662,42 @@ export default function PackageDetailsPage() {
               <span className="text-xs text-slate-500">/ {totalGuests} travelers</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              const queryParams = new URLSearchParams({
-                type: "package",
-                id: String(pkg.id || (pkg as any).code || packageId),
-                title: pkg.title,
-                tierId: selectedTier?.id || selectedTierId,
-                tierName: selectedTier?.name || "All-Inclusive VIP Suite",
-                checkIn: startDate,
-                adults: String(adults),
-                children: String(children),
-                price: String(pricePerPerson),
-                discount: String(memberDiscountPercent),
-                cleaningFee: String(includeFee ? feeAmount : 0),
-                gst: String(gstPercent),
-                image: allPhotos[0] || "",
-              });
-              router.push(`/checkout?${queryParams.toString()}`);
-            }}
-            className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
-          >
-            Reserve Now
-          </button>
+          {isPersonLimitExceeded ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed"
+            >
+              Limit Exceeded
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const queryParams = new URLSearchParams({
+                  type: "package",
+                  id: String(pkg.id || (pkg as any).code || packageId),
+                  title: pkg.title,
+                  tierId: selectedTier?.id || selectedTierId,
+                  tierName: selectedTier?.name || "All-Inclusive VIP Suite",
+                  checkIn: startDate,
+                  adults: String(adults),
+                  children: String(children),
+                  price: String(pricePerPerson),
+                  priceType: priceType,
+                  personLimit: String(personLimit),
+                  discount: String(memberDiscountPercent),
+                  cleaningFee: String(includeFee ? feeAmount : 0),
+                  gst: String(gstPercent),
+                  image: allPhotos[0] || "",
+                });
+                router.push(`/checkout?${queryParams.toString()}`);
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
+            >
+              Reserve Now
+            </button>
+          )}
         </div>
       </main>
 

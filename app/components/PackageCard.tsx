@@ -19,6 +19,8 @@ export interface PackageData {
   city?: string;
   country?: string;
   durationDays?: number;
+  priceType?: 'per_person' | 'per_night';
+  personLimit?: number;
   featured?: boolean;
   acceptingBookings?: boolean;
 }
@@ -155,7 +157,8 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
           {/* Price with highlight */}
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Total Package
+              {pkg.priceType === 'per_night' ? 'Per Night' : 'Total Package'}
+              {pkg.priceType === 'per_night' && pkg.personLimit ? ` (Max ${pkg.personLimit})` : ''}
             </span>
             <div className="text-base sm:text-[17px] font-black text-[#ea110d] tracking-tight truncate">
               {pkg.price}

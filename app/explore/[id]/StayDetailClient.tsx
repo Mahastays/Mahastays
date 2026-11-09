@@ -307,6 +307,25 @@ export default function StayBookingDetailsPage() {
   const originalRate = selectedRoom?.originalPrice || stay?.originalPrice || 28000;
   const savingsPerNight = Math.max(0, originalRate - roomPricePerNight);
 
+  // Capacity and guest validation
+  const totalGuests = adults + children;
+  const roomMaxGuests = selectedRoom?.maxGuests || 2;
+  const isRoomExceeded = totalGuests > roomMaxGuests;
+
+  const alternativeRoom = useMemo(() => {
+    if (!isRoomExceeded || !stay?.rooms) return undefined;
+    return stay.rooms.find(
+      (r) =>
+        (r.roomId !== selectedRoom?.roomId && r.id !== selectedRoom?.id) &&
+        (r.maxGuests || 2) >= totalGuests
+    );
+  }, [isRoomExceeded, stay?.rooms, selectedRoom, totalGuests]);
+
+  const maxStayCapacity = useMemo(() => {
+    if (!stay?.rooms || stay.rooms.length === 0) return 2;
+    return Math.max(...stay.rooms.map((r) => r.maxGuests || 2));
+  }, [stay?.rooms]);
+
   const nights = useMemo(() => {
     const d1 = new Date(checkInDate);
     const d2 = new Date(checkOutDate);
@@ -1559,6 +1578,48 @@ export default function StayBookingDetailsPage() {
                     This stay is temporarily not accepting reservations. Please check back later or contact our 24/7 concierge desk.
                   </p>
                 </div>
+              ) : isRoomExceeded ? (
+                <div className="space-y-2.5">
+                  {alternativeRoom ? (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2.5">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="text-xs">
+                          <span className="font-bold">Room guest limit exceeded: </span>
+                          <span>{selectedRoom?.name || 'Selected room'} fits up to {roomMaxGuests} guests ({totalGuests} selected).</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRoomId(alternativeRoom.roomId || alternativeRoom.id)}
+                        className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        <span>Choose {alternativeRoom.name}</span>
+                        <span className="opacity-90 font-normal">({alternativeRoom.maxGuests} max guests)</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-2">
+                      <svg className="w-4 h-4 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      <div className="text-xs">
+                        <span className="font-bold">Sorry, capacity exceeded: </span>
+                        <span>No room at this stay accommodates {totalGuests} guests (maximum capacity is {maxStayCapacity} guests). Please reduce guest count.</span>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm font-poppins cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <span>Capacity Exceeded ({totalGuests} Guests)</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -1662,32 +1723,42 @@ export default function StayBookingDetailsPage() {
               <span className="text-xs text-slate-500">/ {nights} nights</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              const queryParams = new URLSearchParams({
-                type: "stay",
-                id: String(stay.id || (stay as any).code || stayId),
-                title: stay.name,
-                roomId: selectedRoom?.roomId || selectedRoom?.id || selectedRoomId,
-                roomName: selectedRoom?.name || "Valley Master Suite",
-                checkIn: checkInDate,
-                checkOut: checkOutDate,
-                adults: String(adults),
-                children: String(children),
-                nights: String(nights),
-                price: String(roomPricePerNight),
-                discount: String(memberDiscountPercent),
-                cleaningFee: String(includeCleaningFee ? cleaningFee : 0),
-                gst: String(gstPercent),
-                image: allPhotos[0] || "",
-              });
-              router.push(`/checkout?${queryParams.toString()}`);
-            }}
-            className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
-          >
-            Reserve Now
-          </button>
+          {isRoomExceeded ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed"
+            >
+              Capacity Exceeded
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const queryParams = new URLSearchParams({
+                  type: "stay",
+                  id: String(stay.id || (stay as any).code || stayId),
+                  title: stay.name,
+                  roomId: selectedRoom?.roomId || selectedRoom?.id || selectedRoomId,
+                  roomName: selectedRoom?.name || "Valley Master Suite",
+                  checkIn: checkInDate,
+                  checkOut: checkOutDate,
+                  adults: String(adults),
+                  children: String(children),
+                  nights: String(nights),
+                  price: String(roomPricePerNight),
+                  discount: String(memberDiscountPercent),
+                  cleaningFee: String(includeCleaningFee ? cleaningFee : 0),
+                  gst: String(gstPercent),
+                  image: allPhotos[0] || "",
+                });
+                router.push(`/checkout?${queryParams.toString()}`);
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
+            >
+              Reserve Now
+            </button>
+          )}
         </div>
       </main>
 

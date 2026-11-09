@@ -17,6 +17,8 @@ export interface ExperienceData {
   description: string;
   category?: string;
   city?: string;
+  priceType?: 'per_person' | 'per_night';
+  personLimit?: number;
   featured?: boolean;
   acceptingBookings?: boolean;
 }
@@ -138,7 +140,10 @@ export default function ExperienceCard({ item, onBook }: ExperienceCardProps) {
         {/* Price and Book Option */}
         <div className="flex items-center justify-between gap-2 sm:gap-3 pt-3 border-t border-white/20">
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] uppercase tracking-wider text-white/70">Price from</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/70">
+              {item.priceType === 'per_night' ? 'Per Night' : 'Price from'}
+              {item.priceType === 'per_night' && item.personLimit ? ` (Max ${item.personLimit})` : ''}
+            </span>
             <span className="text-xs sm:text-sm md:text-base font-bold text-white tracking-tight truncate">{item.price}</span>
           </div>
 

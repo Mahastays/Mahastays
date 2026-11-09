@@ -138,6 +138,8 @@ export default function ExperienceDetailsPage() {
       status: e.status || "active",
       featured: e.featured,
       acceptingBookings: e.acceptingBookings !== false,
+      priceType: e.priceType || 'per_person',
+      personLimit: e.personLimit || 15,
       pricingRules: e.pricingRules || (selectedExperience as any)?.pricingRules || null,
     };
   }, [selectedExperience, experienceId]);
@@ -298,6 +300,12 @@ export default function ExperienceDetailsPage() {
   }, [exp?.slots, selectedSlotId]);
 
   // Price calculations
+  const priceType: 'per_person' | 'per_night' = (exp as any)?.priceType === 'per_night' ? 'per_night' : 'per_person';
+  const isPerNight = priceType === 'per_night';
+  const personLimit = (exp as any)?.personLimit || selectedSlot?.availableSpots || 15;
+  const totalParticipants = adults + children;
+  const isPersonLimitExceeded = totalParticipants > personLimit;
+
   const pricePerPerson = selectedTier?.pricePerPerson || exp?.numericPrice || 2400;
   const originalPricePerPerson = selectedTier?.originalPrice || exp?.originalPrice || 3500;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
@@ -313,8 +321,7 @@ export default function ExperienceDetailsPage() {
     : (pricingRules?.includeGst === false ? 0 : 18);
   const gstRate = gstPercent / 100;
 
-  const totalParticipants = adults + children;
-  const basePrice = pricePerPerson * totalParticipants;
+  const basePrice = isPerNight ? pricePerPerson : pricePerPerson * totalParticipants;
   const discountAmount = Math.round(basePrice * (memberDiscountPercent / 100));
   const taxesAndGst = Math.round((basePrice - discountAmount + feeAmount) * gstRate);
   const grandTotal = Math.max(0, basePrice - discountAmount + feeAmount + taxesAndGst);
@@ -1282,7 +1289,12 @@ export default function ExperienceDetailsPage() {
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins">
                     ₹{pricePerPerson.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-slate-500 font-normal"> / person</span>
+                  <span className="text-xs text-slate-500 font-normal"> / {isPerNight ? "night" : "person"}</span>
+                  {isPerNight && (
+                    <span className="block text-[11px] text-slate-500 font-medium mt-0.5">
+                      Max limit: {personLimit} participants per booking
+                    </span>
+                  )}
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-slate-400 line-through block font-poppins">
@@ -1419,6 +1431,25 @@ export default function ExperienceDetailsPage() {
                     This experience is temporarily not accepting reservations. Please check back shortly or reach out to concierge.
                   </p>
                 </div>
+              ) : isPersonLimitExceeded ? (
+                <div className="space-y-2.5">
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-2">
+                    <svg className="w-4 h-4 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    <div className="text-xs">
+                      <span className="font-bold">Participant limit exceeded: </span>
+                      <span>This experience accommodates a maximum of {personLimit} participants ({totalParticipants} selected). Sorry, please reduce the participant count to continue.</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm font-poppins cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <span>Participant Limit Exceeded (Max {personLimit})</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -1435,6 +1466,8 @@ export default function ExperienceDetailsPage() {
                       adults: String(adults),
                       children: String(children),
                       price: String(pricePerPerson),
+                      priceType: priceType,
+                      personLimit: String(personLimit),
                       discount: String(memberDiscountPercent),
                       cleaningFee: String(includeFee ? feeAmount : 0),
                       gst: String(gstPercent),
@@ -1462,7 +1495,9 @@ export default function ExperienceDetailsPage() {
               <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>
-                    ₹{pricePerPerson.toLocaleString("en-IN")} × {totalParticipants} participants
+                    {isPerNight
+                      ? `₹${pricePerPerson.toLocaleString("en-IN")} / night (${totalParticipants} participants)`
+                      : `₹${pricePerPerson.toLocaleString("en-IN")} × ${totalParticipants} participants`}
                   </span>
                   <span className="font-semibold text-slate-900">₹{basePrice.toLocaleString("en-IN")}</span>
                 </div>
@@ -1520,32 +1555,44 @@ export default function ExperienceDetailsPage() {
               <span className="text-xs text-slate-500">/ {totalParticipants} persons</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              const queryParams = new URLSearchParams({
-                type: "experience",
-                id: String(exp.id || (exp as any).code || experienceId),
-                title: exp.title,
-                tierId: selectedTier?.id || selectedTierId,
-                tierName: selectedTier?.name || "Standard Guided Trek",
-                slotId: selectedSlot?.id || selectedSlotId,
-                slotTime: selectedSlot?.time || "06:00 AM",
-                checkIn: bookingDate,
-                adults: String(adults),
-                children: String(children),
-                price: String(pricePerPerson),
-                discount: String(memberDiscountPercent),
-                cleaningFee: String(includeFee ? feeAmount : 0),
-                gst: String(gstPercent),
-                image: allPhotos[0] || "",
-              });
-              router.push(`/checkout?${queryParams.toString()}`);
-            }}
-            className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
-          >
-            Reserve Now
-          </button>
+          {isPersonLimitExceeded ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed"
+            >
+              Limit Exceeded
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const queryParams = new URLSearchParams({
+                  type: "experience",
+                  id: String(exp.id || (exp as any).code || experienceId),
+                  title: exp.title,
+                  tierId: selectedTier?.id || selectedTierId,
+                  tierName: selectedTier?.name || "Standard Guided Trek",
+                  slotId: selectedSlot?.id || selectedSlotId,
+                  slotTime: selectedSlot?.time || "06:00 AM",
+                  checkIn: bookingDate,
+                  adults: String(adults),
+                  children: String(children),
+                  price: String(pricePerPerson),
+                  priceType: priceType,
+                  personLimit: String(personLimit),
+                  discount: String(memberDiscountPercent),
+                  cleaningFee: String(includeFee ? feeAmount : 0),
+                  gst: String(gstPercent),
+                  image: allPhotos[0] || "",
+                });
+                router.push(`/checkout?${queryParams.toString()}`);
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[#ea110d] text-white font-bold text-xs font-poppins shadow-md active:scale-95 transition-all"
+            >
+              Reserve Now
+            </button>
+          )}
         </div>
       </main>
 
