@@ -669,9 +669,9 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (UI Matching Reference Image) ─── */}
-            <div className="w-full pt-1">
-              <div className="flex items-end gap-1 sm:gap-2 border-b border-slate-300 dark:border-slate-700 overflow-x-auto scrollbar-none px-1">
+            {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (Shadow-highlighted) ─── */}
+            <div className="w-full pt-1 pb-1">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 px-1">
                 {STAY_PROPERTY_TABS.map((tab) => {
                   const isActive =
                     (tab.id === "All" && (selectedPropertyType === "All" || !selectedPropertyType)) ||
@@ -681,10 +681,10 @@ export default function ExplorePage() {
                       key={tab.id}
                       type="button"
                       onClick={() => setSelectedPropertyType(tab.id)}
-                      className={`relative px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm md:text-base whitespace-nowrap transition-all cursor-pointer ${
+                      className={`px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm md:text-base rounded-2xl whitespace-nowrap transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? "bg-slate-50 text-[#ea110d] border-t border-l border-r border-slate-300 dark:border-slate-700 rounded-t-2xl -mb-[1px] z-10 font-bold"
-                          : "text-slate-600 hover:text-slate-900 font-medium border-t-0 border-l-0 border-r-0 border-b-0 bg-transparent hover:bg-slate-200/50 rounded-t-xl"
+                          ? "bg-white text-[#ea110d] shadow-md shadow-slate-900/10 font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium"
                       }`}
                     >
                       {tab.label}
@@ -761,29 +761,6 @@ export default function ExplorePage() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Second Row: Horizontal Category / Amenity Tabs with Icons (From Image 2) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none">
-              {AMENITY_TABS.map((tab) => {
-                const isActive = selectedAmenity === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSelectedAmenity(tab.id)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-primary text-white shadow-sm shadow-red-500/20"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs"
-                    }`}
-                  >
-                    <span className={isActive ? "text-white" : "text-slate-600"}>
-                      {tab.icon}
-                    </span>
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
             </div>
 
             {/* Active Filter Badges */}

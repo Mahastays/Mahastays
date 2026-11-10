@@ -164,7 +164,7 @@ function StayCard({ stay, onBook }: StayCardProps) {
       id={`stay-card-${stay.id}`}
     >
       {/* Top Image Container - Compact height */}
-      <div className="relative w-full h-40 sm:h-44 overflow-hidden shrink-0 bg-slate-100">
+      <div className="relative w-full h-36 xs:h-40 sm:h-44 overflow-hidden shrink-0 bg-slate-100">
         <img
           src={imgSrc}
           alt={stay.name}
@@ -188,7 +188,7 @@ function StayCard({ stay, onBook }: StayCardProps) {
             e.stopPropagation();
             await toggle();
           }}
-          className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full backdrop-blur-md flex items-center justify-center cursor-pointer z-10 transition-all border border-black/5 ${
+          className={`absolute top-2 right-2 xs:top-2.5 xs:right-2.5 w-6 h-6 xs:w-7 xs:h-7 rounded-full backdrop-blur-md flex items-center justify-center cursor-pointer z-10 transition-all border border-black/5 ${
             isSaved
               ? "bg-[#ea110d] text-white"
               : "bg-white/90 hover:bg-white text-slate-700 hover:text-[#ea110d]"
@@ -196,8 +196,8 @@ function StayCard({ stay, onBook }: StayCardProps) {
           aria-label={`Save ${stay.name}`}
         >
           <svg
-            width="13"
-            height="13"
+            width="12"
+            height="12"
             viewBox="0 0 24 24"
             fill={isSaved ? "currentColor" : "none"}
             stroke="currentColor"
@@ -212,33 +212,33 @@ function StayCard({ stay, onBook }: StayCardProps) {
         {/* Location badge on top left */}
         {stay.location && (
           <div
-            className="absolute top-2.5 left-2.5 z-10 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold text-white/95 border border-white/20 flex items-center gap-1"
+            className="absolute top-2 left-2 xs:top-2.5 xs:left-2.5 z-10 bg-black/60 backdrop-blur-md px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-semibold text-white/95 border border-white/20 flex items-center gap-1"
             title={stay.location}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" />
               <circle cx="12" cy="9" r="3" />
             </svg>
-            <span className="truncate max-w-[130px] sm:max-w-[160px]">{stay.location}</span>
+            <span className="truncate max-w-[95px] xs:max-w-[125px] sm:max-w-[160px]">{stay.location}</span>
           </div>
         )}
 
         {/* Bookings Paused pill on bottom left of image */}
         {stay.acceptingBookings === false && (
-          <div className="absolute bottom-2.5 left-2.5 z-10 bg-amber-500/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold text-white border border-amber-400 tracking-wide uppercase">
+          <div className="absolute bottom-2 left-2 xs:bottom-2.5 xs:left-2.5 z-10 bg-amber-500/95 backdrop-blur-md px-1.5 xs:px-2 py-0.5 rounded-full text-[8px] xs:text-[9px] sm:text-[10px] font-extrabold text-white border border-amber-400 tracking-wide uppercase">
             Bookings Paused
           </div>
         )}
       </div>
 
       {/* Content Area (Clean Light Theme, Compact padding) */}
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-white">
-        <div className="space-y-1.5">
+      <div className="p-2.5 xs:p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 bg-white">
+        <div className="space-y-1 xs:space-y-1.5">
           {/* Title & Price (Original Cut + New Price) */}
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-1.5 xs:gap-2">
             <Link
               href={`/explore/${stay.id}`}
-              className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 hover:text-[#ea110d] transition-colors flex-1 min-w-0 font-poppins"
+              className="text-xs xs:text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 hover:text-[#ea110d] transition-colors flex-1 min-w-0 font-poppins"
               title={stay.name}
             >
               {stay.name}
@@ -246,27 +246,27 @@ function StayCard({ stay, onBook }: StayCardProps) {
 
             <div className="flex flex-col items-end shrink-0">
               {displayOriginalPrice && (
-                <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-semibold leading-tight">
+                <span className="text-[9px] xs:text-[10px] sm:text-[11px] text-slate-400 line-through font-semibold leading-tight">
                   {displayOriginalPrice}
                 </span>
               )}
-              <span className="bg-rose-50 text-[#ea110d] text-xs sm:text-sm font-extrabold px-2.5 py-0.5 rounded-lg whitespace-nowrap border border-rose-100 font-poppins">
+              <span className="bg-rose-50 text-[#ea110d] text-[11px] xs:text-xs sm:text-sm font-extrabold px-1.5 xs:px-2.5 py-0.5 rounded-lg whitespace-nowrap border border-rose-100 font-poppins">
                 {stay.price}
               </span>
             </div>
           </div>
 
           {/* Description */}
-          <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[32px]">
+          <p className="text-[10px] xs:text-[11px] sm:text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[28px] xs:min-h-[32px]">
             {stay.description}
           </p>
 
           {/* Rating and Reviews Row with Feature Points */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-0.5 min-h-[22px]">
-            <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold text-amber-900 shrink-0">
+          <div className="flex items-center gap-1 xs:gap-1.5 flex-wrap pt-0.5 min-h-[20px]">
+            <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-bold text-amber-900 shrink-0">
               <svg
-                width="11"
-                height="11"
+                width="10"
+                height="10"
                 viewBox="0 0 24 24"
                 fill="#f59e0b"
                 stroke="#f59e0b"
@@ -278,9 +278,9 @@ function StayCard({ stay, onBook }: StayCardProps) {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
               <span>{stay.rating && Number(stay.rating) > 0 ? stay.rating : "4.8"}</span>
-              <span className="text-amber-800/80 font-medium text-[9px] sm:text-[10px]">
+              <span className="text-amber-800/80 font-medium text-[8px] xs:text-[9px] sm:text-[10px]">
                 {stay.reviewsCount !== undefined && stay.reviewsCount > 0
-                  ? `(${stay.reviewsCount} reviews)`
+                  ? `(${stay.reviewsCount})`
                   : "(Verified)"}
               </span>
             </div>
@@ -289,10 +289,10 @@ function StayCard({ stay, onBook }: StayCardProps) {
             {featurePoints.map((point) => (
               <span
                 key={point}
-                className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors font-poppins"
+                className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] font-medium whitespace-nowrap transition-colors font-poppins"
               >
                 <span className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                <span className="truncate max-w-[110px]">{point}</span>
+                <span className="truncate max-w-[70px] xs:max-w-[90px]">{point}</span>
               </span>
             ))}
           </div>
@@ -303,7 +303,7 @@ function StayCard({ stay, onBook }: StayCardProps) {
           <button
             type="button"
             disabled
-            className="w-full py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold rounded-xl font-poppins cursor-not-allowed text-center mt-1"
+            className="w-full py-1.5 xs:py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold rounded-xl font-poppins cursor-not-allowed text-center mt-1"
           >
             Bookings Paused
           </button>
@@ -311,14 +311,14 @@ function StayCard({ stay, onBook }: StayCardProps) {
           <button
             type="button"
             onClick={() => onBook(stay)}
-            className="w-full py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins cursor-pointer text-center mt-1"
+            className="w-full py-1.5 xs:py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins cursor-pointer text-center mt-1"
           >
             Book now
           </button>
         ) : (
           <Link
             href={`/stay/${stay.id}`}
-            className="w-full py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins text-center mt-1 block"
+            className="w-full py-1.5 xs:py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins text-center mt-1 block"
           >
             Book now
           </Link>

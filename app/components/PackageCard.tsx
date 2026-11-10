@@ -75,7 +75,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
       id={`pkg-card-${pkg.id}`}
     >
       {/* Card Image Area with Inset Radius - Compact Height */}
-      <div className="relative w-[calc(100%-16px)] mx-auto mt-2 h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-slate-200">
+      <div className="relative w-[calc(100%-12px)] xs:w-[calc(100%-16px)] mx-auto mt-1.5 xs:mt-2 h-36 xs:h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-slate-200">
         <Link href={`/packages/${pkg.id}`} className="block w-full h-full">
           <img
             src={pkg.images[0]}
@@ -88,15 +88,15 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
 
         {/* Top-Left Host / Badge */}
         {pkg.badge && (
-          <span className="absolute top-2.5 left-2.5 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/20 z-10 tracking-wide pointer-events-none">
+          <span className="absolute top-2 left-2 xs:top-2.5 xs:left-2.5 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[9px] xs:text-[10px] sm:text-[11px] font-semibold px-2 xs:px-2.5 py-0.5 rounded-full border border-white/20 z-10 tracking-wide pointer-events-none">
             {pkg.badge}
           </span>
         )}
 
         {/* Top-Right: Rating Badge & Favorite Button */}
-        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+        <div className="absolute top-2 right-2 xs:top-2.5 xs:right-2.5 flex items-center gap-1 xs:gap-1.5 z-10">
           {pkg.rating && (
-            <span className="bg-[#0B0A06]/65 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/20 pointer-events-none">
+            <span className="bg-[#0B0A06]/65 backdrop-blur-md text-white text-[9px] xs:text-[10px] sm:text-[11px] font-semibold px-1.5 xs:px-2 py-0.5 rounded-full border border-white/20 pointer-events-none">
               {pkg.rating}
             </span>
           )}
@@ -109,7 +109,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
               e.stopPropagation();
               await toggle();
             }}
-            className={`w-7 h-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border ${
+            className={`w-6 h-6 xs:w-7 xs:h-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border ${
               isFav
                 ? "bg-[#ea110d] border-[#ea110d] text-white scale-105"
                 : "bg-[#0B0A06]/65 hover:bg-[#0B0A06]/90 border-white/20 text-white hover:text-rose-400"
@@ -119,8 +119,8 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
             id={`fav-${pkg.id}`}
           >
             <svg
-              width="13"
-              height="13"
+              width="12"
+              height="12"
               viewBox="0 0 24 24"
               fill={isFav ? "currentColor" : "none"}
               stroke="currentColor"
@@ -132,36 +132,36 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
         </div>
 
         {pkg.acceptingBookings === false && (
-          <span className="absolute top-10 left-2.5 bg-amber-500/95 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full border border-amber-400 z-10 pointer-events-none">
+          <span className="absolute top-9 xs:top-10 left-2 xs:left-2.5 bg-amber-500/95 backdrop-blur-md text-white text-[8px] xs:text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-1.5 xs:px-2 py-0.5 rounded-full border border-amber-400 z-10 pointer-events-none">
             Bookings Paused
           </span>
         )}
 
         {/* Bottom Center Carousel Dots */}
-        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
-          <span className="w-3.5 h-1 rounded-full bg-white transition-all" />
+        <div className="absolute bottom-2 xs:bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
+          <span className="w-3 xs:w-3.5 h-1 rounded-full bg-white transition-all" />
           <span className="w-1 h-1 rounded-full bg-white/55" />
           <span className="w-1 h-1 rounded-full bg-white/55" />
         </div>
       </div>
 
       {/* Card Body - Compact Padding */}
-      <div className="p-3 sm:p-3.5 flex flex-col flex-1">
+      <div className="p-2.5 xs:p-3 sm:p-3.5 flex flex-col flex-1">
         {/* Title */}
         <Link
           href={`/packages/${pkg.id}`}
-          className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug mb-0.5 hover:text-primary transition-colors block line-clamp-1"
+          className="text-xs xs:text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug mb-0.5 hover:text-primary transition-colors block line-clamp-1"
         >
           {pkg.title}
         </Link>
 
         {/* Location */}
-        <p className="text-[11px] sm:text-xs text-slate-500 font-normal mb-1.5 line-clamp-1">
+        <p className="text-[10px] xs:text-[11px] sm:text-xs text-slate-500 font-normal mb-1.5 line-clamp-1">
           {pkg.location}
         </p>
 
         {/* Description with Read more toggle */}
-        <p className="text-xs text-slate-600 leading-relaxed mb-2 line-clamp-2">
+        <p className="text-[11px] xs:text-xs text-slate-600 leading-relaxed mb-2 line-clamp-2">
           {isExpanded ? (pkg.fullDesc || pkg.shortDesc) : pkg.shortDesc}{" "}
           {pkg.fullDesc && pkg.fullDesc !== pkg.shortDesc && (
             <button

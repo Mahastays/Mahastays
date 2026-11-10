@@ -88,9 +88,9 @@ export default function PopularHotels() {
 
       {/* Loading Skeleton */}
       {loading ? (
-        <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
+        <div className="flex overflow-x-auto pb-4 pt-1 gap-3.5 xs:gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 lg:gap-4.5">
           {[1, 2, 3, 4].map((idx) => (
-            <div key={idx} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
+            <div key={idx} className="min-w-[210px] xs:min-w-[230px] w-[62vw] xs:w-[58vw] max-w-[260px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
               <StayCardSkeleton />
             </div>
           ))}
@@ -100,9 +100,9 @@ export default function PopularHotels() {
           {error}. Please make sure the backend server is running.
         </div>
       ) : stays.length > 0 ? (
-        <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
+        <div className="flex overflow-x-auto pb-4 pt-1 gap-3.5 xs:gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 lg:gap-4.5">
           {stays.slice(0, 4).map((stay) => (
-            <div key={stay.id} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
+            <div key={stay.id} className="min-w-[210px] xs:min-w-[230px] w-[62vw] xs:w-[58vw] max-w-[260px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
               <StayCard stay={stay} />
             </div>
           ))}

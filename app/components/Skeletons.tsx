@@ -5,40 +5,40 @@ export function StayCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden flex flex-col border border-slate-200/90 h-full w-full mx-auto animate-pulse">
       {/* Top Image Shimmer */}
-      <div className="w-full h-40 sm:h-44 relative overflow-hidden bg-slate-200">
+      <div className="w-full h-36 xs:h-40 sm:h-44 relative overflow-hidden bg-slate-200">
         <div className="w-full h-full animate-shimmer" />
-        <div className="absolute top-2.5 left-2.5 w-20 h-5 rounded-full bg-slate-300/80" />
-        <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-slate-300/80" />
+        <div className="absolute top-2 left-2 xs:top-2.5 xs:left-2.5 w-16 xs:w-20 h-4 xs:h-5 rounded-full bg-slate-300/80" />
+        <div className="absolute top-2 right-2 xs:top-2.5 xs:right-2.5 w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-slate-300/80" />
         {/* Soft bottom white gradient blend */}
         <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none bg-gradient-to-t from-white via-white/70 via-35% to-transparent" />
       </div>
 
       {/* Content Area Shimmer */}
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-white">
-        <div className="space-y-1.5">
+      <div className="p-2.5 xs:p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 bg-white">
+        <div className="space-y-1 xs:space-y-1.5">
           {/* Title & Price placeholder */}
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-1.5 xs:gap-2">
             <div className="h-4 bg-slate-300 rounded-lg w-2/3 animate-shimmer" />
-            <div className="h-5 bg-slate-200 rounded-md w-16 animate-shimmer" />
+            <div className="h-5 bg-slate-200 rounded-md w-14 xs:w-16 animate-shimmer" />
           </div>
 
           {/* Description line placeholders */}
           <div className="space-y-1 pt-0.5">
-            <div className="h-3 bg-slate-200 rounded w-full" />
-            <div className="h-3 bg-slate-200 rounded w-4/5" />
+            <div className="h-2.5 xs:h-3 bg-slate-200 rounded w-full" />
+            <div className="h-2.5 xs:h-3 bg-slate-200 rounded w-4/5" />
           </div>
 
           {/* Rating & Tag Pills */}
-          <div className="flex items-center gap-1.5 pt-1">
-            <div className="h-4 w-14 bg-slate-200 rounded-full" />
-            <div className="h-4 w-16 bg-slate-200 rounded-full" />
-            <div className="h-4 w-12 bg-slate-200 rounded-full" />
+          <div className="flex items-center gap-1 xs:gap-1.5 pt-0.5">
+            <div className="h-3.5 xs:h-4 w-12 xs:w-14 bg-slate-200 rounded-full" />
+            <div className="h-3.5 xs:h-4 w-14 xs:w-16 bg-slate-200 rounded-full" />
+            <div className="h-3.5 xs:h-4 w-10 xs:w-12 bg-slate-200 rounded-full" />
           </div>
         </div>
 
         {/* Bottom CTA Button */}
         <div className="pt-1">
-          <div className="h-8 w-full bg-[#ea110d]/40 rounded-xl animate-shimmer" />
+          <div className="h-7 xs:h-8 w-full bg-[#ea110d]/40 rounded-xl animate-shimmer" />
         </div>
       </div>
     </div>
@@ -50,29 +50,29 @@ export function PackageCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden flex flex-col border border-slate-200/90 h-full w-full mx-auto animate-pulse">
       {/* Top Image Shimmer - Compact */}
-      <div className="w-[calc(100%-16px)] mx-auto mt-2 h-40 sm:h-44 relative rounded-xl overflow-hidden bg-slate-200">
+      <div className="w-[calc(100%-12px)] xs:w-[calc(100%-16px)] mx-auto mt-1.5 xs:mt-2 h-36 xs:h-40 sm:h-44 relative rounded-xl overflow-hidden bg-slate-200">
         <div className="w-full h-full animate-shimmer" />
-        <div className="absolute top-2.5 left-2.5 w-24 h-5 rounded-full bg-slate-300/80" />
+        <div className="absolute top-2 left-2 xs:top-2.5 xs:left-2.5 w-20 xs:w-24 h-4 xs:h-5 rounded-full bg-slate-300/80" />
       </div>
 
       {/* Content Area Shimmer - Compact */}
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-white">
-        <div className="space-y-1.5">
+      <div className="p-2.5 xs:p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 bg-white">
+        <div className="space-y-1 xs:space-y-1.5">
           <div className="h-4 bg-slate-300 rounded-lg w-4/5 animate-shimmer" />
-          <div className="h-3 bg-slate-200 rounded w-1/3" />
+          <div className="h-2.5 xs:h-3 bg-slate-200 rounded w-1/3" />
           <div className="space-y-1 pt-0.5">
-            <div className="h-3 bg-slate-200 rounded w-full" />
-            <div className="h-3 bg-slate-200 rounded w-3/4" />
+            <div className="h-2.5 xs:h-3 bg-slate-200 rounded w-full" />
+            <div className="h-2.5 xs:h-3 bg-slate-200 rounded w-3/4" />
           </div>
         </div>
 
         {/* Bottom Price & Button */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           <div className="space-y-1">
-            <div className="h-2.5 bg-slate-200 rounded w-12" />
-            <div className="h-4 bg-slate-300 rounded w-20 animate-shimmer" />
+            <div className="h-2.5 bg-slate-200 rounded w-10 xs:w-12" />
+            <div className="h-4 bg-slate-300 rounded w-16 xs:w-20 animate-shimmer" />
           </div>
-          <div className="h-8 w-24 bg-[#ea110d]/40 rounded-xl animate-shimmer" />
+          <div className="h-7 xs:h-8 w-20 xs:w-24 bg-[#ea110d]/40 rounded-xl animate-shimmer" />
         </div>
       </div>
     </div>
