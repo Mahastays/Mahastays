@@ -33,6 +33,7 @@ import { useData } from '../../context/DataContext';
 import { StayBookingItem } from '../../types';
 import DashboardSkeleton from '../common/DashboardSkeleton';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { toast } from '../ui/Toast';
 import { fetchBookings } from '../../store/slices/bookingsSlice';
 import { fetchVendors } from '../../store/slices/vendorsSlice';
 import {
@@ -441,7 +442,7 @@ export default function FinanceView() {
 
   const handleExportCsv = () => {
     if (filteredLedger.length === 0) {
-      alert('No transaction records to export for this view.');
+      toast.warning('No transaction records to export for this view.', 'Export Notice');
       return;
     }
 
@@ -483,6 +484,7 @@ export default function FinanceView() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Financial ledger CSV exported', 'Export Complete');
   };
 
   if (bookingsLoading && bookings.length === 0 && payouts.length === 0) {

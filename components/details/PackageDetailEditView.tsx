@@ -51,6 +51,7 @@ import {
   rejectPackageAsync,
 } from '@/store/slices/packagesSlice';
 import { PackageItem, PackageCategory, PackageType, PackageTierItem } from '@/types';
+import { toast } from '@/components/ui/Toast';
 
 interface PackageDetailEditViewProps {
   id: string;
@@ -94,10 +95,11 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
       setIsUploadingHostAvatar(true);
       const res = await uploadImageToCloudinary(file, 'hosts');
       handleHostChange('avatar', res.url);
+      toast.success('Host profile / logo updated!', 'Host Updated');
       setUploadSuccessToast('Host profile / logo updated!');
       setTimeout(() => setUploadSuccessToast(null), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to upload host image');
+      toast.error(err.message || 'Failed to upload host image', 'Upload Failed');
     } finally {
       setIsUploadingHostAvatar(false);
     }
@@ -376,7 +378,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
   const handleRemoveTier = (index: number) => {
     if (!pkg || tiers.length <= 1) {
-      alert('Package must have at least one pricing tier.');
+      toast.warning('Package must have at least one pricing tier.', 'Action Blocked');
       return;
     }
     const updated = tiers.filter((_, i) => i !== index);
@@ -588,11 +590,12 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
           ...pkg,
           images: [...allPhotos, ...uploadedUrls],
         });
+        toast.success(`Uploaded ${uploadedUrls.length} photo(s)`, 'Gallery Updated');
         setUploadSuccessToast(`Uploaded ${uploadedUrls.length} photo(s)`);
         setTimeout(() => setUploadSuccessToast(null), 4000);
       }
     } catch (err: any) {
-      alert(`Image upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Image upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -623,7 +626,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
   const requestDeleteTier = (index: number) => {
     if (!pkg || tiers.length <= 1) {
-      alert('Package must have at least one pricing tier.');
+      toast.warning('Package must have at least one pricing tier.', 'Action Blocked');
       return;
     }
     const tier = tiers[index];
@@ -665,7 +668,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
   const requestDeleteImage = (indexToRemove: number) => {
     if (!pkg || allPhotos.length <= 1) {
-      alert('Package must have at least one showcase photo.');
+      toast.warning('Package must have at least one showcase photo.', 'Action Blocked');
       return;
     }
     setConfirmDeleteState({
@@ -719,23 +722,38 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
       itinerary,
       images: allPhotos,
     };
-    await dispatch(updatePackageAsync(payload));
-    setSaveSuccessToast(true);
-    setTimeout(() => setSaveSuccessToast(false), 3500);
-    setIsEditMode(false);
+    try {
+      await dispatch(updatePackageAsync(payload)).unwrap();
+      toast.success('Package updated successfully', 'Changes Saved');
+      setSaveSuccessToast(true);
+      setTimeout(() => setSaveSuccessToast(false), 3500);
+      setIsEditMode(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update package', 'Save Failed');
+    }
   };
 
   const handleApprove = async () => {
     if (!pkg) return;
-    await dispatch(approvePackageAsync({ id: pkg.id, adminId: user?.id }));
-    setPkg({ ...pkg, status: 'active' });
+    try {
+      await dispatch(approvePackageAsync({ id: pkg.id, adminId: user?.id })).unwrap();
+      setPkg({ ...pkg, status: 'active' });
+      toast.success('Tour package approved and published', 'Package Approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve package', 'Approval Failed');
+    }
   };
 
   const handleReject = async () => {
     const reason = prompt('Please enter the reason for rejecting this tour package:');
     if (reason && pkg) {
-      await dispatch(rejectPackageAsync({ id: pkg.id, reason }));
-      setPkg({ ...pkg, status: 'rejected', rejectionReason: reason });
+      try {
+        await dispatch(rejectPackageAsync({ id: pkg.id, reason })).unwrap();
+        setPkg({ ...pkg, status: 'rejected', rejectionReason: reason });
+        toast.success('Tour package rejected', 'Status Updated');
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to reject package', 'Rejection Failed');
+      }
     }
   };
 
@@ -916,7 +934,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
             onClick={() => {
               if (navigator.clipboard) {
                 navigator.clipboard.writeText(guestPackageUrl);
-                alert('Copied guest package URL to clipboard!');
+                toast.success('Copied guest package URL to clipboard!', 'Link Copied');
               }
             }}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium cursor-pointer"
@@ -2620,7 +2638,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
 
             <button
               type="button"
-              onClick={() => alert(`Simulating package booking for ${pkg.title}.`)}
+              onClick={() => toast.info(`Simulating package booking for ${pkg.title}.`, 'Booking Preview')}
               className="w-full py-3.5 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white font-bold text-sm font-poppins shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >
               <span>Reserve &amp; Book Package</span>

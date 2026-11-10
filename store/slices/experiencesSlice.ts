@@ -359,16 +359,29 @@ export const createExperienceAsync = createAsyncThunk(
       createdAt: new Date().toISOString(),
     };
 
+    const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+    let apiData: any = null;
     try {
-      await api.post('/experiences', newExp).catch(() => api.post('/vendor/experiences', newExp));
-    } catch {
-      // Offline fallback
+      if (isVendor) {
+        const res = await api
+          .post('/vendor/experiences', newExp)
+          .catch(() => api.post('/admin/experiences', newExp));
+        apiData = res.data?.data;
+      } else {
+        const res = await api
+          .post('/admin/experiences', newExp)
+          .catch(() => api.post('/vendor/experiences', newExp));
+        apiData = res.data?.data;
+      }
+    } catch (err: any) {
+      console.warn('Backend experience creation notice:', err);
     }
 
     const state = getState() as { experiences: ExperiencesState };
-    const next = [newExp, ...state.experiences.items];
+    const savedExp = apiData ? { ...newExp, ...apiData } : newExp;
+    const next = [savedExp, ...state.experiences.items];
     saveExperiences(next);
-    return newExp;
+    return savedExp;
   }
 );
 

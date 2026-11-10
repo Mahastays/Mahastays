@@ -23,6 +23,7 @@ import { api } from '@/lib/api';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import { HeroSlide } from '@/types';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
+import { toast } from '../ui/Toast';
 
 export default function HeroSlidesView() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
@@ -163,11 +164,11 @@ export default function HeroSlidesView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Heading title is required');
+      toast.warning('Heading title is required', 'Validation Error');
       return;
     }
     if (!imageUrl.trim()) {
-      alert('Please provide a background image or upload one.');
+      toast.warning('Please provide a background image or upload one.', 'Validation Error');
       return;
     }
 
@@ -189,15 +190,17 @@ export default function HeroSlidesView() {
       if (editingSlide) {
         await api.put(`/admin/hero-slides/${editingSlide.id}`, payload);
         showNotification('Hero slide updated successfully.');
+        toast.success('Hero slide updated successfully.', 'Slide Updated');
       } else {
         await api.post('/admin/hero-slides', payload);
         showNotification('New hero slide created successfully.');
+        toast.success('New hero slide created successfully.', 'Slide Created');
       }
 
       closeModal();
       fetchSlides();
     } catch (err: any) {
-      alert(err?.message || 'Failed to save hero slide.');
+      toast.error(err?.message || 'Failed to save hero slide.', 'Save Failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -212,8 +215,9 @@ export default function HeroSlidesView() {
         prev.map((s) => (s.id === slide.id ? { ...s, isActive: nextActive } : s))
       );
       showNotification(`Slide is now ${nextActive ? 'Active' : 'Hidden'}.`);
+      toast.success(`Slide is now ${nextActive ? 'Active' : 'Hidden'}.`, 'Status Updated');
     } catch (err: any) {
-      alert(err?.message || 'Failed to toggle slide status.');
+      toast.error(err?.message || 'Failed to toggle slide status.', 'Update Failed');
     }
   };
 
@@ -225,9 +229,10 @@ export default function HeroSlidesView() {
       await api.delete(`/admin/hero-slides/${slideToDelete.id}`);
       setSlides((prev) => prev.filter((s) => s.id !== slideToDelete.id));
       showNotification(`Hero slide "${slideToDelete.title}" deleted.`);
+      toast.success(`Hero slide "${slideToDelete.title}" deleted.`, 'Slide Deleted');
       setSlideToDelete(null);
     } catch (err: any) {
-      alert(err?.message || 'Failed to delete hero slide.');
+      toast.error(err?.message || 'Failed to delete hero slide.', 'Delete Failed');
     } finally {
       setIsDeletingSlide(false);
     }

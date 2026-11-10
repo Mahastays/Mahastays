@@ -27,6 +27,7 @@ import { useData } from '@/context/DataContext';
 import { useAppDispatch } from '@/store/hooks';
 import { createExperienceAsync } from '@/store/slices/experiencesSlice';
 import { uploadImageToCloudinary } from '@/lib/upload';
+import { toast } from '@/components/ui/Toast';
 import { ExperienceItem, Difficulty, ExperienceSlotItem } from '@/types';
 
 const CATEGORIES = [
@@ -105,7 +106,7 @@ export default function CreateExperiencePageView() {
       const res = await uploadImageToCloudinary(file, 'listing_media');
       if (res?.url) setImage(res.url);
     } catch (err: any) {
-      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Photo upload failed', 'Upload Failed');
     } finally {
       setIsUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = '';
@@ -126,7 +127,7 @@ export default function CreateExperiencePageView() {
         setGalleryImages((prev) => [...prev, ...uploaded]);
       }
     } catch (err: any) {
-      alert(`Gallery upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Gallery upload failed', 'Upload Failed');
     } finally {
       setIsUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -168,7 +169,7 @@ export default function CreateExperiencePageView() {
       const res = await uploadImageToCloudinary(file, 'avatar');
       setGuideAvatar(res.url);
     } catch (err: any) {
-      alert(err?.message || 'Failed to upload guide avatar');
+      toast.error(err?.message || 'Failed to upload guide avatar', 'Upload Failed');
     } finally {
       setIsUploadingGuideAvatar(false);
     }
@@ -345,10 +346,13 @@ export default function CreateExperiencePageView() {
     try {
       setSubmitting(true);
       const created = await dispatch(createExperienceAsync(newExperiencePayload)).unwrap();
+      toast.success('Experience listing created successfully!', 'Experience Created');
       router.push(`/dashboard/experiences/${created.id}`);
     } catch (err: any) {
       console.error('Failed to create experience:', err);
-      setErrorMsg(err?.message || 'Failed to list experience. Please verify your inputs.');
+      const msg = err?.message || 'Failed to list experience. Please verify your inputs.';
+      setErrorMsg(msg);
+      toast.error(msg, 'Creation Failed');
       setSubmitting(false);
     }
   };

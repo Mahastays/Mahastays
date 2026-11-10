@@ -43,17 +43,22 @@ export default function PackagesView({ onOpenCreateModal, onOpenRejectModal }: P
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
 
-  // Fetch only when Packages view mounts
+  // Fetch when Packages view mounts
   useEffect(() => {
     dispatch(fetchPackages());
-    if (isAdmin) {
-      dispatch(fetchVendors());
-    }
-  }, [dispatch, isAdmin]);
+    dispatch(fetchVendors());
+  }, [dispatch]);
 
   const roleFiltered = packages.filter((pkg) => {
     if (!isAdmin) {
-      if (currentVendorId && pkg.vendorId !== currentVendorId) return false;
+      if (currentVendorId) {
+        const match =
+          pkg.vendorId === currentVendorId ||
+          pkg.vendorId === user?.vendorCode ||
+          (user?.id && pkg.vendorId === user.id) ||
+          (pkg as any).hostId === currentVendorId;
+        if (!match) return false;
+      }
     } else {
       if (selectedVendorFilter !== 'all' && pkg.vendorId !== selectedVendorFilter) return false;
     }

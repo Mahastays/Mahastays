@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from '../ui/Toast';
 import api from '../../lib/api';
 import { VendorItem } from '../../types';
 import { uploadImageToCloudinary } from '../../lib/upload';
@@ -155,16 +156,19 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
     const fromContext = vendors.find(
       (v) => v.id === id || v.vendorCode === id || v.vendorCode?.toLowerCase() === id.toLowerCase()
     );
-    return fromContext || apiVendor || (vendors.length > 0 ? vendors[0] : null);
+    if (apiVendor) {
+      return fromContext ? { ...fromContext, ...apiVendor } : apiVendor;
+    }
+    return fromContext || (vendors.length > 0 ? vendors[0] : null);
   }, [vendors, id, apiVendor]);
 
-  // Fetch from API if not found locally or for fresh data
+  // Fetch from API for fresh data
   const fetchVendorDetail = async () => {
     if (!id) return;
     try {
       setIsLoading(true);
       const endpoint = isAdmin ? `/admin/vendors/${id}` : `/vendor/me`;
-      const res = await api.get(endpoint).catch(() => api.get(`/admin/vendors/${id}`));
+      const res = await api.get(endpoint).catch(() => (!isAdmin ? api.get(`/admin/vendors/${id}`) : api.get('/vendor/me')));
       if (res.data?.data) {
         setApiVendor(res.data.data);
       }
@@ -176,10 +180,10 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
   };
 
   useEffect(() => {
-    if (!vendor && id) {
+    if (id) {
       fetchVendorDetail();
     }
-  }, [id, vendor]);
+  }, [id]);
 
   const handleManualRefresh = async () => {
     try {
@@ -201,6 +205,7 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
 
   const showToast = (msg: string) => {
     setActionSuccessToast(msg);
+    toast.success(msg);
     setTimeout(() => setActionSuccessToast(null), 4000);
   };
 
@@ -302,11 +307,11 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
 
     if (editForm.password.trim()) {
       if (editForm.password.trim().length < 6) {
-        alert('Password must be at least 6 characters long.');
+        toast.error('Password must be at least 6 characters long.', 'Validation Error');
         return;
       }
       if (editForm.password.trim() !== editForm.confirmPassword.trim()) {
-        alert('Passwords do not match. Please verify your new password.');
+        toast.error('Passwords do not match. Please verify your new password.', 'Validation Error');
         return;
       }
     }
@@ -363,7 +368,7 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
       setIsEditModalOpen(false);
       showToast('Vendor profile & full KYC details updated successfully!');
     } catch (err: any) {
-      alert(err.message || 'Failed to update vendor partner details');
+      toast.error(err.message || 'Failed to update vendor partner details', 'Update Failed');
     } finally {
       setIsSaving(false);
     }
@@ -462,6 +467,7 @@ export default function VendorDetailView({ id }: VendorDetailViewProps) {
       // Fetch fresh data from backend
       await fetchVendorDetail();
     } catch (err: any) {
+      toast.error(err?.message || 'Failed to update KYC status');
       console.warn('KYC toggle error:', err);
     }
   };

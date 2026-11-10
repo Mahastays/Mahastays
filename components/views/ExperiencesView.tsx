@@ -46,17 +46,22 @@ export default function ExperiencesView({
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
 
-  // Fetch only when Experiences view mounts
+  // Fetch when Experiences view mounts
   useEffect(() => {
     dispatch(fetchExperiences());
-    if (isAdmin) {
-      dispatch(fetchVendors());
-    }
-  }, [dispatch, isAdmin]);
+    dispatch(fetchVendors());
+  }, [dispatch]);
 
   const roleFiltered = experiences.filter((exp) => {
     if (!isAdmin) {
-      if (currentVendorId && exp.vendorId !== currentVendorId) return false;
+      if (currentVendorId) {
+        const match =
+          exp.vendorId === currentVendorId ||
+          exp.vendorId === user?.vendorCode ||
+          (user?.id && exp.vendorId === user.id) ||
+          (exp as any).hostId === currentVendorId;
+        if (!match) return false;
+      }
     } else {
       if (selectedVendorFilter !== 'all' && exp.vendorId !== selectedVendorFilter) return false;
     }

@@ -58,6 +58,7 @@ import {
   rejectPropertyAsync,
 } from '@/store/slices/propertiesSlice';
 import { PropertyItem, RoomItem, PropertyType } from '@/types';
+import { toast } from '@/components/ui/Toast';
 
 interface HotelDetailEditViewProps {
   id: string;
@@ -120,7 +121,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       setUploadSuccessToast('Host profile / logo updated!');
       setTimeout(() => setUploadSuccessToast(null), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to upload host image');
+      toast.error(err.message || 'Failed to upload host image', 'Upload Failed');
     } finally {
       setIsUploadingHostAvatar(false);
     }
@@ -576,7 +577,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
   const handleRemoveRoom = (index: number) => {
     if (!property || rooms.length <= 1) {
-      alert('A property must have at least one room category.');
+      toast.error('A property must have at least one room category.', 'Validation');
       return;
     }
     const updated = rooms.filter((_, i) => i !== index);
@@ -603,7 +604,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
   const requestDeleteRoom = (index: number) => {
     if (!property || rooms.length <= 1) {
-      alert('A property must have at least one room category.');
+      toast.error('A property must have at least one room category.', 'Validation');
       return;
     }
     const rm = rooms[index];
@@ -627,7 +628,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
 
   const requestDeleteImage = (indexToRemove: number) => {
     if (!property || allPhotos.length <= 1) {
-      alert('A property must have at least one showcase photo.');
+      toast.error('A property must have at least one showcase photo.', 'Validation');
       return;
     }
     setConfirmDeleteState({
@@ -689,7 +690,7 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
         setTimeout(() => setUploadSuccessToast(null), 4000);
       }
     } catch (err: any) {
-      alert(`Image upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Image upload failed', 'Upload Failed');
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -713,24 +714,39 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
       ...property,
       numericPrice: minPrice,
     };
-    await dispatch(updatePropertyAsync(updatedProp));
-    setProperty(updatedProp);
-    setSaveSuccessToast(true);
-    setTimeout(() => setSaveSuccessToast(false), 3500);
-    setIsEditMode(false);
+    try {
+      await dispatch(updatePropertyAsync(updatedProp)).unwrap();
+      setProperty(updatedProp);
+      setSaveSuccessToast(true);
+      toast.success('Property details saved successfully!', 'Property Saved');
+      setTimeout(() => setSaveSuccessToast(false), 3500);
+      setIsEditMode(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save property changes', 'Save Failed');
+    }
   };
 
   const handleApprove = async () => {
     if (!property) return;
-    await dispatch(approvePropertyAsync({ id: property.id, adminId: user?.id }));
-    setProperty({ ...property, status: 'active' });
+    try {
+      await dispatch(approvePropertyAsync({ id: property.id, adminId: user?.id })).unwrap();
+      setProperty({ ...property, status: 'active' });
+      toast.success('Property approved and live on catalog!', 'Listing Approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve property');
+    }
   };
 
   const handleReject = async () => {
     const reason = prompt('Please enter the reason for rejecting this property listing:');
     if (reason && property) {
-      await dispatch(rejectPropertyAsync({ id: property.id, reason }));
-      setProperty({ ...property, status: 'rejected', rejectionReason: reason });
+      try {
+        await dispatch(rejectPropertyAsync({ id: property.id, reason })).unwrap();
+        setProperty({ ...property, status: 'rejected', rejectionReason: reason });
+        toast.success('Property listing rejected with feedback note.', 'Listing Rejected');
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to reject property');
+      }
     }
   };
 

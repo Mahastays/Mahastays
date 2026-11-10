@@ -107,7 +107,7 @@ export const normalizeVendor = (raw: any): VendorItem => {
       businessProofUrl: cleanBusinessProof,
       bankProofUrl: bankProof,
       tourismProofUrl: tourismProof,
-      verificationStatus: !cleanPan && !cleanIdentityProof ? 'pending' : (raw.compliance?.verificationStatus || 'pending'),
+      verificationStatus: raw.compliance?.verificationStatus || raw.verificationStatus || 'pending',
     },
     banking: {
       bankName: cleanBankName,
@@ -117,7 +117,7 @@ export const normalizeVendor = (raw: any): VendorItem => {
       ifscCode: cleanIfsc,
       branchName: cleanBranch,
       upiId: raw.banking?.upiId || '',
-      isAccountVerified: !cleanBankName && !raw.banking?.accountNumber ? false : (raw.banking?.isAccountVerified ?? false),
+      isAccountVerified: Boolean(raw.banking?.isAccountVerified),
     },
     contact: {
       primaryContactPerson: raw.contact?.primaryContactPerson || raw.displayName || '',
@@ -156,6 +156,21 @@ export const normalizeVendor = (raw: any): VendorItem => {
 };
 
 export const fetchVendors = createAsyncThunk('vendors/fetchVendors', async () => {
+  const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+  if (isVendor) {
+    try {
+      const res = await api.get('/vendor/me');
+      const vendorData = res.data?.data || res.data;
+      if (vendorData) {
+        const normalized = [normalizeVendor(vendorData)];
+        saveVendors(normalized);
+        return normalized;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
   try {
     const res = await api.get('/admin/vendors');
     const rawList = Array.isArray(res.data?.data)
@@ -171,7 +186,18 @@ export const fetchVendors = createAsyncThunk('vendors/fetchVendors', async () =>
       return normalized;
     }
   } catch {
-    // Offline fallback
+    // If admin call fails (e.g. logged in as vendor), try /vendor/me
+    try {
+      const vRes = await api.get('/vendor/me');
+      const vData = vRes.data?.data || vRes.data;
+      if (vData) {
+        const normalized = [normalizeVendor(vData)];
+        saveVendors(normalized);
+        return normalized;
+      }
+    } catch {
+      // Offline fallback
+    }
   }
   return getStoredVendors().map(normalizeVendor);
 });
@@ -417,8 +443,10 @@ export const updateVendorProfileAsync = createAsyncThunk(
     }
 
     const state = getState() as { vendors: VendorsState };
+    let hasMatch = false;
     const next = state.vendors.items.map((v) => {
       if (v.id === vendorId || v.vendorCode === vendorId) {
+        hasMatch = true;
         if (updatedVendor) return updatedVendor;
         return {
           ...v,
@@ -469,10 +497,11 @@ export const updateVendorProfileAsync = createAsyncThunk(
       return v;
     });
 
-    saveVendors(next);
+    const finalNext = hasMatch || !updatedVendor ? next : [updatedVendor, ...next];
+    saveVendors(finalNext);
     return {
-      updatedItem: updatedVendor || next.find((v) => v.id === vendorId || v.vendorCode === vendorId),
-      items: next,
+      updatedItem: updatedVendor || finalNext.find((v) => v.id === vendorId || v.vendorCode === vendorId),
+      items: finalNext,
     };
   }
 );

@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Loader2,
 } from 'lucide-react';
+import { toast } from '@/components/ui/Toast';
 
 export const MAHASTAYS_CLOUDINARY_LOGO =
   'https://res.cloudinary.com/vxtop5jd/image/upload/v1793725764/mahastays/brand/mahastays-logo.png';
@@ -233,7 +234,12 @@ export default function BookingInvoiceModal({
   // Handle PDF Download
   const handleDownloadPdf = async () => {
     if (!isPaid || isCancelled) {
-      alert(isCancelled ? 'Invoice cannot be generated for cancelled bookings.' : 'Invoice is not available for unpaid bookings.');
+      toast.warning(
+        isCancelled
+          ? 'Invoice cannot be generated for cancelled bookings.'
+          : 'Invoice is not available for unpaid bookings.',
+        'Invoice Unavailable'
+      );
       return;
     }
     setIsDownloading(true);
@@ -252,6 +258,7 @@ export default function BookingInvoiceModal({
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+        toast.success(`Invoice Mahastays-${invNumber}.pdf downloaded`, 'Download Started');
       } else {
         window.print();
       }

@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import { Difficulty } from '../../types';
+import { toast } from '../ui/Toast';
 
 interface CreateExperienceModalProps {
   isOpen: boolean;
@@ -36,9 +37,12 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
     try {
       setIsUploading(true);
       const res = await uploadImageToCloudinary(file, 'listing_media');
-      if (res?.url) setImageUrl(res.url);
+      if (res?.url) {
+        setImageUrl(res.url);
+        toast.success('Experience cover photo uploaded', 'Image Uploaded');
+      }
     } catch (err: any) {
-      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Photo upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

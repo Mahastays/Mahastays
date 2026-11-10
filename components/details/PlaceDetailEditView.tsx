@@ -35,6 +35,7 @@ import {
 import { api } from '@/lib/api';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import { Place } from '../views/PlacesView';
+import { toast } from '@/components/ui/Toast';
 
 interface PlaceDetailEditViewProps {
   id: string;
@@ -188,9 +189,10 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
         setCoverImage(res.url);
         // Also prepend to gallery if not present
         setGalleryImages((prev) => (prev.includes(res.url) ? prev : [res.url, ...prev]));
+        toast.success('Cover image uploaded successfully', 'Cover Updated');
       }
     } catch (err: any) {
-      alert(`Cover image upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Cover image upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploadingCover(false);
       if (coverInputRef.current) coverInputRef.current.value = '';
@@ -218,9 +220,10 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
         if (!coverImage) {
           setCoverImage(uploadedUrls[0]);
         }
+        toast.success(`Uploaded ${uploadedUrls.length} image(s)`, 'Gallery Updated');
       }
     } catch (err: any) {
-      alert(`Gallery upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Gallery upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -231,7 +234,7 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
   const handleAddImageUrl = () => {
     const trimmed = customImageUrl.trim();
     if (!trimmed || !trimmed.startsWith('http')) {
-      alert('Please enter a valid image URL starting with http:// or https://');
+      toast.warning('Please enter a valid image URL starting with http:// or https://', 'Invalid URL');
       return;
     }
     setGalleryImages((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
@@ -284,7 +287,7 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!name.trim()) {
-      alert('Please enter a place name');
+      toast.warning('Please enter a place name', 'Validation Error');
       return;
     }
 
@@ -321,6 +324,7 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
       if (isNew) {
         const res = await api.post('/admin/places', payload);
         const createdId = res.data?.data?.id || res.data?.id;
+        toast.success('Place created successfully', 'Place Saved');
         setSuccessToast(true);
         setTimeout(() => {
           if (createdId) {
@@ -331,11 +335,14 @@ export default function PlaceDetailEditView({ id }: PlaceDetailEditViewProps) {
         }, 1000);
       } else {
         await api.put(`/admin/places/${id}`, payload);
+        toast.success('Place details updated successfully', 'Place Saved');
         setSuccessToast(true);
         setTimeout(() => setSuccessToast(false), 3000);
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to save place changes.');
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to save place changes.';
+      setError(errMsg);
+      toast.error(errMsg, 'Save Failed');
     } finally {
       setSaving(false);
     }

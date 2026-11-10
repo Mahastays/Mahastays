@@ -348,16 +348,29 @@ export const createPackageAsync = createAsyncThunk(
       createdAt: new Date().toISOString(),
     };
 
+    const isVendor = typeof window !== 'undefined' && localStorage.getItem('mahastays_auth_view_mode') === 'vendor';
+    let apiData: any = null;
     try {
-      await api.post('/packages', newPkg).catch(() => api.post('/vendor/packages', newPkg));
-    } catch {
-      // Offline fallback
+      if (isVendor) {
+        const res = await api
+          .post('/vendor/packages', newPkg)
+          .catch(() => api.post('/admin/packages', newPkg));
+        apiData = res.data?.data;
+      } else {
+        const res = await api
+          .post('/admin/packages', newPkg)
+          .catch(() => api.post('/vendor/packages', newPkg));
+        apiData = res.data?.data;
+      }
+    } catch (err: any) {
+      console.warn('Backend package creation notice:', err);
     }
 
     const state = getState() as { packages: PackagesState };
-    const next = [newPkg, ...state.packages.items];
+    const savedPkg = apiData ? { ...newPkg, ...apiData } : newPkg;
+    const next = [savedPkg, ...state.packages.items];
     savePackages(next);
-    return newPkg;
+    return savedPkg;
   }
 );
 

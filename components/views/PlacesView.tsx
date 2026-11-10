@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { uploadImageToCloudinary } from '@/lib/upload';
+import { toast } from '../ui/Toast';
 
 export interface Place {
   id: string;
@@ -158,9 +159,10 @@ export default function PlacesView() {
             coverImage: prev.coverImage || combined[0] || '',
           };
         });
+        toast.success(`Uploaded ${newUrls.length} photo(s)`, 'Photos Uploaded');
       }
     } catch (err: any) {
-      alert(`Photo upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Photo upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploadingPhotos(false);
       if (modalFileInputRef.current) modalFileInputRef.current.value = '';
@@ -193,8 +195,9 @@ export default function PlacesView() {
     try {
       await api.post('/admin/places/seed');
       await fetchPlaces();
+      toast.success('Default places synced successfully', 'Places Synced');
     } catch (err: any) {
-      alert('Failed to sync places: ' + (err?.response?.data?.message || err?.message));
+      toast.error('Failed to sync places: ' + (err?.response?.data?.message || err?.message), 'Sync Failed');
     } finally {
       setSeeding(false);
     }
@@ -339,8 +342,9 @@ export default function PlacesView() {
       setPlaces((prev) =>
         prev.map((p) => (p.id === id ? { ...p, isFeatured: !p.isFeatured } : p))
       );
+      toast.success('Place featured status updated', 'Status Updated');
     } catch (err: any) {
-      alert('Error updating featured flag');
+      toast.error('Error updating featured flag', 'Update Failed');
     }
   };
 
@@ -351,8 +355,9 @@ export default function PlacesView() {
       setPlaces((prev) =>
         prev.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p))
       );
+      toast.success('Place visibility updated', 'Status Updated');
     } catch (err: any) {
-      alert('Error updating active status');
+      toast.error('Error updating active status', 'Update Failed');
     }
   };
 
@@ -362,8 +367,9 @@ export default function PlacesView() {
       await api.delete(`/admin/places/${id}`);
       setPlaces((prev) => prev.filter((p) => p.id !== id));
       setDeleteConfirmId(null);
+      toast.success('Place deleted successfully', 'Place Deleted');
     } catch (err: any) {
-      alert('Error deleting place');
+      toast.error('Error deleting place', 'Delete Failed');
     }
   };
 

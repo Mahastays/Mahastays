@@ -49,18 +49,23 @@ export default function PropertiesView({
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
 
-  // Fetch only when Properties view mounts
+  // Fetch when Properties view mounts
   useEffect(() => {
     dispatch(fetchProperties());
-    if (isAdmin) {
-      dispatch(fetchVendors());
-    }
-  }, [dispatch, isAdmin]);
+    dispatch(fetchVendors());
+  }, [dispatch]);
 
   // Filter properties: vendors only see their own properties; admin sees all or filtered by vendor
   const roleFiltered = properties.filter((p) => {
     if (!isAdmin) {
-      if (currentVendorId && p.vendorId !== currentVendorId) return false;
+      if (currentVendorId) {
+        const match =
+          p.vendorId === currentVendorId ||
+          p.vendorId === user?.vendorCode ||
+          (user?.id && p.vendorId === user.id) ||
+          (p as any).hostId === currentVendorId;
+        if (!match) return false;
+      }
     } else {
       if (selectedVendorFilter !== 'all' && p.vendorId !== selectedVendorFilter) return false;
     }

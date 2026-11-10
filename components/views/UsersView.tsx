@@ -36,6 +36,7 @@ import {
   updateUserStatusAsync,
   AdminUserItem,
 } from '../../store/slices/usersSlice';
+import { toast } from '../ui/Toast';
 
 export default function UsersView() {
   const router = useRouter();
@@ -77,6 +78,7 @@ export default function UsersView() {
       setIsDeleting(true);
       await dispatch(deleteAdminUserAsync(userToDelete.id)).unwrap();
       showNotification(`User ${userToDelete.fullName} (${userToDelete.userCode}) deleted successfully.`);
+      toast.success(`User ${userToDelete.fullName} (${userToDelete.userCode}) deleted successfully.`, 'User Deleted');
       setUserToDelete(null);
       // Refetch page
       dispatch(
@@ -88,7 +90,7 @@ export default function UsersView() {
         })
       );
     } catch (err: any) {
-      alert(err || 'Failed to delete user');
+      toast.error(err || 'Failed to delete user', 'Delete Failed');
     } finally {
       setIsDeleting(false);
     }
@@ -111,8 +113,9 @@ export default function UsersView() {
         })
       ).unwrap();
       showNotification(`User account marked as ${nextStatus}.`);
+      toast.success(`User account marked as ${nextStatus}.`, 'Status Updated');
     } catch (err: any) {
-      alert(err || 'Failed to update user status');
+      toast.error(err || 'Failed to update user status', 'Update Failed');
     }
   };
 

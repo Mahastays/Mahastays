@@ -55,14 +55,24 @@ export default function OverviewView({ onNavigateTab, onOpenCreateModal }: Overv
   const pendingAds = ads.filter((a) => !a.approvedByAdmin).length;
   const totalPending = pendingProps + pendingPkgs + pendingExps + pendingAds;
 
+  // Helper to match vendor
+  const isVendorMatch = (vendorId?: string | null) => {
+    if (!vendorId) return false;
+    return (
+      vendorId === user?.vendorId ||
+      vendorId === user?.id ||
+      vendorId === user?.vendorCode
+    );
+  };
+
   // Dynamic GMV & Vendor Earnings from real backend bookings
   const platformGMV = bookings.reduce((sum, b) => sum + (b.grandTotalInr || (b as any).totalAmount || 0), 0);
-  const vendorBookings = bookings.filter((b) => b.vendorId === user?.vendorId);
+  const vendorBookings = bookings.filter((b) => isVendorMatch(b.vendorId));
   const vendorGMV = vendorBookings.reduce((sum, b) => sum + (b.grandTotalInr || (b as any).totalAmount || 0), 0);
   const vendorNetEarnings = Math.round(vendorGMV * 0.87);
 
   // Vendor specific counts
-  const vendorProps = properties.filter((p) => p.vendorId === user?.vendorId);
+  const vendorProps = properties.filter((p) => isVendorMatch(p.vendorId) || isVendorMatch((p as any).hostId));
   const vendorLive = vendorProps.filter((p) => p.status === 'active').length;
   const vendorPending = vendorProps.filter((p) => p.status === 'pending_approval').length;
 

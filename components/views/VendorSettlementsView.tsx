@@ -38,6 +38,7 @@ import {
   PayoutItem,
 } from '../../store/slices/payoutsSlice';
 import DashboardSkeleton from '../common/DashboardSkeleton';
+import { toast } from '../ui/Toast';
 
 export default function VendorSettlementsView() {
   const dispatch = useAppDispatch();
@@ -233,16 +234,20 @@ export default function VendorSettlementsView() {
         })
       ).unwrap();
 
+      const successText = `Direct settlement of ₹${directAmount.toLocaleString('en-IN')} disbursed to ${
+        selectedVendor.businessName
+      } with UTR: ${directUtr.trim()}`;
       setStatusMessage({
         type: 'success',
-        text: `Direct settlement of ₹${directAmount.toLocaleString('en-IN')} disbursed to ${
-          selectedVendor.businessName
-        } with UTR: ${directUtr.trim()}`,
+        text: successText,
       });
+      toast.success(successText, 'Settlement Disbursed');
       setDirectModalOpen(false);
       dispatch(fetchVendorSettlementLedger());
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err || 'Failed to process direct settlement.' });
+      const errorText = err || 'Failed to process direct settlement.';
+      setStatusMessage({ type: 'error', text: errorText });
+      toast.error(errorText, 'Settlement Failed');
     }
   };
 
@@ -255,7 +260,7 @@ export default function VendorSettlementsView() {
   // Handler: Export CSV
   const handleExportCsv = () => {
     if (filteredVendors.length === 0) {
-      alert('No vendor settlement records to export.');
+      toast.warning('No vendor settlement records to export.', 'Export Notice');
       return;
     }
 
@@ -314,6 +319,7 @@ export default function VendorSettlementsView() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Vendor settlement ledger CSV exported', 'Export Complete');
   };
 
   if (ledgerLoading && allVendors.length === 0) {

@@ -18,6 +18,7 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react';
+import { toast } from '@/components/ui/Toast';
 
 export interface LocationCoordinates {
   lat: number;
@@ -205,7 +206,7 @@ export default function LocationMapPicker({
   // Device GPS
   const handleDetectGPS = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      toast.error('Geolocation is not supported by your browser.', 'GPS Unavailable');
       return;
     }
     setGpsLoading(true);
@@ -214,11 +215,12 @@ export default function LocationMapPicker({
         updateCoordinates(pos.coords.latitude, pos.coords.longitude);
         setGpsLoading(false);
         setSearchMsg('Location set from device GPS.');
+        toast.success('Location set from device GPS.', 'GPS Synced');
       },
       (err) => {
         console.error('GPS error:', err);
         setGpsLoading(false);
-        alert('Could not retrieve device GPS location. You can enter coordinates manually.');
+        toast.error('Could not retrieve device GPS location. You can enter coordinates manually.', 'GPS Error');
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -229,6 +231,7 @@ export default function LocationMapPicker({
     if (navigator.clipboard) {
       navigator.clipboard.writeText(googleMapsUrl);
       setCopiedLink(true);
+      toast.success('Google Maps URL copied to clipboard!', 'Link Copied');
       setTimeout(() => setCopiedLink(false), 2000);
     }
   };

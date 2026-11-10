@@ -28,6 +28,7 @@ import { useData } from '@/context/DataContext';
 import { useAppDispatch } from '@/store/hooks';
 import { createPackageAsync } from '@/store/slices/packagesSlice';
 import { uploadImageToCloudinary } from '@/lib/upload';
+import { toast } from '@/components/ui/Toast';
 import { PackageItem, PackageCategory, PackageType, PackageTierItem } from '@/types';
 
 const PACKAGE_CATEGORIES: PackageCategory[] = [
@@ -115,7 +116,7 @@ export default function CreatePackagePageView() {
       const res = await uploadImageToCloudinary(file, 'listing_media');
       if (res?.url) setThumbnail(res.url);
     } catch (err: any) {
-      alert(`Thumbnail upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Thumbnail upload failed', 'Upload Failed');
     } finally {
       setIsUploadingThumbnail(false);
       if (thumbnailInputRef.current) thumbnailInputRef.current.value = '';
@@ -136,7 +137,7 @@ export default function CreatePackagePageView() {
         setGalleryImages((prev) => [...prev, ...uploaded]);
       }
     } catch (err: any) {
-      alert(`Gallery upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Gallery upload failed', 'Upload Failed');
     } finally {
       setIsUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -205,7 +206,7 @@ export default function CreatePackagePageView() {
       const res = await uploadImageToCloudinary(file, 'avatar');
       setHostAvatar(res.url);
     } catch (err: any) {
-      alert(err?.message || 'Failed to upload host avatar');
+      toast.error(err?.message || 'Failed to upload host avatar', 'Upload Failed');
     } finally {
       setIsUploadingHostAvatar(false);
     }
@@ -363,10 +364,13 @@ export default function CreatePackagePageView() {
     try {
       setSubmitting(true);
       const created = await dispatch(createPackageAsync(newPackagePayload)).unwrap();
+      toast.success('Holiday package created successfully!', 'Package Created');
       router.push(`/dashboard/packages/${created.id}`);
     } catch (err: any) {
       console.error('Failed to create package:', err);
-      setErrorMsg(err?.message || 'Failed to list package. Please verify your inputs.');
+      const msg = err?.message || 'Failed to list package. Please verify your inputs.';
+      setErrorMsg(msg);
+      toast.error(msg, 'Creation Failed');
       setSubmitting(false);
     }
   };

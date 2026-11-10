@@ -33,6 +33,7 @@ import { useData } from '@/context/DataContext';
 import { useAppDispatch } from '@/store/hooks';
 import { createPropertyAsync } from '@/store/slices/propertiesSlice';
 import { uploadImageToCloudinary } from '@/lib/upload';
+import { toast } from '@/components/ui/Toast';
 import { PropertyItem, PropertyType, RoomItem } from '@/types';
 
 const PROPERTY_TYPES: { value: PropertyType; label: string; desc: string }[] = [
@@ -125,7 +126,7 @@ export default function CreatePropertyPageView() {
       const res = await uploadImageToCloudinary(file, 'listing_media');
       if (res?.url) setCoverImage(res.url);
     } catch (err: any) {
-      alert(`Cover upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Cover upload failed', 'Upload Failed');
     } finally {
       setIsUploadingCover(false);
       if (coverInputRef.current) coverInputRef.current.value = '';
@@ -146,7 +147,7 @@ export default function CreatePropertyPageView() {
         setGalleryImages((prev) => [...prev, ...uploaded]);
       }
     } catch (err: any) {
-      alert(`Gallery upload failed: ${err.message || 'Please try again'}`);
+      toast.error(err.message || 'Gallery upload failed', 'Upload Failed');
     } finally {
       setIsUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -192,7 +193,7 @@ export default function CreatePropertyPageView() {
       const res = await uploadImageToCloudinary(file, 'avatar');
       setHostAvatar(res.url);
     } catch (err: any) {
-      alert(err?.message || 'Failed to upload host avatar');
+      toast.error(err?.message || 'Failed to upload host avatar', 'Upload Failed');
     } finally {
       setIsUploadingHostAvatar(false);
     }
@@ -376,11 +377,14 @@ export default function CreatePropertyPageView() {
     try {
       setSubmitting(true);
       const created = await dispatch(createPropertyAsync(newPropertyPayload)).unwrap();
+      toast.success('Property listing created successfully!', 'Property Created');
       // Route immediately to full detail & edit page so the admin or vendor can edit every tab!
       router.push(`/dashboard/hotels/${created.id}`);
     } catch (err: any) {
       console.error('Failed to create property:', err);
-      setErrorMsg(err?.message || 'Failed to list property. Please check your inputs.');
+      const msg = err?.message || 'Failed to list property. Please check your inputs.';
+      setErrorMsg(msg);
+      toast.error(msg, 'Creation Failed');
       setSubmitting(false);
     }
   };

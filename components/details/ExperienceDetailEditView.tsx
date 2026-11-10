@@ -54,6 +54,7 @@ import {
   ExperienceTierItem,
   Difficulty,
 } from '@/types';
+import { toast } from '@/components/ui/Toast';
 
 interface ExperienceDetailEditViewProps {
   id: string;
@@ -107,10 +108,11 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
       setIsUploadingGuideAvatar(true);
       const res = await uploadImageToCloudinary(file, 'hosts');
       handleHostChange('avatar', res.url);
+      toast.success('Guide / host photo updated!', 'Host Updated');
       setUploadSuccessToast('Guide / host photo updated!');
       setTimeout(() => setUploadSuccessToast(null), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to upload guide photo');
+      toast.error(err.message || 'Failed to upload guide photo', 'Upload Failed');
     } finally {
       setIsUploadingGuideAvatar(false);
     }
@@ -452,11 +454,12 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
           gallery: [...gallery, ...uploadedUrls],
           image: exp.image || uploadedUrls[0],
         });
+        toast.success(`Uploaded ${uploadedUrls.length} photo(s)`, 'Gallery Updated');
         setUploadSuccessToast(`Uploaded ${uploadedUrls.length} photo(s)`);
         setTimeout(() => setUploadSuccessToast(null), 4000);
       }
     } catch (err: any) {
-      alert(`Image upload failed: ${err.message || 'Please try again'}`);
+      toast.error(`Image upload failed: ${err.message || 'Please try again'}`, 'Upload Failed');
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -586,7 +589,7 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
 
   const requestDeleteSlot = (index: number) => {
     if (!exp || slots.length <= 1) {
-      alert('Experience must have at least one time slot.');
+      toast.warning('Experience must have at least one time slot.', 'Action Blocked');
       return;
     }
     const slot = slots[index];
@@ -608,7 +611,7 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
 
   const requestDeleteTier = (index: number) => {
     if (!exp || tiers.length <= 1) {
-      alert('Experience must have at least one pricing tier.');
+      toast.warning('Experience must have at least one pricing tier.', 'Action Blocked');
       return;
     }
     const tier = tiers[index];
@@ -677,7 +680,7 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
 
   const requestDeleteImage = (idx: number) => {
     if (!exp || gallery.length <= 1) {
-      alert('Experience must have at least one showcase photo.');
+      toast.warning('Experience must have at least one showcase photo.', 'Action Blocked');
       return;
     }
     setConfirmDeleteState({
@@ -704,15 +707,26 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
       timeline,
       gallery,
     };
-    await dispatch(updateExperienceAsync(payload));
-    setSaveSuccessToast(true);
-    setTimeout(() => setSaveSuccessToast(false), 3500);
+    try {
+      await dispatch(updateExperienceAsync(payload)).unwrap();
+      toast.success('Experience updated successfully', 'Changes Saved');
+      setSaveSuccessToast(true);
+      setTimeout(() => setSaveSuccessToast(false), 3500);
+      setIsEditMode(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update experience', 'Save Failed');
+    }
   };
 
   const handleApprove = async () => {
     if (!exp) return;
-    await dispatch(approveExperienceAsync({ id: exp.id, adminId: user?.id }));
-    setExp((prev) => (prev ? { ...prev, status: 'active', rejectionReason: undefined } : prev));
+    try {
+      await dispatch(approveExperienceAsync({ id: exp.id, adminId: user?.id })).unwrap();
+      setExp((prev) => (prev ? { ...prev, status: 'active', rejectionReason: undefined } : prev));
+      toast.success('Experience approved and published', 'Experience Approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve experience', 'Approval Failed');
+    }
   };
 
   const handleReject = async () => {
@@ -722,8 +736,13 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
       'Missing safety certification or certified guide credentials'
     );
     if (reason) {
-      await dispatch(rejectExperienceAsync({ id: exp.id, reason }));
-      setExp((prev) => (prev ? { ...prev, status: 'rejected', rejectionReason: reason } : prev));
+      try {
+        await dispatch(rejectExperienceAsync({ id: exp.id, reason })).unwrap();
+        setExp((prev) => (prev ? { ...prev, status: 'rejected', rejectionReason: reason } : prev));
+        toast.success('Experience rejected', 'Status Updated');
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to reject experience', 'Rejection Failed');
+      }
     }
   };
 
@@ -2497,7 +2516,7 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
 
             <button
               type="button"
-              onClick={() => alert(`Simulating experience booking for ${exp.title}.`)}
+              onClick={() => toast.info(`Simulating experience booking for ${exp.title}.`, 'Booking Preview')}
               className="w-full py-3.5 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white font-bold text-sm font-poppins shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >
               <span>Reserve &amp; Book Experience</span>
