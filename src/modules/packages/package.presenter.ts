@@ -91,6 +91,12 @@ export function presentPackageCard(pk: Package, extra: Record<string, unknown> =
     featured: pk.featured,
     acceptingBookings: (pk as any).acceptingBookings !== false,
     status: pk.status,
+    vendorId: pk.vendorId,
+    hostId: pk.vendorId,
+    tiers: pk.tiers ?? [],
+    overview: pk.overview ?? pk.description ?? pk.shortDesc,
+    images: pk.images ?? [],
+    highlights: pk.highlights ?? [],
     ...extra,
   };
 }

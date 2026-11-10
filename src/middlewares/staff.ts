@@ -29,7 +29,9 @@ async function authorizeStaff(req: Request, rules: StaffRules): Promise<void> {
 
   switch (auth.role) {
     case 'super_admin': {
-      const sa = await prisma.superAdmin.findUnique({ where: { id: auth.id } });
+      const sa =
+        (await prisma.superAdmin.findUnique({ where: { id: auth.id } })) ??
+        (await prisma.superAdmin.findFirst({ where: { OR: [{ id: auth.id }, { email: auth.id }] } }));
       if (!sa || sa.status !== 'active') throw notActive();
       req.staff = { role: 'super_admin', id: sa.id, fullName: sa.fullName };
       return;
@@ -37,7 +39,9 @@ async function authorizeStaff(req: Request, rules: StaffRules): Promise<void> {
     case 'admin': {
       const rule = rules.admin;
       if (rule === undefined) throw ApiError.forbidden();
-      const admin = await prisma.admin.findUnique({ where: { id: auth.id } });
+      const admin =
+        (await prisma.admin.findUnique({ where: { id: auth.id } })) ??
+        (await prisma.admin.findFirst({ where: { OR: [{ id: auth.id }, { email: auth.id }] } }));
       if (!admin || admin.status !== 'active') throw notActive();
       if (rule !== true && !admin.permissions[rule]) throw missing(rule);
       req.staff = { role: 'admin', id: admin.id, fullName: admin.fullName, adminPermissions: admin.permissions };
@@ -46,7 +50,9 @@ async function authorizeStaff(req: Request, rules: StaffRules): Promise<void> {
     case 'sub_admin': {
       const rule = rules.sub_admin;
       if (rule === undefined) throw ApiError.forbidden();
-      const sub = await prisma.subAdmin.findUnique({ where: { id: auth.id } });
+      const sub =
+        (await prisma.subAdmin.findUnique({ where: { id: auth.id } })) ??
+        (await prisma.subAdmin.findFirst({ where: { OR: [{ id: auth.id }, { email: auth.id }] } }));
       if (!sub || sub.status !== 'active') throw notActive();
       if (rule !== true && !sub.permissions[rule]) throw missing(rule);
       req.staff = {

@@ -101,6 +101,15 @@ export function presentPropertyCard(p: Property, extra: Record<string, unknown> 
     featured: p.featured,
     acceptingBookings: (p as any).acceptingBookings !== false,
     status: p.status,
+    vendorId: p.vendorId,
+    vendorName: p.host?.name ?? null,
+    host: p.host ?? null,
+    hostName: p.host?.name ?? null,
+    rooms: p.rooms ?? [],
+    roomsCount: p.rooms?.length ?? 0,
+    address: p.address,
+    suitabilityRules: p.policies?.suitabilityRules ?? [],
+    policies: p.policies,
     ...extra,
   };
 }

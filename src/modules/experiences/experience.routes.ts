@@ -48,7 +48,11 @@ vendorExperienceRouter.get('/', requireVendor(), async (req, res) => {
 });
 
 vendorExperienceRouter.post('/', requireApprovedVendor(), async (req, res) => {
-  created(res, await createExperience(req.vendor!.id, createExperienceSchema.parse(bodyOf(req))));
+  const body: any = bodyOf(req);
+  const targetVendorId = (req.auth && ['admin', 'super_admin', 'sub_admin'].includes(req.auth.role) && body.vendorId)
+    ? body.vendorId
+    : req.vendor!.id;
+  created(res, await createExperience(targetVendorId, createExperienceSchema.parse(body)));
 });
 
 vendorExperienceRouter.get('/:id', requireVendor(), async (req, res) => {

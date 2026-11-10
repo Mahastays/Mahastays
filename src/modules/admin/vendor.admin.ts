@@ -182,7 +182,7 @@ adminVendorRouter.post('/:id/verify', approve, async (req, res) => {
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
   const c = v.compliance;
-  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : null;
 
   let updated;
   if (input.decision === 'approve') {
@@ -254,7 +254,7 @@ adminVendorRouter.patch('/:id/kyc', approve, async (req, res) => {
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
   const c = v.compliance;
-  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : null;
 
   let updated;
   if (input.approve) {
@@ -322,7 +322,7 @@ adminVendorRouter.post('/:id/approve', approve, async (req, res) => {
   if (!v) throw ApiError.notFound('Vendor');
   const id = v.id;
   const c = v.compliance;
-  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : undefined;
+  const verifiedByAdminId = staff.id && /^[a-f\d]{24}$/i.test(staff.id) ? staff.id : null;
 
   const updated = await prisma.vendor.update({
     where: { id },

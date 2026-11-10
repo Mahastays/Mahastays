@@ -210,19 +210,60 @@ export function adminListingRouter(kind: ListingKind): Router {
       return;
     }
 
+    const rawSlots = Array.isArray(body.slots) && body.slots.length > 0
+      ? body.slots.map((s: any, idx: number) => ({
+          slotId: s.slotId || `slot-${Date.now()}-${idx}`,
+          time: s.time || '07:00 AM',
+          label: s.label || 'Morning Batch',
+          capacity: Number(s.capacity) || 20,
+          price: s.price ? Number(s.price) : undefined,
+        }))
+      : [{ slotId: `slot-${Date.now()}-0`, time: '07:00 AM', label: 'Morning Batch', capacity: 20 }];
+
+    const rawTiers = Array.isArray(body.tiers) && body.tiers.length > 0
+      ? body.tiers
+      : [{
+          tierId: 'tier-standard',
+          name: 'Standard Experience Pass',
+          tagline: 'Standard Admission',
+          pricePerPerson: Number(body.numericPrice) || 499,
+          originalPrice: body.originalPrice ? Number(body.originalPrice) : Math.round((Number(body.numericPrice) || 499) * 1.3),
+          features: ['Full Activity Access', 'Guide Assistance'],
+        }];
+
     const exp = await prisma.experience.create({
       data: {
         vendorId: vendorId || '6adeef17f4597150f0c199a4',
+        code: body.code || ('EXP-' + Math.floor(100 + Math.random() * 900)),
         title: body.title || 'New Mountain Experience',
         slug: ((body.title || 'new-experience') + '-' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: body.description || 'Scenic mountain adventure.',
-        overview: body.overview || body.description || 'Guided trek and activities.',
+        country: body.country || 'India',
         city: body.city || 'Mahabaleshwar',
-        durationHours: body.durationHours || 3,
-        numericPrice: body.numericPrice || 999,
-        originalPrice: body.originalPrice || 1499,
+        duration: body.duration || '4 Hours',
+        category: body.category || 'Trekking & Hiking',
+        priceType: body.priceType || 'per_person',
+        personLimit: body.personLimit != null ? Number(body.personLimit) : 15,
+        difficulty: (['Easy', 'Moderate', 'Challenging'].includes(body.difficulty) ? body.difficulty : 'Moderate') as any,
+        numericPrice: Number(body.numericPrice) || 499,
+        originalPrice: body.originalPrice ? Number(body.originalPrice) : Math.round((Number(body.numericPrice) || 499) * 1.3),
         image: body.image || body.images?.[0] || 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800',
-        images: Array.isArray(body.images) ? body.images : [],
+        gallery: Array.isArray(body.images) ? body.images : (body.image ? [body.image] : []),
+        description: body.description || 'Scenic mountain adventure with experienced local guides.',
+        overview: body.overview || body.description || 'Guided trek and activities in Maharashtra nature trails.',
+        highlights: Array.isArray(body.highlights) ? body.highlights : [],
+        timeline: Array.isArray(body.timeline) ? body.timeline : [],
+        inclusions: Array.isArray(body.inclusions) ? body.inclusions : [],
+        exclusions: Array.isArray(body.exclusions) ? body.exclusions : [],
+        whatToBring: Array.isArray(body.whatToBring) ? body.whatToBring : [],
+        meetingPoint: body.meetingPoint || body.location || 'Mahabaleshwar Base Point',
+        schedule: body.schedule || { mode: 'fixed_slot', daysAvailable: ['all'] },
+        slots: rawSlots,
+        tiers: rawTiers,
+        guide: body.guide ? {
+          name: body.guide.name || 'Local Guide',
+          role: body.guide.role || 'Certified Instructor',
+          avatar: body.guide.avatar || null,
+        } : null,
         pricingRules: body.pricingRules || null,
         status: 'pending_approval',
       } as any,

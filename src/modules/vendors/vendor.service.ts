@@ -1,6 +1,7 @@
 import type { Request } from 'express';
 import { prisma } from '../../lib/prisma';
 import { audit } from '../../services/audit.service';
+import { resolveDocumentUrl } from '../../services/storage.service';
 import { ApiError } from '../../utils/ApiError';
 import { encrypt } from '../../utils/crypto';
 import { todayIST } from '../../utils/dates';
@@ -11,7 +12,15 @@ import type { BankingInput, SubmitKycInput, UpdateVendorProfileInput } from './v
 export async function getVendorMe(id: string) {
   const v = await prisma.vendor.findUnique({ where: { id } });
   if (!v) throw ApiError.notFound('Vendor');
-  return presentVendor(v);
+  const presented = presentVendor(v, { bank: 'full' });
+  return {
+    ...presented,
+    compliance: {
+      ...presented.compliance,
+      identityProofUrl: await resolveDocumentUrl(v.compliance.identityProofUrl),
+      businessProofUrl: await resolveDocumentUrl(v.compliance.businessProofUrl),
+    },
+  };
 }
 
 export async function updateVendorProfile(id: string, input: UpdateVendorProfileInput) {

@@ -62,6 +62,14 @@ export function presentExperienceCard(e: Experience, extra: Record<string, unkno
     featured: e.featured,
     acceptingBookings: (e as any).acceptingBookings !== false,
     status: e.status,
+    vendorId: e.vendorId,
+    hostId: e.vendorId,
+    slots: e.slots ?? [],
+    tiers: e.tiers ?? [],
+    guide: e.guide ?? null,
+    highlights: e.highlights ?? [],
+    inclusions: e.inclusions ?? [],
+    exclusions: e.exclusions ?? [],
     ...extra,
   };
 }

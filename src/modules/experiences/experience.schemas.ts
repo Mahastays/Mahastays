@@ -9,10 +9,10 @@ const inclusionSchema = z.object({ title: v.trimmed(2, 120), desc: v.optionalTri
 const timelineSchema = z.object({ time: v.trimmed(2, 30), title: v.trimmed(2, 120), desc: v.optionalTrimmed(500) });
 
 const slotSchema = z.object({
-  slotId: z.string().trim().min(2).max(60).optional(),
-  time: v.trimmed(3, 40),
-  label: v.trimmed(2, 80),
-  capacity: z.number().int().min(1).max(2000),
+  slotId: z.string().trim().min(1).max(60).optional(),
+  time: z.string().trim().default('07:00 AM'),
+  label: z.string().trim().default('Morning Batch'),
+  capacity: z.number().int().min(1).max(2000).default(20),
   price: z.number().int().positive().max(10_000_000).optional(),
 });
 
@@ -23,8 +23,8 @@ const scheduleSchema = z.object({
 
 const tierSchema = z
   .object({
-    tierId: z.string().trim().min(2).max(60).optional(),
-    name: v.trimmed(2, 120),
+    tierId: z.string().trim().min(1).max(60).optional(),
+    name: v.trimmed(1, 120),
     tagline: v.optionalTrimmed(200),
     pricePerPerson: z.number().int().positive().max(10_000_000),
     originalPrice: z.number().int().positive().max(10_000_000).optional(),
@@ -33,24 +33,25 @@ const tierSchema = z
   .refine((t) => !t.originalPrice || t.originalPrice >= t.pricePerPerson, { message: 'originalPrice must be ≥ pricePerPerson', path: ['originalPrice'] });
 
 const experienceBase = z.object({
-  title: v.trimmed(3, 150),
+  code: v.optionalTrimmed(60),
+  title: v.trimmed(1, 150),
   country: z.string().trim().max(60).default('India'),
   flag: v.optionalTrimmed(8),
-  city: v.trimmed(2, 80),
+  city: v.trimmed(1, 80),
   locationId: v.optionalTrimmed(80),
-  duration: v.trimmed(2, 100),
-  category: z.enum(EXPERIENCE_CATEGORIES),
+  duration: z.string().trim().default('4 Hours'),
+  category: z.string().trim().min(1).max(100).default('Trekking & Hiking'),
   priceType: z.enum(['per_person', 'per_night']).default('per_person').optional(),
   personLimit: z.number().int().min(1).max(2000).optional(),
   difficulty: z.enum(DIFFICULTIES).default('Easy'),
   ageLimit: v.optionalTrimmed(60),
   groupSize: v.optionalTrimmed(80),
   language: v.optionalTrimmed(120),
-  image: v.url.optional(),
-  gallery: z.array(v.url).max(40).default([]),
-  description: v.trimmed(10, 1500),
+  image: z.string().trim().optional(),
+  gallery: z.array(z.string().trim()).max(40).default([]),
+  description: z.string().trim().default(''),
   overview: v.optionalTrimmed(8000),
-  highlights: z.array(v.trimmed(1, 200)).max(20).default([]),
+  highlights: z.array(z.string().trim()).max(50).default([]),
   timeline: z.array(timelineSchema).max(30).default([]),
   inclusions: z.array(inclusionSchema).max(30).default([]),
   exclusions: z.array(v.trimmed(1, 200)).max(30).default([]),
@@ -58,10 +59,12 @@ const experienceBase = z.object({
   meetingPoint: v.optionalTrimmed(300),
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
   schedule: scheduleSchema.optional(),
-  slots: z.array(slotSchema).min(1).max(20),
-  tiers: z.array(tierSchema).min(1).max(10),
+  slots: z.array(slotSchema).default([]),
+  tiers: z.array(tierSchema).default([]),
+  numericPrice: z.number().optional(),
+  originalPrice: z.number().optional(),
   pricingRules: z.any().optional(),
-  guide: z.object({ name: v.trimmed(2, 100), role: v.optionalTrimmed(120), avatar: v.url.optional() }).optional(),
+  guide: z.object({ name: z.string().optional(), role: z.string().optional(), avatar: z.string().optional() }).optional(),
   cancellationPolicy: v.optionalTrimmed(500),
 });
 
@@ -71,8 +74,8 @@ const unique = (label: string, ids: (string | undefined)[], ctx: z.RefinementCtx
 };
 
 const crossChecks = (e: Partial<z.infer<typeof experienceBase>>, ctx: z.RefinementCtx) => {
-  if (e.slots) unique('slotId', e.slots.map((s) => s.slotId), ctx, 'slots');
-  if (e.tiers) unique('tierId', e.tiers.map((t) => t.tierId), ctx, 'tiers');
+  if (e.slots && e.slots.length > 0) unique('slotId', e.slots.map((s) => s.slotId), ctx, 'slots');
+  if (e.tiers && e.tiers.length > 0) unique('tierId', e.tiers.map((t) => t.tierId), ctx, 'tiers');
 };
 
 export const createExperienceSchema = experienceBase.superRefine(crossChecks);

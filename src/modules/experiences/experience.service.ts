@@ -162,45 +162,68 @@ export async function nearbyExperiences(input: { lat: number; lng: number; radiu
 /* ───────────────────────────── vendor writes ───────────────────────────── */
 
 export async function createExperience(vendorId: string, input: CreateExperienceInput) {
-  const tiers = normalizeTiers(input.tiers);
+  let tiers = input.tiers && input.tiers.length > 0 ? normalizeTiers(input.tiers) : [];
+  if (tiers.length === 0) {
+    const price = (input as any).numericPrice || 499;
+    const orig = (input as any).originalPrice || Math.round(price * 1.3);
+    tiers = [{
+      tierId: 'tier-standard',
+      name: 'Standard Experience Pass',
+      tagline: 'Standard Admission',
+      pricePerPerson: price,
+      originalPrice: orig,
+      features: ['Full Activity Access', 'Guide Assistance'],
+    }];
+  }
   const derived = deriveFromTiers(tiers);
   const slug = await uniqueSlug(input.title, async (s) => !!(await prisma.experience.findUnique({ where: { slug: s }, select: { id: true } })));
-  const vendor = await prisma.vendor.findUniqueOrThrow({ where: { id: vendorId } });
+  const vendor = await prisma.vendor.findUnique({ where: { id: vendorId } });
+  const rawSlots = input.slots && input.slots.length > 0 ? normalizeSlots(input.slots) : [{
+    slotId: 'slot-morning',
+    time: '07:00 AM',
+    label: 'Morning Batch',
+    capacity: 20,
+  }];
 
   const created = await prisma.experience.create({
     data: {
       slug,
       vendorId,
+      code: (input as any).code || ('EXP-' + Math.floor(100 + Math.random() * 900)),
       title: input.title,
-      country: input.country,
+      country: input.country || 'India',
       flag: input.flag,
-      city: input.city,
+      city: input.city || 'Mahabaleshwar',
       locationId: input.locationId,
-      duration: input.duration,
-      category: input.category,
+      duration: input.duration || '4 Hours',
+      category: input.category || 'Trekking & Hiking',
       priceType: input.priceType ?? 'per_person',
-      personLimit: input.personLimit ?? null,
-      numericPrice: derived.numericPrice,
-      originalPrice: derived.originalPrice,
-      difficulty: input.difficulty,
+      personLimit: input.personLimit ?? 15,
+      numericPrice: (input as any).numericPrice || derived.numericPrice,
+      originalPrice: (input as any).originalPrice || derived.originalPrice,
+      difficulty: input.difficulty || 'Moderate',
       ageLimit: input.ageLimit,
       groupSize: input.groupSize,
       language: input.language,
-      image: input.image,
-      gallery: input.gallery,
-      description: input.description,
-      overview: input.overview,
-      highlights: input.highlights,
-      timeline: input.timeline,
-      inclusions: input.inclusions,
-      exclusions: input.exclusions,
-      whatToBring: input.whatToBring,
-      meetingPoint: input.meetingPoint,
+      image: input.image || undefined,
+      gallery: input.gallery || [],
+      description: input.description || 'Scenic mountain adventure with experienced local guides.',
+      overview: input.overview || input.description || 'Guided trek and activities in Maharashtra nature trails.',
+      highlights: input.highlights || [],
+      timeline: input.timeline || [],
+      inclusions: input.inclusions || [],
+      exclusions: input.exclusions || [],
+      whatToBring: input.whatToBring || [],
+      meetingPoint: input.meetingPoint || 'Mahabaleshwar Base Point',
       coordinates: input.coordinates,
       schedule: input.schedule ?? defaultSchedule,
-      slots: normalizeSlots(input.slots),
+      slots: rawSlots,
       tiers,
-      guide: input.guide ?? { name: vendor.displayName, role: vendor.displayRole, avatar: vendor.avatarUrl ?? undefined },
+      guide: input.guide && input.guide.name ? {
+        name: input.guide.name,
+        role: input.guide.role || vendor?.displayRole || 'Tour Guide',
+        avatar: input.guide.avatar || vendor?.avatarUrl || undefined,
+      } : (vendor ? { name: vendor.displayName, role: vendor.displayRole, avatar: vendor.avatarUrl ?? undefined } : null),
       cancellationPolicy: input.cancellationPolicy,
       pricingRules: input.pricingRules ?? null,
       status: 'pending_approval',
@@ -240,7 +263,13 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   if (input.meetingPoint !== undefined) data.meetingPoint = input.meetingPoint;
   if (input.coordinates !== undefined) data.coordinates = input.coordinates;
   if (input.schedule !== undefined) data.schedule = input.schedule;
-  if (input.guide !== undefined) data.guide = input.guide;
+  if (input.guide !== undefined) {
+    data.guide = input.guide && input.guide.name ? {
+      name: input.guide.name,
+      role: input.guide.role || null,
+      avatar: input.guide.avatar || null,
+    } : null;
+  }
   if (input.cancellationPolicy !== undefined) data.cancellationPolicy = input.cancellationPolicy;
   if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
 
