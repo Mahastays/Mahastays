@@ -76,6 +76,11 @@ export default function ActivitiesExperiences() {
     };
   }, [isHovered, total]);
 
+  // If there are no experiences, hide the entire section (heading, subtitle, carousel)
+  if (total === 0) {
+    return null;
+  }
+
   return (
     <section className="max-w-7xl mx-auto my-20 px-6 w-full overflow-hidden" id="activities">
       {/* Section Header */}
@@ -95,11 +100,7 @@ export default function ActivitiesExperiences() {
             <ExperienceCardSkeleton key={idx} />
           ))}
         </div>
-      ) : !loading && error && total === 0 ? (
-        <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm max-w-md mx-auto">
-          {error}. Please check backend connection.
-        </div>
-      ) : total > 0 ? (
+      ) : (
         <div
           className="relative w-full h-[500px] sm:h-[520px] perspective-1300 flex items-center justify-center touch-pan-y"
           onMouseEnter={() => setIsHovered(true)}
@@ -231,24 +232,22 @@ export default function ActivitiesExperiences() {
             </svg>
           </button>
         </div>
-      ) : null}
+      )}
 
       {/* Pagination Dots */}
-      {total > 0 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          {activities.map((item, idx) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveIndex(idx)}
-              className={`h-2 rounded-full transition-all border-none cursor-pointer p-0 ${
-                idx === activeIndex ? "w-6 bg-primary" : "w-2 bg-slate-300 hover:bg-slate-400"
-              }`}
-              aria-label={`Go to slide ${idx + 1}`}
-              type="button"
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex items-center justify-center gap-2 mt-6">
+        {activities.map((item, idx) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveIndex(idx)}
+            className={`h-2 rounded-full transition-all border-none cursor-pointer p-0 ${
+              idx === activeIndex ? "w-6 bg-primary" : "w-2 bg-slate-300 hover:bg-slate-400"
+            }`}
+            aria-label={`Go to slide ${idx + 1}`}
+            type="button"
+          />
+        ))}
+      </div>
     </section>
   );
 }

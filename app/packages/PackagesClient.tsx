@@ -29,6 +29,7 @@ export default function PackagesPage() {
       fullDesc: pkg.fullDesc || pkg.description,
       price: pkg.price || `From ₹${pkg.numericPrice?.toLocaleString("en-IN")}`,
       numericPrice: pkg.numericPrice,
+      originalPrice: pkg.originalPrice,
       images: pkg.images && pkg.images.length > 0 ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
       category: pkg.category,
       city: pkg.city,

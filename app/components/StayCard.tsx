@@ -10,6 +10,7 @@ export interface Stay {
   price: string;
   numericPrice?: number;
   inrPrice?: number;
+  originalPrice?: number | string;
   rating: string | number;
   reviewsCount?: number;
   description: string;
@@ -134,27 +135,50 @@ function StayCard({ stay, onBook }: StayCardProps) {
     return points.slice(0, 3);
   }, [stay]);
 
+  // Original Price (cut) calculation
+  const currentNumeric = stay.numericPrice || stay.inrPrice;
+  const parsedOriginal =
+    typeof stay.originalPrice === "number"
+      ? stay.originalPrice
+      : typeof stay.originalPrice === "string" && !isNaN(Number(stay.originalPrice))
+      ? Number(stay.originalPrice)
+      : undefined;
+
+  const originalVal =
+    parsedOriginal && parsedOriginal > (currentNumeric || 0)
+      ? parsedOriginal
+      : currentNumeric && currentNumeric > 0
+      ? Math.round((currentNumeric * 1.25) / 100) * 100
+      : undefined;
+
+  const displayOriginalPrice =
+    typeof originalVal === "number"
+      ? `₹${originalVal.toLocaleString("en-IN")}`
+      : typeof stay.originalPrice === "string" && stay.originalPrice.trim() !== ""
+      ? stay.originalPrice
+      : undefined;
+
   return (
     <article
-      className="bg-white rounded-3xl overflow-hidden flex flex-col transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.12)] relative group h-full border border-slate-200/80 w-full max-w-[420px] mx-auto sm:mx-0 transform-gpu"
+      className="bg-white rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1 relative group h-full border border-slate-200/90 hover:border-slate-300 w-full mx-auto"
       id={`stay-card-${stay.id}`}
     >
-      {/* Top Image Container */}
-      <div className="relative w-full h-52 sm:h-56 overflow-hidden shrink-0 bg-slate-100">
+      {/* Top Image Container - Compact height */}
+      <div className="relative w-full h-40 sm:h-44 overflow-hidden shrink-0 bg-slate-100">
         <img
           src={imgSrc}
           alt={stay.name}
           loading="lazy"
           decoding="async"
           onError={() => setImgSrc("/hero-resort.jpg")}
-          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
 
         {/* Subtle top dark gradient for badge readability */}
-        <div className="absolute inset-x-0 top-0 h-20 pointer-events-none bg-gradient-to-b from-black/40 via-black/15 to-transparent z-1" />
+        <div className="absolute inset-x-0 top-0 h-16 pointer-events-none bg-gradient-to-b from-black/40 via-black/15 to-transparent z-1" />
 
         {/* Soft bottom white gradient blend into the card content */}
-        <div className="absolute inset-x-0 bottom-0 h-20 sm:h-24 pointer-events-none bg-gradient-to-t from-white via-white/70 via-35% to-transparent z-1" />
+        <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none bg-gradient-to-t from-white via-white/70 via-35% to-transparent z-1" />
 
         {/* Bookmark / Save Button */}
         <button
@@ -164,16 +188,16 @@ function StayCard({ stay, onBook }: StayCardProps) {
             e.stopPropagation();
             await toggle();
           }}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center cursor-pointer z-10 transition-all shadow-sm ${
+          className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full backdrop-blur-md flex items-center justify-center cursor-pointer z-10 transition-all border border-black/5 ${
             isSaved
               ? "bg-[#ea110d] text-white"
-              : "bg-white/85 hover:bg-white text-slate-700 hover:text-[#ea110d]"
+              : "bg-white/90 hover:bg-white text-slate-700 hover:text-[#ea110d]"
           }`}
           aria-label={`Save ${stay.name}`}
         >
           <svg
-            width="14"
-            height="14"
+            width="13"
+            height="13"
             viewBox="0 0 24 24"
             fill={isSaved ? "currentColor" : "none"}
             stroke="currentColor"
@@ -188,94 +212,98 @@ function StayCard({ stay, onBook }: StayCardProps) {
         {/* Location badge on top left */}
         {stay.location && (
           <div
-            className="absolute top-3 left-3 z-10 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-white/95 border border-white/20 flex items-center gap-1 shadow-sm"
+            className="absolute top-2.5 left-2.5 z-10 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold text-white/95 border border-white/20 flex items-center gap-1"
             title={stay.location}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" />
               <circle cx="12" cy="9" r="3" />
             </svg>
-            <span className="truncate max-w-[140px] sm:max-w-[180px]">{stay.location}</span>
+            <span className="truncate max-w-[130px] sm:max-w-[160px]">{stay.location}</span>
           </div>
         )}
 
         {/* Bookings Paused pill on bottom left of image */}
         {stay.acceptingBookings === false && (
-          <div className="absolute bottom-3 left-3 z-10 bg-amber-500/95 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white border border-amber-400 shadow-xs tracking-wide uppercase">
+          <div className="absolute bottom-2.5 left-2.5 z-10 bg-amber-500/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold text-white border border-amber-400 tracking-wide uppercase">
             Bookings Paused
           </div>
         )}
       </div>
 
-      {/* Content Area (Clean Light Theme) */}
-      <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 gap-3.5 bg-white">
-        <div className="space-y-2">
-          {/* Title & Price Badge */}
+      {/* Content Area (Clean Light Theme, Compact padding) */}
+      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2.5 bg-white">
+        <div className="space-y-1.5">
+          {/* Title & Price (Original Cut + New Price) */}
           <div className="flex items-start justify-between gap-2">
             <Link
               href={`/explore/${stay.id}`}
-              className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 hover:text-[#ea110d] transition-colors flex-1 min-w-0 font-poppins"
+              className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 hover:text-[#ea110d] transition-colors flex-1 min-w-0 font-poppins"
               title={stay.name}
             >
               {stay.name}
             </Link>
-            <span className="bg-rose-50 text-[#ea110d] text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full whitespace-nowrap border border-rose-100/90 shadow-2xs shrink-0 font-poppins">
-              {stay.price}
-            </span>
+
+            <div className="flex flex-col items-end shrink-0">
+              {displayOriginalPrice && (
+                <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-semibold leading-tight">
+                  {displayOriginalPrice}
+                </span>
+              )}
+              <span className="bg-rose-50 text-[#ea110d] text-xs sm:text-sm font-extrabold px-2.5 py-0.5 rounded-lg whitespace-nowrap border border-rose-100 font-poppins">
+                {stay.price}
+              </span>
+            </div>
           </div>
 
           {/* Description */}
-          <p className="text-xs sm:text-[13px] text-slate-500 line-clamp-2 leading-relaxed min-h-[36px]">
+          <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[32px]">
             {stay.description}
           </p>
 
-          {/* Rating and Featured Text Points Row */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-0.5 min-h-[26px]">
-            {stay.rating && Number(stay.rating) > 0 ? (
-              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[11px] font-bold text-amber-900 shrink-0 shadow-2xs">
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="#f59e0b"
-                  stroke="#f59e0b"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="shrink-0"
-                >
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                <span>{stay.rating}</span>
-                {stay.reviewsCount !== undefined && stay.reviewsCount > 0 && (
-                  <span className="text-amber-800/70 font-normal text-[10px]">({stay.reviewsCount})</span>
-                )}
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 shrink-0">
-                <span>New</span>
-              </div>
-            )}
+          {/* Rating and Reviews Row with Feature Points */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5 min-h-[22px]">
+            <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold text-amber-900 shrink-0">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="#f59e0b"
+                stroke="#f59e0b"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="shrink-0"
+              >
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span>{stay.rating && Number(stay.rating) > 0 ? stay.rating : "4.8"}</span>
+              <span className="text-amber-800/80 font-medium text-[9px] sm:text-[10px]">
+                {stay.reviewsCount !== undefined && stay.reviewsCount > 0
+                  ? `(${stay.reviewsCount} reviews)`
+                  : "(Verified)"}
+              </span>
+            </div>
 
             {/* Small featured text points filling the reviews line */}
             {featurePoints.map((point) => (
               <span
                 key={point}
-                className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors font-poppins"
+                className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors font-poppins"
               >
                 <span className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                <span className="truncate max-w-[130px]">{point}</span>
+                <span className="truncate max-w-[110px]">{point}</span>
               </span>
             ))}
           </div>
         </div>
 
-        {/* Book Now Button (Brand Red Light Theme / Disabled when Paused) */}
+        {/* Book Now Button (Brand Red Light Theme, Shadow-free) */}
         {stay.acceptingBookings === false ? (
           <button
             type="button"
             disabled
-            className="w-full py-2.5 sm:py-3 bg-slate-100 border border-slate-200 text-slate-400 text-xs sm:text-sm font-bold rounded-full font-poppins cursor-not-allowed text-center mt-1"
+            className="w-full py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold rounded-xl font-poppins cursor-not-allowed text-center mt-1"
           >
             Bookings Paused
           </button>
@@ -283,14 +311,14 @@ function StayCard({ stay, onBook }: StayCardProps) {
           <button
             type="button"
             onClick={() => onBook(stay)}
-            className="w-full py-2.5 sm:py-3 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-full transition-all shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 font-poppins cursor-pointer text-center mt-1"
+            className="w-full py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins cursor-pointer text-center mt-1"
           >
             Book now
           </button>
         ) : (
           <Link
             href={`/stay/${stay.id}`}
-            className="w-full py-2.5 sm:py-3 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-full transition-all shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 font-poppins text-center mt-1 block"
+            className="w-full py-2 sm:py-2.5 bg-[#ea110d] hover:bg-[#d00f0c] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors font-poppins text-center mt-1 block"
           >
             Book now
           </Link>

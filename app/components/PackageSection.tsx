@@ -26,6 +26,7 @@ export default function PackageSection() {
       shortDesc: pkg.shortDesc,
       price: pkg.price || `From ₹${pkg.numericPrice?.toLocaleString("en-IN")}`,
       numericPrice: pkg.numericPrice,
+      originalPrice: pkg.originalPrice,
       images: pkg.images && pkg.images.length > 0 ? pkg.images : [pkg.thumbnail || "/hero-resort.jpg"],
       category: pkg.category,
       city: pkg.city,
@@ -34,6 +35,11 @@ export default function PackageSection() {
       featured: pkg.featured,
     }));
   }, [items]);
+
+  // If there are no packages, hide the entire section (heading, subtitle, cards, view all)
+  if (mappedPackages.length === 0) {
+    return null;
+  }
 
   return (
     <section className="max-w-7xl mx-auto my-16 px-6 w-full" id="packages">
@@ -51,13 +57,13 @@ export default function PackageSection() {
           </p>
         </div>
 
-        {/* View All Button (visible on small screens and desktop) */}
+        {/* View All Button */}
         <Link
           href="/packages"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm hover:text-primary hover:border-primary/30 hover:bg-red-50/50 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
           id="packages-view-all-link"
         >
-          <span>View all{mappedPackages.length > 0 ? ` (${mappedPackages.length})` : ""}</span>
+          <span>View all ({mappedPackages.length})</span>
           <svg
             width="15"
             height="15"
@@ -74,22 +80,22 @@ export default function PackageSection() {
         </Link>
       </div>
 
-      {/* Loading Skeleton */}
+      {/* Loading Skeleton or Packages Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
           {[1, 2, 3, 4].map((idx) => (
-            <PackageCardSkeleton key={idx} />
+            <div key={idx} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
+              <PackageCardSkeleton />
+            </div>
           ))}
         </div>
-      ) : !loading && error && mappedPackages.length === 0 ? (
-        <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm">
-          {error}. Please check backend connection.
-        </div>
-      ) : mappedPackages.length > 0 ? (
+      ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {mappedPackages.map((pkg) => (
-              <PackageCard key={pkg.id} pkg={pkg} />
+          <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
+            {mappedPackages.slice(0, 4).map((pkg) => (
+              <div key={pkg.id} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
+                <PackageCard pkg={pkg} />
+              </div>
             ))}
           </div>
 
@@ -103,10 +109,6 @@ export default function PackageSection() {
             </Link>
           </div>
         </>
-      ) : (
-        <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 text-sm">
-          No packages currently available.
-        </div>
       )}
     </section>
   );

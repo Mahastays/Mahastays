@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import BookingInvoiceModal, { BookingInvoiceData } from '../../components/booking/BookingInvoiceModal';
+import { toast } from '@/components/ui/Toast';
 
 export default function InvoiceViewClient({ refCode }: { refCode: string }) {
   const router = useRouter();
@@ -114,12 +115,13 @@ export default function InvoiceViewClient({ refCode }: { refCode: string }) {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+        toast.success(`Invoice Mahastays-Invoice-${bookingData.bookingReference}.pdf downloaded`, 'Download Complete');
       } else {
         const data = await res.json().catch(() => null);
-        alert(data?.message || 'Invoice PDF is not available.');
+        toast.error(data?.message || 'Invoice PDF is not available.', 'Download Failed');
       }
     } catch {
-      alert('Failed to connect to invoice server.');
+      toast.error('Failed to connect to invoice server.', 'Connection Error');
     } finally {
       setIsDownloading(false);
     }

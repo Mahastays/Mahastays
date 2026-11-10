@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Loader2,
 } from 'lucide-react';
+import { toast } from '@/components/ui/Toast';
 
 export interface BookingInvoiceData {
   id: string;
@@ -203,7 +204,12 @@ export default function BookingInvoiceModal({
   // Handle PDF Download
   const handleDownloadPdf = async () => {
     if (!isPaid || isCancelled) {
-      alert(isCancelled ? 'Invoice cannot be downloaded for cancelled bookings.' : 'Invoice is not available for unpaid bookings.');
+      toast.warning(
+        isCancelled
+          ? 'Invoice cannot be downloaded for cancelled bookings.'
+          : 'Invoice is not available for unpaid bookings.',
+        'Invoice Unavailable'
+      );
       return;
     }
     setIsDownloading(true);
@@ -223,6 +229,7 @@ export default function BookingInvoiceModal({
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+        toast.success(`Invoice Mahastays-${invNumber}.pdf downloaded`, 'Download Complete');
       } else {
         // Fallback: trigger print dialog (user can choose Save as PDF)
         window.print();

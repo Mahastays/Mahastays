@@ -14,6 +14,7 @@ export interface PackageData {
   fullDesc?: string;
   price: string;
   numericPrice?: number;
+  originalPrice?: number | string;
   images: string[];
   category: string;
   city?: string;
@@ -45,39 +46,62 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
   });
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Original Price (cut) calculation
+  const currentNumeric = pkg.numericPrice;
+  const parsedOriginal =
+    typeof pkg.originalPrice === "number"
+      ? pkg.originalPrice
+      : typeof pkg.originalPrice === "string" && !isNaN(Number(pkg.originalPrice))
+      ? Number(pkg.originalPrice)
+      : undefined;
+
+  const originalVal =
+    parsedOriginal && parsedOriginal > (currentNumeric || 0)
+      ? parsedOriginal
+      : currentNumeric && currentNumeric > 0
+      ? Math.round((currentNumeric * 1.25) / 100) * 100
+      : undefined;
+
+  const displayOriginalPrice =
+    typeof originalVal === "number"
+      ? `₹${originalVal.toLocaleString("en-IN")}`
+      : typeof pkg.originalPrice === "string" && pkg.originalPrice.trim() !== ""
+      ? pkg.originalPrice
+      : undefined;
+
   return (
     <article
-      className="bg-white rounded-[28px] overflow-hidden flex flex-col shadow-[0_8px_28px_rgba(0,0,0,0.05),0_1px_3px_rgba(0,0,0,0.03)] border border-slate-100 transition-[transform,box-shadow] duration-250 ease-out hover:-translate-y-1.5 hover:shadow-[0_18px_40px_rgba(0,0,0,0.09)] transform-gpu group h-full"
+      className="bg-white rounded-2xl overflow-hidden flex flex-col border border-slate-200/90 hover:border-slate-300 transition-all duration-200 hover:-translate-y-1 relative group h-full w-full mx-auto"
       id={`pkg-card-${pkg.id}`}
     >
-      {/* Card Image Area with Inset Radius */}
-      <div className="relative w-[calc(100%-20px)] mx-auto mt-2.5 h-56 rounded-[22px] overflow-hidden shrink-0 bg-slate-200">
+      {/* Card Image Area with Inset Radius - Compact Height */}
+      <div className="relative w-[calc(100%-16px)] mx-auto mt-2 h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-slate-200">
         <Link href={`/packages/${pkg.id}`} className="block w-full h-full">
           <img
             src={pkg.images[0]}
             alt={pkg.title}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 transform-gpu"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
         </Link>
 
         {/* Top-Left Host / Badge */}
         {pkg.badge && (
-          <span className="absolute top-3 left-3 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1 rounded-full border border-white/20 z-10 tracking-wide pointer-events-none">
+          <span className="absolute top-2.5 left-2.5 bg-[#0B0A06]/65 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/20 z-10 tracking-wide pointer-events-none">
             {pkg.badge}
           </span>
         )}
 
         {/* Top-Right: Rating Badge & Favorite Button */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
           {pkg.rating && (
-            <span className="bg-[#0B0A06]/65 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/20 shadow-xs pointer-events-none">
+            <span className="bg-[#0B0A06]/65 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/20 pointer-events-none">
               {pkg.rating}
             </span>
           )}
 
-          {/* Add to Favorites Button at Top Right near Review */}
+          {/* Add to Favorites Button */}
           <button
             type="button"
             onClick={async (e) => {
@@ -85,7 +109,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
               e.stopPropagation();
               await toggle();
             }}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer shadow-xs border ${
+            className={`w-7 h-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border ${
               isFav
                 ? "bg-[#ea110d] border-[#ea110d] text-white scale-105"
                 : "bg-[#0B0A06]/65 hover:bg-[#0B0A06]/90 border-white/20 text-white hover:text-rose-400"
@@ -95,8 +119,8 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
             id={`fav-${pkg.id}`}
           >
             <svg
-              width="14"
-              height="14"
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill={isFav ? "currentColor" : "none"}
               stroke="currentColor"
@@ -108,38 +132,36 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
         </div>
 
         {pkg.acceptingBookings === false && (
-          <span className="absolute top-12 left-3 bg-amber-500/95 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full border border-amber-400 z-10 shadow-xs pointer-events-none">
+          <span className="absolute top-10 left-2.5 bg-amber-500/95 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full border border-amber-400 z-10 pointer-events-none">
             Bookings Paused
           </span>
         )}
 
         {/* Bottom Center Carousel Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 pointer-events-none">
-          <span className="w-4 h-1.5 rounded-full bg-white transition-all" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/55" />
+        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
+          <span className="w-3.5 h-1 rounded-full bg-white transition-all" />
+          <span className="w-1 h-1 rounded-full bg-white/55" />
+          <span className="w-1 h-1 rounded-full bg-white/55" />
         </div>
       </div>
 
-      {/* Card Body */}
-      <div className="p-4 sm:p-5 flex flex-col flex-1">
+      {/* Card Body - Compact Padding */}
+      <div className="p-3 sm:p-3.5 flex flex-col flex-1">
         {/* Title */}
         <Link
           href={`/packages/${pkg.id}`}
-          className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight leading-snug mb-0.5 hover:text-primary transition-colors block"
+          className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-snug mb-0.5 hover:text-primary transition-colors block line-clamp-1"
         >
           {pkg.title}
         </Link>
 
         {/* Location */}
-        <p className="text-xs text-slate-500 font-normal mb-2.5">
+        <p className="text-[11px] sm:text-xs text-slate-500 font-normal mb-1.5 line-clamp-1">
           {pkg.location}
         </p>
 
         {/* Description with Read more toggle */}
-        <p className="text-xs text-slate-600 leading-relaxed mb-3">
+        <p className="text-xs text-slate-600 leading-relaxed mb-2 line-clamp-2">
           {isExpanded ? (pkg.fullDesc || pkg.shortDesc) : pkg.shortDesc}{" "}
           {pkg.fullDesc && pkg.fullDesc !== pkg.shortDesc && (
             <button
@@ -152,25 +174,32 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
           )}
         </p>
 
-        {/* Bottom Row: Price Highlight on Left + Red Theme Book Now Button on Right */}
-        <div className="flex items-center justify-between gap-3 mt-auto pt-3.5 border-t border-slate-100">
-          {/* Price with highlight */}
+        {/* Bottom Row: Price with original cut on Left + Red Theme Book Now Button on Right */}
+        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-slate-100">
+          {/* Price with highlight and original price cut */}
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              {pkg.priceType === 'per_night' ? 'Per Night' : 'Total Package'}
-              {pkg.priceType === 'per_night' && pkg.personLimit ? ` (Max ${pkg.personLimit})` : ''}
-            </span>
-            <div className="text-base sm:text-[17px] font-black text-[#ea110d] tracking-tight truncate">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {pkg.priceType === 'per_night' ? 'Per Night' : 'Total Package'}
+                {pkg.priceType === 'per_night' && pkg.personLimit ? ` (Max ${pkg.personLimit})` : ''}
+              </span>
+              {displayOriginalPrice && (
+                <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-semibold leading-tight">
+                  {displayOriginalPrice}
+                </span>
+              )}
+            </div>
+            <div className="text-sm sm:text-base font-black text-[#ea110d] tracking-tight truncate">
               {pkg.price}
             </div>
           </div>
 
-          {/* Book Now Button (Red Theme) */}
+          {/* Book Now Button (Red Theme, Shadow-free) */}
           {pkg.acceptingBookings === false ? (
             <button
               type="button"
               disabled
-              className="px-5 h-10 bg-slate-100 text-slate-400 text-xs sm:text-sm font-bold rounded-full border border-slate-200 cursor-not-allowed whitespace-nowrap text-center flex items-center justify-center shrink-0"
+              className="px-3.5 h-8 sm:h-9 bg-slate-100 text-slate-400 text-xs font-bold rounded-xl border border-slate-200 cursor-not-allowed whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
               Paused
@@ -179,7 +208,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
             <button
               type="button"
               onClick={() => onBook(pkg)}
-              className="px-5 sm:px-6 h-10 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs sm:text-sm font-bold rounded-full border-none cursor-pointer transition-all shadow-[0_4px_14px_rgba(234,17,13,0.3)] hover:shadow-[0_6px_20px_rgba(234,17,13,0.4)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center shrink-0"
+              className="px-4 sm:px-5 h-8 sm:h-9 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-colors whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
               Book Now
@@ -187,7 +216,7 @@ function PackageCard({ pkg, onBook }: PackageCardProps) {
           ) : (
             <Link
               href={`/packages/${pkg.id}`}
-              className="px-5 sm:px-6 h-10 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs sm:text-sm font-bold rounded-full border-none cursor-pointer transition-all shadow-[0_4px_14px_rgba(234,17,13,0.3)] hover:shadow-[0_6px_20px_rgba(234,17,13,0.4)] hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap text-center flex items-center justify-center shrink-0"
+              className="px-4 sm:px-5 h-8 sm:h-9 bg-[#ea110d] hover:bg-[#d00f0b] text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-colors whitespace-nowrap text-center flex items-center justify-center shrink-0"
               id={`book-pkg-${pkg.id}`}
             >
               Book Now

@@ -23,6 +23,7 @@ export default function PopularHotels() {
       price: property.price || (property.numericPrice ? `₹${property.numericPrice?.toLocaleString("en-IN")}` : ""),
       numericPrice: property.numericPrice,
       inrPrice: property.inrPrice || property.numericPrice,
+      originalPrice: property.originalPrice,
       rating: property.rating || "",
       description: property.description || "",
       tags: property.tags || [],
@@ -87,27 +88,27 @@ export default function PopularHotels() {
 
       {/* Loading Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((idx) => (
-            <div key={idx} className="w-full">
+        <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
+          {[1, 2, 3, 4].map((idx) => (
+            <div key={idx} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
               <StayCardSkeleton />
             </div>
           ))}
         </div>
       ) : !loading && error && stays.length === 0 ? (
-        <div className="p-8 text-center bg-red-50/60 rounded-3xl border border-red-100 text-red-600 text-sm">
+        <div className="p-8 text-center bg-red-50/60 rounded-2xl border border-red-100 text-red-600 text-sm">
           {error}. Please make sure the backend server is running.
         </div>
       ) : stays.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stays.slice(0, 3).map((stay) => (
-            <div key={stay.id} className="w-full">
+        <div className="flex overflow-x-auto pb-4 pt-1 gap-4 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-2 sm:gap-5">
+          {stays.slice(0, 4).map((stay) => (
+            <div key={stay.id} className="min-w-[270px] xs:min-w-[290px] w-[82vw] max-w-[340px] sm:w-full sm:max-w-none snap-start shrink-0 sm:shrink">
               <StayCard stay={stay} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 text-sm">
+        <div className="p-8 text-center bg-white rounded-2xl border border-slate-100 text-slate-500 text-sm">
           No stays currently available.
         </div>
       )}

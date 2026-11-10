@@ -12,6 +12,20 @@ import { fetchProperties } from "@/store/slices/propertyslice";
 
 
 // ─── Comprehensive Stays Catalog (Hotels, Resorts, Villas) ────
+export interface StayPropertyTab {
+  id: string;
+  label: string;
+}
+
+export const STAY_PROPERTY_TABS: StayPropertyTab[] = [
+  { id: "All", label: "All Stays" },
+  { id: "Resort", label: "Resorts" },
+  { id: "Villa", label: "Villas" },
+  { id: "Hotel", label: "Hotels" },
+  { id: "Cottage", label: "Cottages" },
+  { id: "Apartment", label: "Apartments" },
+];
+
 export interface AmenityTab {
   id: string;
   label: string;
@@ -131,6 +145,7 @@ export default function ExplorePage() {
       price: property.price || `₹${property.numericPrice?.toLocaleString("en-IN")}`,
       numericPrice: property.numericPrice,
       inrPrice: property.inrPrice || property.numericPrice,
+      originalPrice: property.originalPrice,
       rating: property.rating || "",
       reviewsCount: property.reviewsCount,
       description: property.description,
@@ -653,6 +668,32 @@ export default function ExplorePage() {
                 )}
               </div>
             </div>
+
+            {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (UI Matching Reference Image) ─── */}
+            <div className="w-full pt-1">
+              <div className="flex items-end gap-1 sm:gap-2 border-b border-slate-300 dark:border-slate-700 overflow-x-auto scrollbar-none px-1">
+                {STAY_PROPERTY_TABS.map((tab) => {
+                  const isActive =
+                    (tab.id === "All" && (selectedPropertyType === "All" || !selectedPropertyType)) ||
+                    selectedPropertyType.toLowerCase() === tab.id.toLowerCase();
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedPropertyType(tab.id)}
+                      className={`relative px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm md:text-base whitespace-nowrap transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-slate-50 text-[#ea110d] border-t border-l border-r border-slate-300 dark:border-slate-700 rounded-t-2xl -mb-[1px] z-10 font-bold"
+                          : "text-slate-600 hover:text-slate-900 font-medium border-t-0 border-l-0 border-r-0 border-b-0 bg-transparent hover:bg-slate-200/50 rounded-t-xl"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Top Row: Title, Result Count, Search & Sort */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
