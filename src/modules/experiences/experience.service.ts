@@ -304,6 +304,9 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
     data.tiers = tiers;
     data.numericPrice = d.numericPrice;
     data.originalPrice = d.originalPrice;
+    if (!data.priceType && tiers.length > 0 && (tiers[0] as any).priceType) {
+      data.priceType = (tiers[0] as any).priceType;
+    }
   }
 
   await prisma.experience.update({ where: { id }, data });

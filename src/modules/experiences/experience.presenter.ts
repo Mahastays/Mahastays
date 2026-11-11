@@ -4,7 +4,7 @@ import { omit } from '../../utils/object';
 
 const formatExperiencePrice = (amount: number, priceType?: string | null) => {
   if (priceType === 'per_activity' || priceType === 'full_setup') {
-    return `${formatInr(amount)} / activity setup`;
+    return `${formatInr(amount)} / setup`;
   }
   if (priceType === 'per_night') {
     return `${formatInr(amount)} / night`;
@@ -18,6 +18,14 @@ export function presentExperience(e: Experience) {
     ...(e.tiers || []).map((t) => Number(t.pricePerPerson)),
   ].filter((v) => !isNaN(v) && v > 0);
   const startingPrice = slotPrices.length > 0 ? Math.min(...slotPrices) : e.numericPrice;
+  const effectivePriceType =
+    (e.tiers && e.tiers.length > 0 && (e.tiers[0] as any).priceType) ||
+    e.priceType ||
+    'per_person';
+  const effectivePersonLimit =
+    e.personLimit ??
+    (e.tiers && e.tiers.length > 0 ? (e.tiers[0] as any).personLimit : null) ??
+    (e.slots?.[0]?.capacity || null);
   const locType = (e as any).locationType ?? 'fixed_location';
   const displayLoc =
     locType === 'customer_location'
@@ -35,9 +43,9 @@ export function presentExperience(e: Experience) {
     serviceArea: (e as any).serviceArea ?? null,
     rating: e.rating > 0 ? `${e.rating.toFixed(1)}/5 ★` : 'New',
     ratingScore: e.rating,
-    priceType: e.priceType ?? 'per_person',
-    personLimit: e.personLimit ?? (e.slots?.[0]?.capacity || null),
-    price: formatExperiencePrice(startingPrice, e.priceType),
+    priceType: effectivePriceType,
+    personLimit: effectivePersonLimit,
+    price: formatExperiencePrice(startingPrice, effectivePriceType),
     numericPrice: startingPrice,
     hasChildPrice: (e as any).hasChildPrice ?? (e.pricingRules as any)?.hasChildPrice ?? false,
     childPrice: (e as any).childPrice ?? (e.pricingRules as any)?.childPrice ?? null,
@@ -48,8 +56,8 @@ export function presentExperience(e: Experience) {
     tiers: e.tiers.map((t) => ({
       ...t,
       id: t.tierId,
-      priceType: (t as any).priceType ?? e.priceType ?? 'per_person',
-      personLimit: (t as any).personLimit ?? e.personLimit ?? null,
+      priceType: (t as any).priceType ?? effectivePriceType,
+      personLimit: (t as any).personLimit ?? effectivePersonLimit,
       childPricePerPerson: (t as any).childPricePerPerson ?? null,
       badge: (t as any).badge ?? null,
       description: (t as any).description ?? null,
@@ -66,6 +74,15 @@ export function presentExperienceCard(e: Experience, extra: Record<string, unkno
     ...(e.tiers || []).map((t) => Number(t.pricePerPerson)),
   ].filter((v) => !isNaN(v) && v > 0);
   const startingPrice = slotPrices.length > 0 ? Math.min(...slotPrices) : e.numericPrice;
+  const effectivePriceType =
+    (e.tiers && e.tiers.length > 0 && (e.tiers[0] as any).priceType) ||
+    e.priceType ||
+    'per_person';
+  const effectivePersonLimit =
+    e.personLimit ??
+    (e.tiers && e.tiers.length > 0 ? (e.tiers[0] as any).personLimit : null) ??
+    (e.slots?.[0]?.capacity || null);
+
   return {
     id: e.id,
     _id: e.id,
@@ -89,12 +106,12 @@ export function presentExperienceCard(e: Experience, extra: Record<string, unkno
     locationId: e.locationId,
     duration: e.duration,
     category: e.category,
-    priceType: e.priceType ?? 'per_person',
-    personLimit: e.personLimit ?? (e.slots?.[0]?.capacity || null),
+    priceType: effectivePriceType,
+    personLimit: effectivePersonLimit,
     rating: e.rating > 0 ? `${e.rating.toFixed(1)}/5 ★` : 'New',
     ratingScore: e.rating,
     reviewsCount: e.reviewsCount,
-    price: formatExperiencePrice(startingPrice, e.priceType),
+    price: formatExperiencePrice(startingPrice, effectivePriceType),
     numericPrice: startingPrice,
     originalPrice: e.originalPrice,
     hasChildPrice: (e as any).hasChildPrice ?? (e.pricingRules as any)?.hasChildPrice ?? false,

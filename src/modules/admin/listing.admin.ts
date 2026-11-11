@@ -323,7 +323,7 @@ export function adminListingRouter(kind: ListingKind): Router {
     ok(res, { id, updated: Object.keys(data) });
   });
 
-  r.put('/:id', requireStaff({ admin: true }), async (req, res) => {
+  r.put('/:id', requireStaff({ admin: true, sub_admin: true }), async (req, res) => {
     const staff = getStaff(req);
     const id = objectId.parse(req.params.id);
     const body: any = bodyOf(req);
@@ -647,7 +647,7 @@ export function adminListingRouter(kind: ListingKind): Router {
           badge: t.badge || null,
           tagline: t.tagline || null,
           description: t.description || null,
-          priceType: t.priceType || body.priceType || 'per_person',
+          priceType: t.priceType || body.priceType || data.priceType || 'per_person',
           personLimit: t.personLimit != null ? Number(t.personLimit) : (body.personLimit != null ? Number(body.personLimit) : null),
           pricePerPerson: Number(t.pricePerPerson) || 0,
           originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
@@ -659,6 +659,9 @@ export function adminListingRouter(kind: ListingKind): Router {
         if (prices.length > 0) data.numericPrice = Math.min(...prices);
         const origPrices = tiers.map((t: any) => Number(t.originalPrice)).filter((p: number) => !isNaN(p) && p > 0);
         if (origPrices.length > 0) data.originalPrice = Math.min(...origPrices);
+        if (!data.priceType && tiers.length > 0 && tiers[0].priceType) {
+          data.priceType = tiers[0].priceType;
+        }
       }
       if (body.numericPrice !== undefined && data.numericPrice === undefined) {
         data.numericPrice = Number(body.numericPrice);
