@@ -282,15 +282,16 @@ export default function Navbar() {
                 {/* Thin Vertical Separator */}
                 <div className="w-[1.5px] h-5 bg-slate-300 mx-0.5" />
 
-                {/* Pill Profile Button */}
+                {/* Pill Profile Button (Compact Avatar on small screens, full pill on desktop) */}
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 pl-1.5 pr-2.5 sm:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 transition-all whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 p-1 md:pl-1.5 md:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 transition-all whitespace-nowrap cursor-pointer shadow-xs"
                     id="navbar-profile-btn"
+                    aria-label="User Profile Menu"
                   >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-7 h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                       {user?.avatarUrl ? (
                         <img
                           src={user.avatarUrl}
@@ -303,11 +304,11 @@ export default function Navbar() {
                         <span>{user?.fullName ? user.fullName.charAt(0).toUpperCase() : "A"}</span>
                       )}
                     </div>
-                    <span className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[85px] sm:max-w-[120px] font-poppins">
+                    <span className="hidden md:inline text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[85px] sm:max-w-[120px] font-poppins">
                       {user?.fullName?.split(" ")[0] || "Abhishek"}
                     </span>
                     <svg
-                      className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
+                      className={`hidden md:block w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
