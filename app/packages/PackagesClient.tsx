@@ -10,6 +10,93 @@ import { fetchPackages } from "@/store/slices/packageslice";
 
 const ITEMS_PER_PAGE = 6;
 
+export const PACKAGE_CATEGORY_TABS = [
+  {
+    id: "All",
+    label: "All",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+    ),
+  },
+  {
+    id: "Beach & Islands",
+    label: "Beach & Islands",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="5" r="3" />
+        <line x1="12" y1="22" x2="12" y2="8" />
+        <path d="M5 12H2a10 10 0 0 0 20 0h-3" />
+      </svg>
+    ),
+  },
+  {
+    id: "Mountains & Nature",
+    label: "Mountains & Nature",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Honeymoon & Romantic",
+    label: "Honeymoon & Romantic",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Adventure & Safari",
+    label: "Adventure & Safari",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+      </svg>
+    ),
+  },
+  {
+    id: "Wellness & Spa",
+    label: "Wellness & Spa",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12A10 10 0 0 1 12 2z" />
+        <path d="M12 6a6 6 0 0 1 6 6c0 3.314-2.686 6-6 6s-6-2.686-6-6a6 6 0 0 1 6-6z" />
+      </svg>
+    ),
+  },
+  {
+    id: "Heritage & Culture",
+    label: "Heritage & Culture",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="3" y1="21" x2="21" y2="21" />
+        <line x1="6" y1="21" x2="6" y2="9" />
+        <line x1="10" y1="21" x2="10" y2="9" />
+        <line x1="14" y1="21" x2="14" y2="9" />
+        <line x1="18" y1="21" x2="18" y2="9" />
+        <polygon points="12 2 2 7 22 7 12 2" />
+      </svg>
+    ),
+  },
+  {
+    id: "Luxury Escapes",
+    label: "Luxury Escapes",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+];
+
 export default function PackagesPage() {
   const dispatch = useAppDispatch();
   const { items, loading, error } = useAppSelector((state) => state.packages);
@@ -568,12 +655,12 @@ export default function PackagesPage() {
   );
 
   return (
-    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
+    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative pt-16 sm:pt-20">
       {/* ─── Above The Hero: Special Offers & Discount Deals Carousel (Matching Image Reference) ── */}
       <PackagesOfferAdCarousel onSelectSlide={handlePackageOfferSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="packages-catalog">
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full pt-2 sm:pt-3 pb-8" id="packages-catalog">
         {/* Main 2-Column Layout */}
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (Desktop Only) ── */}
@@ -747,6 +834,30 @@ export default function PackagesPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ─── Row 2: Package Category Tabs with Icons (Matching media_1794431203134_4cd32c4d.png style) ─── */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+              {PACKAGE_CATEGORY_TABS.map((tab) => {
+                const isActive = selectedPropertyType.toLowerCase() === tab.id.toLowerCase();
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setSelectedPropertyType(tab.id)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-primary text-white shadow-sm shadow-red-500/25 font-bold"
+                        : "bg-white border border-slate-200/90 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-xs"
+                    }`}
+                  >
+                    <span className={isActive ? "text-white" : "text-slate-500"}>
+                      {tab.icon}
+                    </span>
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Active Filter Badges */}

@@ -15,15 +15,74 @@ import { fetchProperties } from "@/store/slices/propertyslice";
 export interface StayPropertyTab {
   id: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 export const STAY_PROPERTY_TABS: StayPropertyTab[] = [
-  { id: "All", label: "All Stays" },
-  { id: "Resort", label: "Resorts" },
-  { id: "Villa", label: "Villas" },
-  { id: "Hotel", label: "Hotels" },
-  { id: "Cottage", label: "Cottages" },
-  { id: "Apartment", label: "Apartments" },
+  {
+    id: "All",
+    label: "All Stays",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+    ),
+  },
+  {
+    id: "Resort",
+    label: "Resorts",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 17c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
+        <path d="M12 2v20" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  {
+    id: "Villa",
+    label: "Villas",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    id: "Hotel",
+    label: "Hotels",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" />
+        <path d="M8 7h.01M16 7h.01M12 7h.01M8 11h.01M16 11h.01M12 11h.01" />
+      </svg>
+    ),
+  },
+  {
+    id: "Cottage",
+    label: "Cottages",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 21 12 3l8 18H4z" />
+        <path d="M9 21v-4a3 3 0 0 1 6 0v4" />
+      </svg>
+    ),
+  },
+  {
+    id: "Apartment",
+    label: "Apartments",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2" />
+        <path d="M9 22v-4h6v4" />
+        <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" />
+      </svg>
+    ),
+  },
 ];
 
 export interface AmenityTab {
@@ -603,12 +662,12 @@ export default function ExplorePage() {
   );
 
   return (
-    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
+    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative pt-16 sm:pt-20">
       {/* ─── Above The Hero: Hotel Showcase Ad Carousel (Matching Image Reference) ── */}
       <ExploreHotelAdCarousel onSelectSlide={handleHotelAdSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="catalog-section">
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full pt-2 sm:pt-3 pb-8" id="catalog-section">
         {/* Main 2-Column Layout */}
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT LAYOUT FROM IMAGE 1) ── */}
@@ -641,31 +700,6 @@ export default function ExplorePage() {
 
           {/* ─── RIGHT CONTENT: TOOLBAR & GRID ── */}
           <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 pt-0">
-            {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (Shadow-highlighted) ─── */}
-            <div className="w-full">
-              <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 px-0.5">
-                {STAY_PROPERTY_TABS.map((tab) => {
-                  const isActive =
-                    (tab.id === "All" && (selectedPropertyType === "All" || !selectedPropertyType)) ||
-                    selectedPropertyType.toLowerCase() === tab.id.toLowerCase();
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setSelectedPropertyType(tab.id)}
-                      className={`px-3.5 sm:px-5 lg:px-6 py-1.5 sm:py-2.5 lg:py-3 text-xs sm:text-sm md:text-base rounded-2xl whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                        isActive
-                          ? "bg-white text-[#ea110d] shadow-md shadow-slate-900/10 font-bold"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* ─── Mobile Unified Compact Action Bar (Search + Filter + Sort in ONE row) ─── */}
             <div className="flex lg:hidden items-center gap-2 w-full">
               {/* Search Bar on Mobile */}
@@ -773,7 +807,7 @@ export default function ExplorePage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search stays, locations, or experiences..."
+                    placeholder="Search stays..."
                     className="w-full pl-9 pr-3.5 py-2 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition shadow-xs"
                   />
                   {searchQuery && (
@@ -808,6 +842,32 @@ export default function ExplorePage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ─── Row 2: Stays Property Type Tabs with Icons (Matching media_1794431203134_4cd32c4d.png style) ─── */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+              {STAY_PROPERTY_TABS.map((tab) => {
+                const isActive =
+                  (tab.id === "All" && (selectedPropertyType === "All" || !selectedPropertyType)) ||
+                  selectedPropertyType.toLowerCase() === tab.id.toLowerCase();
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setSelectedPropertyType(tab.id)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-primary text-white shadow-sm shadow-red-500/25 font-bold"
+                        : "bg-white border border-slate-200/90 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-xs"
+                    }`}
+                  >
+                    <span className={isActive ? "text-white" : "text-slate-500"}>
+                      {tab.icon}
+                    </span>
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Active Filter Badges */}

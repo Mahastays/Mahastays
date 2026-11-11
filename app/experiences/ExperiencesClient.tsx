@@ -58,16 +58,14 @@ export default function ExperiencesPage() {
     });
   }, [items]);
 
-  // ─── Filter Sidebar State (Exact Same UI As In Explore) ────────
+  // ─── Filter Sidebar State ─────────────────────────────────────
   const [destinationSearch, setDestinationSearch] = useState<string>("");
-  const [checkInDate, setCheckInDate] = useState<string>("");
-  const [checkOutDate, setCheckOutDate] = useState<string>("");
+  const [experienceDate, setExperienceDate] = useState<string>("");
   const [guestsCount, setGuestsCount] = useState<number>(2);
   const [maxPriceValue, setMaxPriceValue] = useState<number>(25000);
   const [selectedPropertyType, setSelectedPropertyType] = useState<string>("All");
 
-  // ─── Top Bar & Horizontal Tag State (Exact Same UI As In Explore)
-  const [selectedAmenity, setSelectedAmenity] = useState<string>("all");
+  // ─── Top Bar & Horizontal Tag State ───────────────────────────
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("featured");
 
@@ -120,12 +118,10 @@ export default function ExperiencesPage() {
     setCurrentPage(1);
   }, [
     destinationSearch,
-    checkInDate,
-    checkOutDate,
+    experienceDate,
     guestsCount,
     maxPriceValue,
     selectedPropertyType,
-    selectedAmenity,
     searchQuery,
     sortBy,
   ]);
@@ -133,15 +129,30 @@ export default function ExperiencesPage() {
   // Filtered & Sorted Experiences
   const filteredExperiences = useMemo(() => {
     return experiencesData.filter((exp) => {
-      // 1. Activity Type Filter
+      // 1. Category Filter
       if (selectedPropertyType !== "All") {
         const cat = (exp.category || "").toLowerCase();
-        const propType = selectedPropertyType.toLowerCase();
-        const words = propType.split(/[&,/\s]+/).filter((w) => w.length > 2);
-        const matchesType =
-          cat.includes(propType) ||
-          words.some((w) => cat.includes(w) || (exp.title || "").toLowerCase().includes(w));
-        if (!matchesType) {
+        const title = (exp.title || "").toLowerCase();
+        const desc = (exp.description || "").toLowerCase();
+        const pType = selectedPropertyType.toLowerCase();
+
+        const catKeywords: Record<string, string[]> = {
+          "scuba & water": ["scuba", "water", "boating", "lake", "cruise", "boat", "swim", "kayak", "paddle", "venna"],
+          "aerial & sky": ["aerial", "sky", "paragliding", "flying", "helicopter", "balloon", "drone", "air", "parasailing"],
+          "desert safari": ["desert", "safari", "dune", "jeep", "sand", "camel", "atv"],
+          "mountain trek": ["mountain", "trek", "trekking", "hiking", "hike", "climb", "trail", "peak", "valley", "viewpoint", "panchgani", "mahabaleshwar"],
+          "vineyard & food": ["vineyard", "food", "wine", "strawberry", "tasting", "culinary", "farm", "dine", "cooking", "breakfast"],
+          "sunset cruises": ["sunset", "cruise", "cruises", "boat", "yacht", "boating", "sail", "sailing"],
+          "fun & resort games": ["fun", "game", "games", "resort", "entertainment", "karaoke", "bonfire", "party", "indoor", "lawn", "activity"],
+          "stargazing & camping": ["stargazing", "camping", "camp", "tent", "star", "night sky", "astronomy", "bonfire"],
+        };
+
+        const keywords = catKeywords[pType] || pType.split(/[&,/\s]+/).filter((w) => w.length > 2);
+        const matchesCategory =
+          cat.includes(pType) ||
+          keywords.some((k) => cat.includes(k) || title.includes(k) || desc.includes(k));
+
+        if (!matchesCategory) {
           return false;
         }
       }
@@ -163,34 +174,7 @@ export default function ExperiencesPage() {
         return false;
       }
 
-      // 4. Horizontal Amenity / Category Filter
-      if (selectedAmenity !== "all") {
-        const keywordsMap: Record<string, string[]> = {
-          fun: ['fun', 'resort games', 'games', 'indoor', 'lawn'],
-          karaoke: ['karaoke', 'night', 'entertainment', 'music', 'dj', 'singing'],
-          bonfire: ['bonfire', 'bonefire', 'fire', 'campfire', 'music', 'bbq'],
-          treasure: ['treasure', 'hunt', 'quest', 'clue'],
-          games: ['group games', 'team building', 'team', 'game'],
-          tower: ['tower', 'tower building', 'stack', 'blocks'],
-          musical: ['musical chair', 'chair', 'party games'],
-          balloon: ['balloon', 'couple balloon', 'couple', 'partner'],
-          antakshari: ['antakshari', 'antrakhri', 'musical games', 'songs'],
-          tambola: ['tambola', 'housie', 'bingo', 'ticket'],
-          trekking: ['trek', 'hiking', 'mountain', 'trail', 'climb', 'walk', 'peak'],
-          water: ['water', 'boating', 'lake', 'scuba', 'cruise', 'river', 'kayak', 'paddle', 'venna'],
-          camping: ['camping', 'stargazing', 'camp', 'tent', 'night sky'],
-          cycling: ['cycling', 'biking', 'bicycle', 'cycle'],
-          culture: ['culture', 'heritage', 'farm', 'strawberry', 'food', 'walk', 'tour'],
-        };
-        const terms = keywordsMap[selectedAmenity] || [selectedAmenity.toLowerCase()];
-        const combined = `${exp.title || ''} ${exp.description || ''} ${exp.category || ''} ${exp.city || ''}`.toLowerCase();
-        const matchesAny = terms.some((term) => combined.includes(term));
-        if (!matchesAny) {
-          return false;
-        }
-      }
-
-      // 5. Header Search Query
+      // 4. Header Search Query
       if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase().trim();
         const matchesTitle = (exp.title || "").toLowerCase().includes(query);
@@ -216,10 +200,10 @@ export default function ExperiencesPage() {
       return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
     });
   }, [
+    experiencesData,
     selectedPropertyType,
     destinationSearch,
     maxPriceValue,
-    selectedAmenity,
     searchQuery,
     sortBy,
   ]);
@@ -242,43 +226,113 @@ export default function ExperiencesPage() {
 
   const hasActiveFilters =
     destinationSearch.trim() !== "" ||
-    checkInDate !== "" ||
-    checkOutDate !== "" ||
+    experienceDate !== "" ||
     guestsCount !== 2 ||
     maxPriceValue < 25000 ||
     selectedPropertyType !== "All" ||
-    selectedAmenity !== "all" ||
     searchQuery.trim() !== "" ||
     sortBy !== "featured";
 
   const clearAllFilters = () => {
     setDestinationSearch("");
-    setCheckInDate("");
-    setCheckOutDate("");
+    setExperienceDate("");
     setGuestsCount(2);
     setMaxPriceValue(25000);
     setSelectedPropertyType("All");
-    setSelectedAmenity("all");
     setSearchQuery("");
     setSortBy("featured");
     setCurrentPage(1);
   };
 
-  const EXPERIENCE_TABS = [
+  const EXPERIENCE_CATEGORY_TABS = [
     {
-      id: "all",
-      label: "All Activities",
+      id: "All",
+      label: "All",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
         </svg>
       ),
     },
     {
-      id: "fun",
+      id: "Scuba & Water",
+      label: "Scuba & Water",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 17c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
+          <path d="M2 12c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
+        </svg>
+      ),
+    },
+    {
+      id: "Aerial & Sky",
+      label: "Aerial & Sky",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="m4.93 4.93 4.24 4.24" />
+          <path d="m14.83 9.17 4.24-4.24" />
+          <path d="m14.83 14.83 4.24 4.24" />
+          <path d="m9.17 14.83-4.24 4.24" />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+      ),
+    },
+    {
+      id: "Desert Safari",
+      label: "Desert Safari",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+      ),
+    },
+    {
+      id: "Mountain Trek",
+      label: "Mountain Trek",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+        </svg>
+      ),
+    },
+    {
+      id: "Vineyard & Food",
+      label: "Vineyard & Food",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8h1a4 4 0 1 1 0 8h-1" />
+          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+          <line x1="6" y1="2" x2="6" y2="4" />
+          <line x1="10" y1="2" x2="10" y2="4" />
+          <line x1="14" y1="2" x2="14" y2="4" />
+        </svg>
+      ),
+    },
+    {
+      id: "Sunset Cruises",
+      label: "Sunset Cruises",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 21c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
+          <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7" />
+          <path d="M10 4 8 6l4 4" />
+        </svg>
+      ),
+    },
+    {
+      id: "Fun & Resort Games",
       label: "Fun & Resort Games",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -290,119 +344,7 @@ export default function ExperiencesPage() {
       ),
     },
     {
-      id: "karaoke",
-      label: "Night Karaoke & Entertainment",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <line x1="12" y1="19" x2="12" y2="22" />
-        </svg>
-      ),
-    },
-    {
-      id: "bonfire",
-      label: "Bonfire & Music",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-        </svg>
-      ),
-    },
-    {
-      id: "treasure",
-      label: "Treasure Hunt",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-        </svg>
-      ),
-    },
-    {
-      id: "games",
-      label: "Group Games & Team",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
-          <rect width="20" height="12" x="2" y="6" rx="6" />
-        </svg>
-      ),
-    },
-    {
-      id: "tower",
-      label: "Tower Building",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="16" width="16" height="5" rx="1" />
-          <rect x="6" y="10" width="12" height="5" rx="1" />
-          <rect x="8" y="4" width="8" height="5" rx="1" />
-        </svg>
-      ),
-    },
-    {
-      id: "musical",
-      label: "Musical Chair",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" />
-          <path d="M3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2Z" />
-          <path d="M6 18v3" />
-          <path d="M18 18v3" />
-        </svg>
-      ),
-    },
-    {
-      id: "balloon",
-      label: "Couple Balloon Games",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-      ),
-    },
-    {
-      id: "antakshari",
-      label: "Antakshari",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 18V5l12-2v13" />
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="16" r="3" />
-        </svg>
-      ),
-    },
-    {
-      id: "tambola",
-      label: "Tambola & Housie",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-        </svg>
-      ),
-    },
-    {
-      id: "trekking",
-      label: "Trekking & Hiking",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-        </svg>
-      ),
-    },
-    {
-      id: "water",
-      label: "Watersports & Boating",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 17c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
-          <path d="M2 12c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
-        </svg>
-      ),
-    },
-    {
-      id: "camping",
+      id: "Stargazing & Camping",
       label: "Stargazing & Camping",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -411,39 +353,17 @@ export default function ExperiencesPage() {
         </svg>
       ),
     },
-    {
-      id: "cycling",
-      label: "Cycling & Mountain Biking",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="5.5" cy="17.5" r="3.5" />
-          <circle cx="18.5" cy="17.5" r="3.5" />
-          <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 6H5" />
-          <path d="M12 17.5V14l4-3 3 2.5" />
-        </svg>
-      ),
-    },
-    {
-      id: "culture",
-      label: "Heritage & Strawberry Tour",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8h1a4 4 0 1 1 0 8h-1" />
-          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-        </svg>
-      ),
-    },
   ];
 
   const activeFilterItems: ActiveFilterItem[] = useMemo(() => {
     const list: ActiveFilterItem[] = [];
-    if (selectedAmenity && selectedAmenity !== "all") {
-      const tab = EXPERIENCE_TABS.find((t) => t.id === selectedAmenity);
+    if (selectedPropertyType && selectedPropertyType !== "All") {
+      const tab = EXPERIENCE_CATEGORY_TABS.find((t) => t.id === selectedPropertyType);
       list.push({
-        id: "category",
-        label: tab?.label || selectedAmenity,
+        id: "type",
+        label: tab?.label || selectedPropertyType,
         icon: tab?.icon,
-        onRemove: () => setSelectedAmenity("all"),
+        onRemove: () => setSelectedPropertyType("All"),
       });
     }
     if (destinationSearch.trim()) {
@@ -453,11 +373,11 @@ export default function ExperiencesPage() {
         onRemove: () => setDestinationSearch(""),
       });
     }
-    if (selectedPropertyType && selectedPropertyType !== "All") {
+    if (experienceDate) {
       list.push({
-        id: "type",
-        label: selectedPropertyType,
-        onRemove: () => setSelectedPropertyType("All"),
+        id: "date",
+        label: `Date: ${experienceDate}`,
+        onRemove: () => setExperienceDate(""),
       });
     }
     if (searchQuery.trim()) {
@@ -475,7 +395,7 @@ export default function ExperiencesPage() {
       });
     }
     return list;
-  }, [selectedAmenity, destinationSearch, selectedPropertyType, searchQuery, maxPriceValue]);
+  }, [destinationSearch, experienceDate, selectedPropertyType, searchQuery, maxPriceValue]);
 
   const filterControls = (
   <div className="space-y-5">
@@ -513,7 +433,7 @@ export default function ExperiencesPage() {
             </div>
           </div>
 
-          {/* 2. Check In - Check Out Section */}
+          {/* 2. Date Section (Single Experience Date) */}
           <div>
             <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -522,67 +442,52 @@ export default function ExperiencesPage() {
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
-              <span>Check In - Check Out</span>
+              <span>Date</span>
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Check In Box */}
-              <div className="relative flex items-center gap-2.5 p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:border-slate-300 transition cursor-pointer group">
-                <div className="text-slate-700 group-hover:text-primary transition shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-800 leading-tight">Check In</div>
-                  <div className="text-[11px] font-medium text-slate-400 leading-tight truncate">
-                    {checkInDate || "Add date"}
-                  </div>
-                </div>
-                <input
-                  type="date"
-                  value={checkInDate}
-                  onChange={(e) => setCheckInDate(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
+            <div className="relative flex items-center gap-2.5 p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:border-slate-300 transition cursor-pointer group">
+              <div className="text-slate-700 group-hover:text-primary transition shrink-0">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
               </div>
-
-              {/* Check Out Box */}
-              <div className="relative flex items-center gap-2.5 p-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:border-slate-300 transition cursor-pointer group">
-                <div className="text-slate-700 group-hover:text-primary transition shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-slate-800 leading-tight">Experience Date</div>
+                <div className="text-[11px] font-medium text-slate-400 leading-tight truncate">
+                  {experienceDate || "Add date"}
                 </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-800 leading-tight">Check Out</div>
-                  <div className="text-[11px] font-medium text-slate-400 leading-tight truncate">
-                    {checkOutDate || "Add date"}
-                  </div>
-                </div>
-                <input
-                  type="date"
-                  value={checkOutDate}
-                  onChange={(e) => setCheckOutDate(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
               </div>
+              {experienceDate && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExperienceDate("");
+                  }}
+                  className="text-slate-400 hover:text-slate-600 text-xs px-1 z-10"
+                >
+                  ✕
+                </button>
+              )}
+              <input
+                type="date"
+                value={experienceDate}
+                onChange={(e) => setExperienceDate(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              />
             </div>
           </div>
 
-          {/* 3. Guests Section */}
+          {/* 3. Explorers Section */}
           <div>
             <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <span>Guests</span>
+              <span>Explorers / Guests</span>
             </label>
             <div className="relative">
               <div className="flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-xs text-xs sm:text-sm font-semibold text-slate-800 hover:border-slate-300 transition cursor-pointer">
@@ -591,7 +496,7 @@ export default function ExperiencesPage() {
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span>{guestsCount === 1 ? "1 Guest" : `${guestsCount} Guests`}</span>
+                  <span>{guestsCount === 1 ? "1 Explorer" : `${guestsCount} Explorers`}</span>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-slate-400">
                   <path d="M6 9l6 6 6-6" />
@@ -602,12 +507,12 @@ export default function ExperiencesPage() {
                 onChange={(e) => setGuestsCount(Number(e.target.value))}
                 className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
               >
-                <option value={1}>1 Guest</option>
-                <option value={2}>2 Guests</option>
-                <option value={3}>3 Guests</option>
-                <option value={4}>4 Guests</option>
-                <option value={5}>5 Guests</option>
-                <option value={6}>6+ Guests</option>
+                <option value={1}>1 Explorer</option>
+                <option value={2}>2 Explorers</option>
+                <option value={3}>3 Explorers</option>
+                <option value={4}>4 Explorers</option>
+                <option value={5}>5 Explorers</option>
+                <option value={6}>6+ Explorers</option>
               </select>
             </div>
           </div>
@@ -645,48 +550,29 @@ export default function ExperiencesPage() {
             </div>
           </div>
 
-          {/* 5. Property / Activity Type Section */}
+          {/* 5. Experience Category Section (Replacing 18 micro activity tags) */}
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2.5">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
-              <span>Activity Type</span>
+              <span>Category</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {[
-                "All",
-                "Fun Activity & Resort Games",
-                "Night Karaoke & Entertainment",
-                "Bonfire & Music",
-                "Treasure Hunt",
-                "Group Games & Team Building",
-                "Tower Building",
-                "Musical Chair",
-                "Couple Balloon Games",
-                "Antakshari & Musical Games",
-                "Tambola & Housie",
-                "Trekking & Hiking",
-                "Watersports & Boating",
-                "Stargazing & Camping",
-                "Cycling & Mountain Biking",
-                "Cultural & Heritage Walk",
-                "Strawberry Farm Tour",
-                "Adventure & Wildlife Safari",
-              ].map((type) => {
-                const isActive = selectedPropertyType.toLowerCase() === type.toLowerCase();
+              {EXPERIENCE_CATEGORY_TABS.map((cat) => {
+                const isActive = selectedPropertyType.toLowerCase() === cat.id.toLowerCase();
                 return (
                   <button
-                    key={type}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setSelectedPropertyType(type)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                    onClick={() => setSelectedPropertyType(cat.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                       isActive
                         ? "bg-primary text-white shadow-sm shadow-red-500/20"
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
                     }`}
                   >
-                    {type}
+                    {cat.label}
                   </button>
                 );
               })}
@@ -696,12 +582,12 @@ export default function ExperiencesPage() {
   );
 
   return (
-    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative">
+    <main className="flex flex-col min-h-screen w-full bg-slate-50 antialiased relative pt-16 sm:pt-20">
       {/* ─── Above The Hero: Escape to Extraordinary Ad Banner Carousel (Matching Reference) ── */}
       <ExperiencesOfferAdCarousel onSelectSlide={handleExperienceOfferSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="experiences-catalog">
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full pt-2 sm:pt-3 pb-8" id="experiences-catalog">
         {/* Main 2-Column Layout */}
         <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (Desktop Only) ── */}
@@ -804,7 +690,7 @@ export default function ExperiencesPage() {
               {loading ? (
                 <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
               ) : (
-                <span>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> experiences</span>
+                <span>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked outdoor adventures &amp; excursions</span>
               )}
             </div>
 
@@ -812,16 +698,16 @@ export default function ExperiencesPage() {
             <div className="hidden lg:flex flex-row items-center justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  All Curated Experiences &amp; Guided Activities
+                  All Curated Experiences &amp; Guided Adventures
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                   {loading ? (
                     <span className="inline-flex items-center gap-1.5 text-slate-400">
                       <span className="w-5 h-3.5 bg-slate-200 animate-pulse rounded inline-block" />
-                      <span>Loading handpicked activities &amp; experiences...</span>
+                      <span>Loading handpicked outdoor adventures &amp; excursions...</span>
                     </span>
                   ) : (
-                    <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked activities &amp; experiences</>
+                    <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked outdoor adventures &amp; excursions</>
                   )}
                 </p>
               </div>
@@ -877,6 +763,30 @@ export default function ExperiencesPage() {
               </div>
             </div>
 
+            {/* ─── Row 2: Experience Category Tabs with Icons (Matching media_1794431203134_4cd32c4d.png) ─── */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+              {EXPERIENCE_CATEGORY_TABS.map((tab) => {
+                const isActive = selectedPropertyType.toLowerCase() === tab.id.toLowerCase();
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setSelectedPropertyType(tab.id)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-primary text-white shadow-sm shadow-red-500/25 font-bold"
+                        : "bg-white border border-slate-200/90 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-xs"
+                    }`}
+                  >
+                    <span className={isActive ? "text-white" : "text-slate-500"}>
+                      {tab.icon}
+                    </span>
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Active Filter Badges */}
             {hasActiveFilters && filteredExperiences.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap pt-1">
@@ -887,10 +797,10 @@ export default function ExperiencesPage() {
                     <button onClick={() => setDestinationSearch("")} className="hover:text-primary cursor-pointer font-bold">×</button>
                   </span>
                 )}
-                {checkInDate && (
+                {experienceDate && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
-                    From: {checkInDate}
-                    <button onClick={() => setCheckInDate("")} className="hover:text-primary cursor-pointer font-bold">×</button>
+                    Date: {experienceDate}
+                    <button onClick={() => setExperienceDate("")} className="hover:text-primary cursor-pointer font-bold">×</button>
                   </span>
                 )}
                 {selectedPropertyType !== "All" && (

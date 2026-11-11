@@ -77,7 +77,7 @@ export default function AdBlendBanner({
   };
 
   return (
-    <section className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-20 sm:pt-28 pb-4">
+    <section className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-2 sm:pt-3 pb-2">
       <div
         className="relative w-full rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)] border border-slate-200/80 bg-white group select-none flex flex-col justify-between sm:block sm:h-[340px] lg:h-[350px]"
         onMouseEnter={() => setIsHovered(true)}
