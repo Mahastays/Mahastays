@@ -51,7 +51,12 @@ export function presentPackage(
         category: live?.category ?? a.category,
       };
     }),
-    tiers: pk.tiers.map((t) => ({ ...t, id: t.tierId })),
+    tiers: pk.tiers.map((t) => ({
+      ...t,
+      id: t.tierId,
+      priceType: (t as any).priceType ?? pk.priceType ?? 'per_person',
+      personLimit: (t as any).personLimit ?? pk.personLimit ?? null,
+    })),
     durationDetails: { nights: pk.durationNights, days: pk.durationDays, validFrom: pk.validFrom, validTill: pk.validTill },
   };
 }
@@ -93,7 +98,12 @@ export function presentPackageCard(pk: Package, extra: Record<string, unknown> =
     status: pk.status,
     vendorId: pk.vendorId,
     hostId: pk.vendorId,
-    tiers: pk.tiers ?? [],
+    tiers: (pk.tiers || []).map((t) => ({
+      ...t,
+      id: t.tierId,
+      priceType: (t as any).priceType ?? pk.priceType ?? 'per_person',
+      personLimit: (t as any).personLimit ?? pk.personLimit ?? null,
+    })),
     overview: pk.overview ?? pk.description ?? pk.shortDesc,
     images: pk.images ?? [],
     highlights: pk.highlights ?? [],

@@ -541,13 +541,17 @@ export function adminListingRouter(kind: ListingKind): Router {
         };
       }
       if (body.cancellationPolicy !== undefined) data.cancellationPolicy = body.cancellationPolicy;
+      if (body.priceType !== undefined) data.priceType = body.priceType;
+      if (body.personLimit !== undefined) data.personLimit = body.personLimit != null ? Number(body.personLimit) : null;
       if (body.tiers !== undefined) {
         const tiers = (body.tiers || []).map((t: any, i: number) => ({
-          tierId: t.tierId || `tier_${i + 1}`,
+          tierId: t.tierId || t.id || `tier_${i + 1}`,
           name: t.name || 'Standard Tier',
           badge: t.badge || null,
           tagline: t.tagline || null,
           hotelType: t.hotelType || null,
+          priceType: t.priceType || body.priceType || 'per_person',
+          personLimit: t.personLimit != null ? Number(t.personLimit) : (body.personLimit != null ? Number(body.personLimit) : null),
           pricePerPerson: Number(t.pricePerPerson) || 0,
           originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
           features: Array.isArray(t.features) ? t.features : [],
@@ -568,7 +572,7 @@ export function adminListingRouter(kind: ListingKind): Router {
 
       const updated = await prisma.package.update({ where: { id }, data });
       await audit({ actor: { id: staff.id, role: staff.role }, action: 'ADMIN_UPDATE_PACKAGE', targetEntity: 'Package', targetId: id, newState: { title: updated.title }, req });
-      return ok(res, updated);
+      return ok(res, presentPackage(updated));
     } else {
       const data: any = {};
       if (body.title !== undefined) data.title = body.title;
@@ -576,6 +580,13 @@ export function adminListingRouter(kind: ListingKind): Router {
       if (body.difficulty !== undefined) data.difficulty = body.difficulty;
       if (body.duration !== undefined) data.duration = body.duration;
       if (body.city !== undefined) data.city = body.city;
+      if (body.priceType !== undefined) data.priceType = body.priceType;
+      if (body.personLimit !== undefined) data.personLimit = body.personLimit != null ? Number(body.personLimit) : null;
+      if (body.hasChildPrice !== undefined) data.hasChildPrice = Boolean(body.hasChildPrice);
+      if (body.childPrice !== undefined) data.childPrice = body.childPrice != null ? Number(body.childPrice) : null;
+      if (body.childAgeLimit !== undefined) data.childAgeLimit = body.childAgeLimit;
+      if (body.pricingRules !== undefined) data.pricingRules = body.pricingRules;
+      if (body.acceptingBookings !== undefined) data.acceptingBookings = Boolean(body.acceptingBookings);
       if (body.description !== undefined) data.description = body.description;
       if (body.overview !== undefined) data.overview = body.overview;
       if (body.image !== undefined) data.image = body.image;
@@ -631,11 +642,16 @@ export function adminListingRouter(kind: ListingKind): Router {
       }
       if (body.tiers !== undefined) {
         const tiers = (body.tiers || []).map((t: any, i: number) => ({
-          tierId: t.tierId || `tier_${i + 1}`,
+          tierId: t.tierId || t.id || `tier_${i + 1}`,
           name: t.name || 'Standard Tier',
+          badge: t.badge || null,
           tagline: t.tagline || null,
+          description: t.description || null,
+          priceType: t.priceType || body.priceType || 'per_person',
+          personLimit: t.personLimit != null ? Number(t.personLimit) : (body.personLimit != null ? Number(body.personLimit) : null),
           pricePerPerson: Number(t.pricePerPerson) || 0,
           originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
+          childPricePerPerson: t.childPricePerPerson != null ? Number(t.childPricePerPerson) : null,
           features: Array.isArray(t.features) ? t.features : [],
         }));
         data.tiers = { set: tiers };
@@ -654,7 +670,7 @@ export function adminListingRouter(kind: ListingKind): Router {
 
       const updated = await prisma.experience.update({ where: { id }, data });
       await audit({ actor: { id: staff.id, role: staff.role }, action: 'ADMIN_UPDATE_EXPERIENCE', targetEntity: 'Experience', targetId: id, newState: { title: updated.title }, req });
-      return ok(res, updated);
+      return ok(res, presentExperience(updated));
     }
   });
 

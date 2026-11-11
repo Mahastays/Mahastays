@@ -25,7 +25,11 @@ const tierSchema = z
   .object({
     tierId: z.string().trim().min(1).max(60).optional(),
     name: v.trimmed(1, 120),
+    badge: v.optionalTrimmed(60),
     tagline: v.optionalTrimmed(200),
+    description: v.optionalTrimmed(500),
+    priceType: z.enum(['per_person', 'per_activity', 'full_setup', 'per_night']).default('per_person').optional(),
+    personLimit: z.number().int().positive().optional(),
     pricePerPerson: z.number().int().positive().max(10_000_000),
     childPricePerPerson: z.number().int().nonnegative().max(10_000_000).optional(),
     originalPrice: z.number().int().positive().max(10_000_000).optional(),

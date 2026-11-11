@@ -586,6 +586,8 @@ type PackageTier {
   badge          String?
   tagline        String?
   hotelType      String?
+  priceType      String?
+  personLimit    Int?
   pricePerPerson Int
   originalPrice  Int?
   features       String[]
@@ -628,7 +630,11 @@ type ExperienceSlot {
 type ExperienceTier {
   tierId              String
   name                String
+  badge               String?
   tagline             String?
+  description         String?
+  priceType           String?
+  personLimit         Int?
   pricePerPerson      Int
   childPricePerPerson Int?
   originalPrice       Int?
