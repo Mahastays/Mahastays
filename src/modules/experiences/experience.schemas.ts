@@ -31,7 +31,9 @@ const tierSchema = z
     priceType: z.enum(['per_person', 'per_activity', 'full_setup', 'per_night']).default('per_person').optional(),
     personLimit: z.number().int().positive().optional(),
     pricePerPerson: z.number().int().positive().max(10_000_000),
-    childPricePerPerson: z.number().int().nonnegative().max(10_000_000).optional(),
+    hasChildPrice: z.boolean().optional(),
+    childPricePerPerson: z.number().int().nonnegative().max(10_000_000).optional().nullable(),
+    childAgeLimit: v.optionalTrimmed(60),
     originalPrice: z.number().int().positive().max(10_000_000).optional(),
     features: z.array(v.trimmed(1, 160)).max(20).default([]),
   })

@@ -636,7 +636,9 @@ type ExperienceTier {
   priceType           String?
   personLimit         Int?
   pricePerPerson      Int
+  hasChildPrice       Boolean?
   childPricePerPerson Int?
+  childAgeLimit       String?
   originalPrice       Int?
   features            String[]
 }

@@ -651,7 +651,9 @@ export function adminListingRouter(kind: ListingKind): Router {
           personLimit: t.personLimit != null ? Number(t.personLimit) : (body.personLimit != null ? Number(body.personLimit) : null),
           pricePerPerson: Number(t.pricePerPerson) || 0,
           originalPrice: t.originalPrice ? Number(t.originalPrice) : null,
-          childPricePerPerson: t.childPricePerPerson != null ? Number(t.childPricePerPerson) : null,
+          hasChildPrice: t.hasChildPrice !== undefined ? Boolean(t.hasChildPrice) : (t.childPricePerPerson != null && Number(t.childPricePerPerson) > 0),
+          childPricePerPerson: t.childPricePerPerson != null && !isNaN(Number(t.childPricePerPerson)) ? Number(t.childPricePerPerson) : null,
+          childAgeLimit: t.childAgeLimit || null,
           features: Array.isArray(t.features) ? t.features : [],
         }));
         data.tiers = { set: tiers };

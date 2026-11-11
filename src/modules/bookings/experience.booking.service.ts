@@ -53,14 +53,21 @@ async function prepareExperience(input: ExperienceBookingInput, viewerId?: strin
   }
 
   const isMember = await isActiveClubMember(viewerId);
-  const hasChildPrice = (exp as any).hasChildPrice ?? (exp.pricingRules as any)?.hasChildPrice ?? false;
+  const tierPriceType = (tier as any).priceType ?? (exp.priceType as any) ?? 'per_person';
+  const hasChildPrice = Boolean(
+    (tier as any).hasChildPrice ??
+    ((tier as any).childPricePerPerson != null && Number((tier as any).childPricePerPerson) > 0) ??
+    (exp as any).hasChildPrice ??
+    (exp.pricingRules as any)?.hasChildPrice ??
+    false
+  );
   const childPrice = (tier as any).childPricePerPerson ?? (exp as any).childPrice ?? (exp.pricingRules as any)?.childPrice ?? null;
 
   const ledger = calculateExperiencePricing(
     {
       pricePerPerson: tier.pricePerPerson,
-      priceType: (exp.priceType as any) ?? 'per_person',
-      hasChildPrice,
+      priceType: tierPriceType,
+      hasChildPrice: Boolean(hasChildPrice && childPrice != null),
       childPrice,
       adults: input.participants.adults,
       children: input.participants.children,
