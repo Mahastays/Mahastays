@@ -44,6 +44,7 @@ export const experienceBookingSchema = z.object({
   slotId: z.string().trim().min(2).max(60),
   activityDate: v.isoDate,
   participants: party(MAX_PARTICIPANTS_PER_BOOKING),
+  customerLocation: v.optionalTrimmed(300),
   specialRequests: v.optionalTrimmed(500),
   billingState: v.optionalTrimmed(80),
 });

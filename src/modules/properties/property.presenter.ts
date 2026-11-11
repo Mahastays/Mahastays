@@ -43,6 +43,7 @@ export function presentProperty(p: Property, opts: { roomAvailability?: Map<stri
     numericPrice: startingPrice,
     inrPrice: startingPrice,
     pricingRules: p.pricingRules ?? null,
+    acceptingBookings: (p as any).acceptingBookings !== false,
     mapCoordinates: { lat: p.address.lat, lng: p.address.lng },
     hostName: p.host?.name ?? null,
     hostRole: p.host?.role ?? null,

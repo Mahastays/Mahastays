@@ -626,12 +626,13 @@ type ExperienceSlot {
 }
 
 type ExperienceTier {
-  tierId         String
-  name           String
-  tagline        String?
-  pricePerPerson Int
-  originalPrice  Int?
-  features       String[]
+  tierId              String
+  name                String
+  tagline             String?
+  pricePerPerson      Int
+  childPricePerPerson Int?
+  originalPrice       Int?
+  features            String[]
 }
 
 type GuideInfo {
@@ -1093,6 +1094,9 @@ model Experience {
   personLimit        Int?               // max participants allowed
   numericPrice       Int // cheapest tier price per person (derived)
   originalPrice      Int?
+  hasChildPrice      Boolean?           @default(false)
+  childPrice         Int?
+  childAgeLimit      String?
   difficulty         Difficulty         @default(Easy)
   ageLimit           String?
   groupSize          String?
@@ -1106,6 +1110,8 @@ model Experience {
   inclusions         Inclusion[]
   exclusions         String[]
   whatToBring        String[]
+  locationType       String?            @default("fixed_location") // "fixed_location" | "customer_location" | "both"
+  serviceArea        String?
   meetingPoint       String?
   coordinates        Coordinates?
   schedule           ExperienceSchedule
@@ -1315,6 +1321,7 @@ model ExperienceBooking {
   bookingStatus   ExperienceBookingStatus @default(pending)
   holdExpiresAt   DateTime?
   specialRequests String?
+  customerLocation String?
   guestName       String?
   guestPhone      String?
   billingState    String?

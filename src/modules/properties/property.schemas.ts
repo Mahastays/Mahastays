@@ -96,6 +96,7 @@ const propertyBase = z.object({
   attractions: z.array(attractionSchema).max(20).default([]),
   bgColor: v.optionalTrimmed(120),
   gradientOverlay: v.optionalTrimmed(160),
+  acceptingBookings: z.boolean().default(true).optional(),
   pricingRules: z.any().optional(),
 });
 

@@ -237,6 +237,7 @@ export async function updateProperty(vendorId: string, id: string, input: Update
   if (input.bgColor !== undefined) data.bgColor = input.bgColor;
   if (input.gradientOverlay !== undefined) data.gradientOverlay = input.gradientOverlay;
   if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
+  if (input.acceptingBookings !== undefined) data.acceptingBookings = input.acceptingBookings;
   if (input.amenities !== undefined) {
     data.amenities = input.amenities;
     data.amenityKeys = amenityKeysOf(input.amenities);

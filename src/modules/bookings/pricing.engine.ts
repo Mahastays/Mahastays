@@ -128,7 +128,9 @@ export function calculatePackagePricing(input: PackagePricingInput, cfg: Pricing
 
 export interface ExperiencePricingInput {
   pricePerPerson: number;
-  priceType?: 'per_person' | 'per_night' | string;
+  priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
+  hasChildPrice?: boolean;
+  childPrice?: number | null;
   adults: number;
   children: number;
   isClubMember: boolean;
@@ -136,7 +138,7 @@ export interface ExperiencePricingInput {
 
 export interface ExperienceLedger {
   pricePerPerson: number;
-  priceType: 'per_person' | 'per_night';
+  priceType: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
   adultsCost: number;
   childrenCost: number;
   baseCost: number;
@@ -149,20 +151,26 @@ export interface ExperienceLedger {
 }
 
 export function calculateExperiencePricing(input: ExperiencePricingInput, cfg: PricingConfig): ExperienceLedger {
-  const isPerNight = input.priceType === 'per_night';
+  const isFullSetup = input.priceType === 'per_activity' || input.priceType === 'full_setup' || input.priceType === 'per_night';
   const participants = input.adults + input.children;
-  const adultsCost = isPerNight ? input.pricePerPerson : input.pricePerPerson * input.adults;
-  const childrenCost = isPerNight ? 0 : pct(input.pricePerPerson, cfg.experienceChildPricePercent) * input.children;
+  // If per_activity / full_setup or per_night, fixed flat rate for the activity regardless of number of participants
+  const adultsCost = isFullSetup ? input.pricePerPerson : input.pricePerPerson * input.adults;
+  const childUnit = isFullSetup
+    ? 0
+    : (input.hasChildPrice && input.childPrice != null
+        ? input.childPrice
+        : input.pricePerPerson);
+  const childrenCost = isFullSetup ? 0 : childUnit * input.children;
   const baseCost = adultsCost + childrenCost;
   const memberDiscount = input.isClubMember ? pct(baseCost, cfg.clubMemberDiscountPercent) : 0;
-  const gearInsuranceFee = isPerNight
+  const gearInsuranceFee = isFullSetup
     ? pct(input.pricePerPerson, cfg.gearInsuranceFeeRatePercent)
     : pct(input.pricePerPerson, cfg.gearInsuranceFeeRatePercent) * participants;
   const taxableAmount = baseCost - memberDiscount + gearInsuranceFee;
   const taxesGst = pct(taxableAmount, cfg.gstExperiencesPercent);
   return {
     pricePerPerson: input.pricePerPerson,
-    priceType: isPerNight ? 'per_night' : 'per_person',
+    priceType: input.priceType || 'per_person',
     adultsCost,
     childrenCost,
     baseCost,

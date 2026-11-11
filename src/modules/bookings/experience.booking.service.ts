@@ -53,10 +53,15 @@ async function prepareExperience(input: ExperienceBookingInput, viewerId?: strin
   }
 
   const isMember = await isActiveClubMember(viewerId);
+  const hasChildPrice = (exp as any).hasChildPrice ?? (exp.pricingRules as any)?.hasChildPrice ?? false;
+  const childPrice = (tier as any).childPricePerPerson ?? (exp as any).childPrice ?? (exp.pricingRules as any)?.childPrice ?? null;
+
   const ledger = calculateExperiencePricing(
     {
       pricePerPerson: tier.pricePerPerson,
       priceType: (exp.priceType as any) ?? 'per_person',
+      hasChildPrice,
+      childPrice,
       adults: input.participants.adults,
       children: input.participants.children,
       isClubMember: isMember,
@@ -164,6 +169,7 @@ export async function reserveExperience(userId: string, input: ExperienceBooking
         paymentStatus: 'unpaid',
         bookingStatus: 'pending',
         holdExpiresAt: newHoldExpiry(),
+        customerLocation: input.customerLocation || null,
         specialRequests: input.specialRequests,
         billingState: input.billingState,
       },

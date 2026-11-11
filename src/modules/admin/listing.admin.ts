@@ -255,7 +255,9 @@ export function adminListingRouter(kind: ListingKind): Router {
         inclusions: Array.isArray(body.inclusions) ? body.inclusions : [],
         exclusions: Array.isArray(body.exclusions) ? body.exclusions : [],
         whatToBring: Array.isArray(body.whatToBring) ? body.whatToBring : [],
-        meetingPoint: body.meetingPoint || body.location || 'Mahabaleshwar Base Point',
+        locationType: body.locationType || 'fixed_location',
+        serviceArea: body.serviceArea || null,
+        meetingPoint: body.meetingPoint || body.location || (body.locationType === 'customer_location' ? 'Delivered at your stay / villa' : 'Mahabaleshwar Base Point'),
         schedule: body.schedule || { mode: 'fixed_slot', daysAvailable: ['all'] },
         slots: rawSlots,
         tiers: rawTiers,
@@ -599,6 +601,8 @@ export function adminListingRouter(kind: ListingKind): Router {
       }
       if (body.exclusions !== undefined) data.exclusions = { set: Array.isArray(body.exclusions) ? body.exclusions : [] };
       if (body.whatToBring !== undefined) data.whatToBring = { set: Array.isArray(body.whatToBring) ? body.whatToBring : [] };
+      if (body.locationType !== undefined) data.locationType = body.locationType;
+      if (body.serviceArea !== undefined) data.serviceArea = body.serviceArea;
       if (body.meetingPoint !== undefined) data.meetingPoint = body.meetingPoint;
       if (body.guide !== undefined) {
         if (body.guide === null) {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EXPERIENCE_CATEGORIES, WEEKDAY_KEYS } from '../../config/constants';
+import { WEEKDAY_KEYS } from '../../config/constants';
 import { paginationSchema } from '../../utils/pagination';
 import * as v from '../../utils/zod';
 
@@ -27,6 +27,7 @@ const tierSchema = z
     name: v.trimmed(1, 120),
     tagline: v.optionalTrimmed(200),
     pricePerPerson: z.number().int().positive().max(10_000_000),
+    childPricePerPerson: z.number().int().nonnegative().max(10_000_000).optional(),
     originalPrice: z.number().int().positive().max(10_000_000).optional(),
     features: z.array(v.trimmed(1, 160)).max(20).default([]),
   })
@@ -41,7 +42,7 @@ const experienceBase = z.object({
   locationId: v.optionalTrimmed(80),
   duration: z.string().trim().default('4 Hours'),
   category: z.string().trim().min(1).max(100).default('Trekking & Hiking'),
-  priceType: z.enum(['per_person', 'per_night']).default('per_person').optional(),
+  priceType: z.enum(['per_person', 'per_activity', 'full_setup', 'per_night']).default('per_person').optional(),
   personLimit: z.number().int().min(1).max(2000).optional(),
   difficulty: z.enum(DIFFICULTIES).default('Easy'),
   ageLimit: v.optionalTrimmed(60),
@@ -56,6 +57,8 @@ const experienceBase = z.object({
   inclusions: z.array(inclusionSchema).max(30).default([]),
   exclusions: z.array(v.trimmed(1, 200)).max(30).default([]),
   whatToBring: z.array(v.trimmed(1, 120)).max(30).default([]),
+  locationType: z.enum(['fixed_location', 'customer_location', 'both']).default('fixed_location').optional(),
+  serviceArea: v.optionalTrimmed(200),
   meetingPoint: v.optionalTrimmed(300),
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
   schedule: scheduleSchema.optional(),
@@ -63,6 +66,10 @@ const experienceBase = z.object({
   tiers: z.array(tierSchema).default([]),
   numericPrice: z.number().optional(),
   originalPrice: z.number().optional(),
+  hasChildPrice: z.boolean().optional(),
+  childPrice: z.number().int().nonnegative().optional(),
+  childAgeLimit: v.optionalTrimmed(60),
+  acceptingBookings: z.boolean().default(true).optional(),
   pricingRules: z.any().optional(),
   guide: z.object({ name: z.string().optional(), role: z.string().optional(), avatar: z.string().optional() }).optional(),
   cancellationPolicy: v.optionalTrimmed(500),
@@ -89,7 +96,7 @@ export type UpdateExperienceInput = z.infer<typeof updateExperienceSchema>;
 export const listExperiencesQuery = paginationSchema.extend({
   q: z.string().trim().max(100).optional(),
   destination: z.string().trim().max(100).optional(),
-  category: v.csv.pipe(z.array(z.enum(EXPERIENCE_CATEGORIES))).optional(),
+  category: v.csv.pipe(z.array(z.string().trim())).optional(),
   difficulty: v.csv.pipe(z.array(z.enum(DIFFICULTIES))).optional(),
   minPrice: z.coerce.number().int().min(0).optional(),
   maxPrice: z.coerce.number().int().min(0).optional(),

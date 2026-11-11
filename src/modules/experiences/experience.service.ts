@@ -201,6 +201,9 @@ export async function createExperience(vendorId: string, input: CreateExperience
       personLimit: input.personLimit ?? 15,
       numericPrice: (input as any).numericPrice || derived.numericPrice,
       originalPrice: (input as any).originalPrice || derived.originalPrice,
+      hasChildPrice: input.hasChildPrice ?? (input.pricingRules as any)?.hasChildPrice ?? false,
+      childPrice: input.childPrice ?? (input.pricingRules as any)?.childPrice ?? null,
+      childAgeLimit: input.childAgeLimit ?? (input.pricingRules as any)?.childAgeLimit ?? null,
       difficulty: input.difficulty || 'Moderate',
       ageLimit: input.ageLimit,
       groupSize: input.groupSize,
@@ -214,7 +217,9 @@ export async function createExperience(vendorId: string, input: CreateExperience
       inclusions: input.inclusions || [],
       exclusions: input.exclusions || [],
       whatToBring: input.whatToBring || [],
-      meetingPoint: input.meetingPoint || 'Mahabaleshwar Base Point',
+      locationType: input.locationType ?? 'fixed_location',
+      serviceArea: input.serviceArea || null,
+      meetingPoint: input.meetingPoint || (input.locationType === 'customer_location' ? 'Delivered at your stay / villa' : 'Mahabaleshwar Base Point'),
       coordinates: input.coordinates,
       schedule: input.schedule ?? defaultSchedule,
       slots: rawSlots,
@@ -247,6 +252,9 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   if (input.category !== undefined) data.category = input.category;
   if (input.priceType !== undefined) data.priceType = input.priceType;
   if (input.personLimit !== undefined) data.personLimit = input.personLimit;
+  if (input.hasChildPrice !== undefined) data.hasChildPrice = input.hasChildPrice;
+  if (input.childPrice !== undefined) data.childPrice = input.childPrice;
+  if (input.childAgeLimit !== undefined) data.childAgeLimit = input.childAgeLimit;
   if (input.difficulty !== undefined) data.difficulty = input.difficulty;
   if (input.ageLimit !== undefined) data.ageLimit = input.ageLimit;
   if (input.groupSize !== undefined) data.groupSize = input.groupSize;
@@ -260,6 +268,8 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   if (input.inclusions !== undefined) data.inclusions = input.inclusions;
   if (input.exclusions !== undefined) data.exclusions = input.exclusions;
   if (input.whatToBring !== undefined) data.whatToBring = input.whatToBring;
+  if (input.locationType !== undefined) data.locationType = input.locationType;
+  if (input.serviceArea !== undefined) data.serviceArea = input.serviceArea;
   if (input.meetingPoint !== undefined) data.meetingPoint = input.meetingPoint;
   if (input.coordinates !== undefined) data.coordinates = input.coordinates;
   if (input.schedule !== undefined) data.schedule = input.schedule;
@@ -272,6 +282,7 @@ export async function updateExperience(vendorId: string, id: string, input: Upda
   }
   if (input.cancellationPolicy !== undefined) data.cancellationPolicy = input.cancellationPolicy;
   if (input.pricingRules !== undefined) data.pricingRules = input.pricingRules;
+  if (input.acceptingBookings !== undefined) data.acceptingBookings = input.acceptingBookings;
 
   if (input.slots !== undefined) {
     const slots = normalizeSlots(input.slots);
