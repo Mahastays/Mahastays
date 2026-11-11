@@ -68,6 +68,7 @@ export interface ExperienceDetail {
   country: string;
   flag: string;
   city: string;
+  location?: string;
   locationId?: string;
   duration: string;
   category: string;
@@ -111,6 +112,7 @@ export type RawActivitySample = ExperienceDetail;
 export interface ActivityItem {
   id: string;
   country: string;
+  location?: string;
   flag: string;
   title: string;
   duration: string;

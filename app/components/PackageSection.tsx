@@ -43,41 +43,17 @@ export default function PackageSection() {
 
   return (
     <section className="max-w-7xl mx-auto my-16 px-6 w-full" id="packages">
-      {/* Header with Title and View All */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-        <div className="max-w-xl">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1.5 block">
-            EXCLUSIVE BUNDLES
-          </span>
-          <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight mb-2">
-            Featured Stay Packages
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            All-inclusive verified stays with premium hosts, private pools, and curated local itineraries.
-          </p>
-        </div>
-
-        {/* View All Button */}
-        <Link
-          href="/packages"
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm hover:text-primary hover:border-primary/30 hover:bg-red-50/50 transition-all self-start sm:self-auto shrink-0 cursor-pointer"
-          id="packages-view-all-link"
-        >
-          <span>View all ({mappedPackages.length})</span>
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 12h14" />
-            <path d="M12 5l7 7-7 7" />
-          </svg>
-        </Link>
+      {/* Header with Title */}
+      <div className="mb-6 sm:mb-8 max-w-xl">
+        <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1.5 block">
+          EXCLUSIVE BUNDLES
+        </span>
+        <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight mb-2">
+          Featured Stay Packages
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+          All-inclusive verified stays with premium hosts, private pools, and curated local itineraries.
+        </p>
       </div>
 
       {/* Loading Skeleton or Packages Grid */}
@@ -99,13 +75,27 @@ export default function PackageSection() {
             ))}
           </div>
 
-          {/* Additional mobile-friendly View All button at bottom */}
-          <div className="mt-6 flex sm:hidden justify-center">
+          {/* Bottom View All Button */}
+          <div className="mt-8 sm:mt-10 flex justify-center">
             <Link
               href="/packages"
-              className="w-full text-center py-2.5 px-4 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-primary transition-all"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-5 py-2.5 rounded-full border border-slate-200 shadow-sm hover:text-primary hover:border-primary/30 hover:bg-red-50/50 hover:shadow-md transition-all cursor-pointer"
+              id="packages-view-all-link"
             >
-              View All Packages ({mappedPackages.length}) →
+              <span>View all packages ({mappedPackages.length})</span>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
             </Link>
           </div>
         </>

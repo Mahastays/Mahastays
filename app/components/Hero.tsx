@@ -86,6 +86,23 @@ interface AdOffer {
   link: string;
 }
 
+const DEFAULT_FALLBACK_OFFERS: AdOffer[] = [
+  {
+    id: "home-special-offer-1",
+    name: "3 BHK Villa Near Mapro Garden",
+    duration: "3D / 2N",
+    view: "Scenic View",
+    location: "Mahabaleshwar, India",
+    originalPrice: 18500,
+    discountedPrice: 12499,
+    discountPercent: 32,
+    badgeText: "Hot Deal",
+    badgeType: "hot",
+    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop&q=80",
+    link: "/explore",
+  },
+];
+
 export default function Hero() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -142,33 +159,77 @@ export default function Hero() {
     let isMounted = true;
     const fetchCardAds = async () => {
       try {
-        const res = await api.get("/ads/active?placement=homepage&adType=card&page=/");
-        const data = res.data?.data || res.data;
+        let data: any[] = [];
+        try {
+          // 1. Fetch active homepage ads without restrictive adType or page filter
+          const res = await api.get("/ads/active?placement=homepage");
+          const items = res.data?.data || res.data;
+          if (Array.isArray(items) && items.length > 0) {
+            data = items;
+          }
+        } catch {
+          // Ignore and try fallback
+        }
+
+        // 2. If no ads returned with placement filter, query all active ads
+        if (data.length === 0) {
+          try {
+            const resAll = await api.get("/ads/active");
+            const allItems = resAll.data?.data || resAll.data;
+            if (Array.isArray(allItems) && allItems.length > 0) {
+              data = allItems.filter(
+                (item: any) =>
+                  !item.placement ||
+                  item.placement === "homepage" ||
+                  item.placement === "home" ||
+                  item.placement === "all" ||
+                  item.adType === "card"
+              );
+              if (data.length === 0) {
+                data = allItems;
+              }
+            }
+          } catch {
+            // Ignore
+          }
+        }
+
         if (Array.isArray(data) && data.length > 0 && isMounted) {
           const mapped: AdOffer[] = data.map((item: any, idx: number) => {
-            const headline = item.creative?.headline || item.adName;
+            const headline = item.creative?.headline || item.adName || "Special Holiday Offer";
             const sub = item.creative?.subHeadline || "";
             const parts = sub.split(" · ");
             const duration = parts[0] || item.creative?.duration || "3D / 2N";
             const view = parts[1] || item.creative?.view || "Scenic View";
-            const location = parts[3] || parts[parts.length - 1] || item.creative?.location || "Maharashtra, India";
+            const location =
+              parts[3] || parts[parts.length - 1] || item.creative?.location || "Mahabaleshwar, India";
 
-            let origPrice = item.creative?.originalPrice || item.originalPrice || 18500;
-            let discPrice = item.creative?.discountedPrice || item.discountedPrice || 12499;
-            let discPct = item.creative?.discountPercent || item.discountPercent || 30;
+            let origPrice =
+              Number(item.creative?.originalPrice) || Number(item.originalPrice) || 18500;
+            let discPrice =
+              Number(item.creative?.discountedPrice) || Number(item.discountedPrice) || 12499;
+            let discPct =
+              Number(item.creative?.discountPercent) || Number(item.discountPercent) || 0;
 
-            if (parts[2]) {
-              const numMatches = parts[2].match(/₹?([\d,]+)/g);
+            if (sub) {
+              const numMatches = sub.match(/₹?([\d,]+)/g);
               if (numMatches && numMatches.length >= 2) {
-                origPrice = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
-                discPrice = parseInt(numMatches[1].replace(/[₹,]/g, ""), 10);
+                const p1 = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
+                const p2 = parseInt(numMatches[1].replace(/[₹,]/g, ""), 10);
+                if (!isNaN(p1) && p1 > 0) origPrice = p1;
+                if (!isNaN(p2) && p2 > 0) discPrice = p2;
               } else if (numMatches && numMatches.length === 1) {
-                discPrice = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
+                const p1 = parseInt(numMatches[0].replace(/[₹,]/g, ""), 10);
+                if (!isNaN(p1) && p1 > 0) discPrice = p1;
               }
-              const pctMatch = parts[2].match(/(\d+)%/);
+              const pctMatch = sub.match(/(\d+)%/);
               if (pctMatch) {
                 discPct = parseInt(pctMatch[1], 10);
               }
+            }
+
+            if (!discPct && origPrice > discPrice && origPrice > 0) {
+              discPct = Math.round(((origPrice - discPrice) / origPrice) * 100);
             }
 
             const badgeRaw = (item.creative?.badgeText || item.badgeText || "Hot Deal").toLowerCase();
@@ -189,7 +250,7 @@ export default function Hero() {
               location,
               originalPrice: origPrice,
               discountedPrice: discPrice,
-              discountPercent: discPct,
+              discountPercent: discPct || 30,
               badgeText: item.creative?.badgeText || item.badgeText || "Hot Deal",
               badgeType,
               image:
@@ -200,12 +261,14 @@ export default function Hero() {
               link: item.target?.ctaLink || item.link || "/explore",
             };
           });
+
           setOffers(mapped);
         } else if (isMounted) {
-          setOffers([]);
+          // Use verified fallback so the special offers section is reliably shown
+          setOffers(DEFAULT_FALLBACK_OFFERS);
         }
       } catch {
-        if (isMounted) setOffers([]);
+        if (isMounted) setOffers(DEFAULT_FALLBACK_OFFERS);
       } finally {
         if (isMounted) setIsLoadingOffers(false);
       }
@@ -423,18 +486,8 @@ export default function Hero() {
 
         {/* Carousel Indicators / Navigation Controls */}
         {slides.length > 1 && (
-          <div className="absolute bottom-16 sm:bottom-20 right-6 sm:right-14 lg:right-20 z-10 flex items-center gap-2">
-            <button
-              onClick={prevHeroSlide}
-              aria-label="Previous hero slide"
-              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 flex items-center justify-center backdrop-blur-md border border-white/20 transition cursor-pointer"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
+          <div className="absolute bottom-16 sm:bottom-20 right-6 sm:right-14 lg:right-20 z-10 flex items-center">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
               {slides.map((_, idx) => (
                 <button
                   key={idx}
@@ -448,16 +501,6 @@ export default function Hero() {
                 />
               ))}
             </div>
-
-            <button
-              onClick={nextHeroSlide}
-              aria-label="Next hero slide"
-              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white/90 flex items-center justify-center backdrop-blur-md border border-white/20 transition cursor-pointer"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
           </div>
         )}
       </div>

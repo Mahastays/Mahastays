@@ -15,6 +15,7 @@ export interface ExperienceTier {
   badge?: string;
   tagline: string;
   pricePerPerson: number;
+  childPricePerPerson?: number;
   originalPrice: number;
   features: string[];
 }
@@ -47,6 +48,7 @@ export interface ExperienceItem {
   country: string;
   flag?: string;
   city: string;
+  location?: string;
   locationId?: string;
   serviceableLocation?: string;
   duration: string;
@@ -57,6 +59,12 @@ export interface ExperienceItem {
   price: string;
   numericPrice: number;
   originalPrice?: number;
+  priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
+  personLimit?: number;
+  hasChildPrice?: boolean;
+  childPrice?: number;
+  childAgeLimit?: string;
+  pricingRules?: any;
   difficulty?: string;
   ageLimit?: string;
   groupSize?: string;
@@ -74,6 +82,8 @@ export interface ExperienceItem {
   exclusions?: string[];
   whatToBring?: string[];
   meetingPoint?: string;
+  locationType?: 'fixed_location' | 'customer_location' | 'both' | string;
+  serviceArea?: string;
   coordinates?: { lat: number; lng: number };
   slots?: ExperienceSlot[];
   tiers?: ExperienceTier[];

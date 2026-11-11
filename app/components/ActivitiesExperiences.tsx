@@ -19,17 +19,28 @@ export default function ActivitiesExperiences() {
   }, [dispatch]);
 
   const activities = useMemo(() => {
-    return items.map((e) => ({
-      id: e.id,
-      title: e.title || e.name,
-      country: e.city || e.country || "Mahabaleshwar",
-      flag: e.flag || "🍓",
-      image: e.image || e.gallery?.[0] || "/hero-resort.jpg",
-      duration: e.duration,
-      rating: e.rating || (e.ratingScore ? `${e.ratingScore}/5 ★` : "4.9/5 ★"),
-      price: e.price || `₹${e.numericPrice?.toLocaleString("en-IN")}`,
-      description: e.description,
-    }));
+    return items.map((e) => {
+      const displayLocation =
+        (e as any).location ||
+        (e.city && e.city.toLowerCase() !== "india" ? e.city : null) ||
+        e.meetingPoint?.split(",")[0]?.trim() ||
+        (e.country && e.country.toLowerCase() !== "india" ? e.country : "Mahabaleshwar");
+      return {
+        id: e.id,
+        title: e.title || e.name,
+        country: displayLocation,
+        location: displayLocation,
+        city: e.city || "Mahabaleshwar",
+        flag: e.flag || "📍",
+        image: e.image || e.gallery?.[0] || "/hero-resort.jpg",
+        duration: e.duration,
+        rating: e.ratingScore && e.ratingScore > 0 ? `${e.ratingScore}/5 ★` : (e.rating && !e.rating.includes("4.9/5") ? e.rating : "New"),
+        ratingScore: e.ratingScore,
+        reviewsCount: e.reviewsCount,
+        price: e.price || `₹${e.numericPrice?.toLocaleString("en-IN")}`,
+        description: e.description,
+      };
+    });
   }, [items]);
 
   const total = activities.length;
@@ -170,7 +181,7 @@ export default function ActivitiesExperiences() {
                     {/* Location with Flag */}
                     <div className="inline-flex items-center gap-1.5 bg-black/45 border border-white/20 px-3 py-1 rounded-full mb-2 self-start shadow-xs">
                       <span className="text-sm">{item.flag}</span>
-                      <span className="text-xs font-bold text-white tracking-wide">{item.country}</span>
+                      <span className="text-xs font-bold text-white tracking-wide">{item.location || item.country}</span>
                     </div>
 
                     {/* Heading & Details */}
@@ -187,7 +198,7 @@ export default function ActivitiesExperiences() {
 
                         <div className="flex items-center gap-3 text-xs text-white/90 font-semibold mb-3">
                           <span>⏱ {item.duration}</span>
-                          <span>⭐ {item.rating}</span>
+                          <span>⭐ {item.rating || "New"}</span>
                         </div>
 
                         {/* Price and Book Option */}

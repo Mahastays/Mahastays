@@ -114,7 +114,10 @@ export default function ExperienceDetailsPage() {
       inclusions: e.inclusions || [],
       exclusions: e.exclusions || [],
       whatToBring: e.whatToBring || [],
-      meetingPoint: e.meetingPoint || "Directly at activity location, Mahabaleshwar",
+      locationType: (e as any).locationType || "fixed_location",
+      serviceArea: (e as any).serviceArea || "",
+      location: (e as any).location || e.city || e.meetingPoint?.split(',')[0]?.trim() || "Mahabaleshwar",
+      meetingPoint: e.meetingPoint || `Directly at activity location, ${e.city || "Mahabaleshwar"}`,
       coordinates: e.coordinates || { lat: 17.9237, lng: 73.6586 },
       schedule: e.schedule,
       videoUrl: e.videoUrl || e.video || (e.videos && e.videos[0]) || "",
@@ -122,16 +125,16 @@ export default function ExperienceDetailsPage() {
       slots: rawSlots,
       tiers: rawTiers,
       guide: e.guide || {
-        name: e.guideName || e.vendorName || "Sameer Patil",
-        role: e.guideRole || "Lead Trek Leader & Naturalist",
-        experience: e.guideExperience || "8+ Years Expedition Experience",
-        staysCount: e.guideStaysCount || "350+ Treks Guided",
+        name: e.guideName || e.vendorName || "Verified Host",
+        role: e.guideRole || "Verified Activity Host & Coordinator",
+        experience: e.guideExperience || "Experienced Host",
+        staysCount: e.guideStaysCount || "50+ Experiences Hosted",
         avatar: e.guideAvatar,
         confirmationBadge: "Instant Booking Confirmed",
         verified: true,
       },
-      guideName: e.guideName || e.guide?.name || "Sameer Patil",
-      guideRole: e.guideRole || e.guide?.role || "Lead Trek Leader & Naturalist",
+      guideName: e.guideName || e.guide?.name || "Verified Host",
+      guideRole: e.guideRole || e.guide?.role || "Verified Activity Host & Coordinator",
       guideAvatar: e.guideAvatar || e.guide?.avatar,
       reviews: e.reviews || [],
       cancellationPolicy: e.cancellationPolicy || "Free cancellation up to 24 hours before activity start.",
@@ -232,6 +235,24 @@ export default function ExperienceDetailsPage() {
     }
   };
 
+  const actualReviewsCount = realReviews.length > 0
+    ? realReviews.length
+    : (typeof exp?.reviewsCount === "number" && exp.reviewsCount > 0 ? exp.reviewsCount : 0);
+
+  const actualAvgRating = useMemo(() => {
+    if (realReviews.length > 0) {
+      const sum = realReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+      return (sum / realReviews.length).toFixed(1);
+    }
+    if (exp?.ratingScore && exp.ratingScore > 0) {
+      return Number(exp.ratingScore).toFixed(1);
+    }
+    if (typeof exp?.rating === "number" && exp.rating > 0) {
+      return Number(exp.rating).toFixed(1);
+    }
+    return null;
+  }, [realReviews, exp?.ratingScore, exp?.rating]);
+
   useEffect(() => {
     if (exp?.id || experienceId) {
       loadExperienceReviews();
@@ -300,8 +321,10 @@ export default function ExperienceDetailsPage() {
   }, [exp?.slots, selectedSlotId]);
 
   // Price calculations
-  const priceType: 'per_person' | 'per_night' = (exp as any)?.priceType === 'per_night' ? 'per_night' : 'per_person';
-  const isPerNight = priceType === 'per_night';
+  const rawPriceType = (exp as any)?.priceType;
+  const isFullSetup = rawPriceType === 'per_activity' || rawPriceType === 'full_setup' || rawPriceType === 'per_night';
+  const isPerNight = rawPriceType === 'per_night';
+  const priceType = isFullSetup ? (rawPriceType === 'per_night' ? 'per_night' : 'per_activity') : 'per_person';
   const personLimit = (exp as any)?.personLimit || selectedSlot?.availableSpots || 15;
   const totalParticipants = adults + children;
   const isPersonLimitExceeded = totalParticipants > personLimit;
@@ -311,6 +334,12 @@ export default function ExperienceDetailsPage() {
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const pricingRules = (exp as any)?.pricingRules;
+  const hasChildPrice = Boolean((exp as any)?.hasChildPrice ?? pricingRules?.hasChildPrice);
+  const rawChildPrice = (selectedTier as any)?.childPricePerPerson ?? (exp as any)?.childPrice ?? pricingRules?.childPrice;
+  const childPrice = (hasChildPrice && typeof rawChildPrice === 'number') ? rawChildPrice : null;
+  const childAgeLimit = (exp as any)?.childAgeLimit || pricingRules?.childAgeLimit || 'Ages 3-12';
+  const effectiveChildPrice = (hasChildPrice && childPrice !== null) ? childPrice : pricePerPerson;
+
   const memberDiscountPercent = typeof pricingRules?.memberDiscountPercent === 'number'
     ? pricingRules.memberDiscountPercent
     : 8;
@@ -321,7 +350,10 @@ export default function ExperienceDetailsPage() {
     : (pricingRules?.includeGst === false ? 0 : 18);
   const gstRate = gstPercent / 100;
 
-  const basePrice = isPerNight ? pricePerPerson : pricePerPerson * totalParticipants;
+  // If full setup / per_activity, the base price is fixed flat for the activity and does not increase with more participants
+  const basePrice = isFullSetup
+    ? pricePerPerson
+    : (pricePerPerson * adults + effectiveChildPrice * children);
   const discountAmount = Math.round(basePrice * (memberDiscountPercent / 100));
   const taxesAndGst = Math.round((basePrice - discountAmount + feeAmount) * gstRate);
   const grandTotal = Math.max(0, basePrice - discountAmount + feeAmount + taxesAndGst);
@@ -444,19 +476,27 @@ export default function ExperienceDetailsPage() {
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold font-poppins bg-[#ea110d] text-white tracking-wide">
-              {exp.category || "Outdoor Adventure"}
+              {exp.category || "Experience"}
             </span>
             <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-slate-100 text-slate-700">
-              {exp.duration || "4 Hours"}
+              {exp.duration || "2 Hours"}
             </span>
             <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-emerald-50 text-emerald-700 border border-emerald-200">
-              {exp.difficulty || "Moderate"}
+              {exp.difficulty || "Easy"}
             </span>
-            <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
-              <span>★</span>
-              <span className="text-slate-800">{exp.rating || 4.95}</span>
-              <span className="text-slate-400 font-normal">({exp.reviewsCount || 112} reviews)</span>
-            </div>
+            {actualReviewsCount > 0 && actualAvgRating ? (
+              <div className="flex items-center gap-1 text-xs text-amber-500 font-bold font-poppins ml-1">
+                <span>★</span>
+                <span className="text-slate-800">{actualAvgRating}</span>
+                <span className="text-slate-400 font-normal">({actualReviewsCount} {actualReviewsCount === 1 ? "review" : "reviews"})</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-slate-500 font-medium font-poppins ml-1">
+                <span className="text-amber-400">★</span>
+                <span className="text-slate-700 font-bold">New</span>
+                <span className="text-slate-400 font-normal">(No reviews yet)</span>
+              </div>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-poppins">
@@ -464,12 +504,26 @@ export default function ExperienceDetailsPage() {
           </h1>
 
           <div className="flex flex-wrap items-center gap-4 mt-2 text-xs sm:text-sm text-slate-600">
-            <span className="flex items-center gap-1 text-slate-700 font-medium">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea110d" strokeWidth="2.2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span>{exp.city || "Panchgani & Mahabaleshwar"}, Maharashtra</span>
+            <span className="flex items-center gap-1.5 text-slate-700 font-medium">
+              {(exp as any).locationType === "customer_location" ? (
+                <>
+                  <span className="text-base leading-none">🚗</span>
+                  <span className="text-emerald-700 font-bold">At Your Stay / Villa (Delivered to You)</span>
+                </>
+              ) : (exp as any).locationType === "both" ? (
+                <>
+                  <span className="text-base leading-none">🔄</span>
+                  <span className="text-blue-700 font-bold">At Host Venue or Delivered At Your Stay</span>
+                </>
+              ) : (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea110d" strokeWidth="2.2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span>{(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra</span>
+                </>
+              )}
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-emerald-700 font-medium flex items-center gap-1">
@@ -592,15 +646,15 @@ export default function ExperienceDetailsPage() {
                 )}
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
-                    <span>Curated &amp; Guided by {exp.guide?.name || "Sameer Patil"}</span>
+                    <span>Curated &amp; Hosted by {exp.guide?.name || "Verified Host"}</span>
                     {((exp.guide as any)?.verified !== false) && (
-                      <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Guide">
+                      <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
                         ✓
                       </span>
                     )}
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                    {exp.guide?.role || "Lead Trek Leader & Naturalist"} • {(exp.guide as any)?.experience || "8+ Years Expedition Experience"} • {(exp.guide as any)?.staysCount || "350+ Treks Guided"}
+                    {exp.guide?.role || "Verified Activity Host & Coordinator"} • {(exp.guide as any)?.experience || "Experienced Host"} • {(exp.guide as any)?.staysCount || "50+ Experiences Hosted"}
                   </p>
                 </div>
               </div>
@@ -619,11 +673,16 @@ export default function ExperienceDetailsPage() {
                       title: ka.name || ka.title,
                       desc: ka.desc || ka.description,
                     }))
+                  : (exp.highlights && exp.highlights.length >= 4)
+                  ? exp.highlights.slice(0, 4).map((h: string) => ({
+                      title: h,
+                      desc: "",
+                    }))
                   : [
-                      { title: "Sunrise Summit", desc: "Panoramic Western Ghats viewpoint" },
-                      { title: "Forest Trail", desc: "Dense rainforest trail navigation" },
-                      { title: "Certified Guide", desc: "Wilderness safety trained" },
-                      { title: "Hot Tea & Snacks", desc: "Fresh local breakfast at peak" },
+                      { title: "Verified Host", desc: "Trained & friendly coordinator" },
+                      { title: "Complete Setup", desc: "All essential equipment provided" },
+                      { title: "Safety Assured", desc: "Compliant with safety protocols" },
+                      { title: "Refreshments", desc: "Included snacks & drinks" },
                     ]
                 ).map((h: any, i: number) => (
                   <div
@@ -809,7 +868,7 @@ export default function ExperienceDetailsPage() {
                       Available Experience Tiers &amp; Time Slots
                     </h2>
                     <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Select your preferred adventure tier and convenient departure time slot
+                      Select your preferred experience tier and convenient time slot
                     </p>
                   </div>
                   <span className="text-xs font-bold text-slate-400 font-poppins">
@@ -846,10 +905,10 @@ export default function ExperienceDetailsPage() {
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-600">
-                              {(tier.features || [
-                                "Certified Mountain Guide",
-                                "All Safety Gear & Helmets",
-                                "Refreshments & Energy Snacks",
+                              {(tier.features && tier.features.length > 0 ? tier.features : [
+                                "Verified Activity Host",
+                                "All Essential Activity Equipment",
+                                "Refreshments & Snacks",
                               ]).map((feat, fi) => (
                                 <span key={fi} className="flex items-center gap-1.5">
                                   <span className="text-[#ea110d] font-bold text-xs">✓</span>
@@ -993,17 +1052,17 @@ export default function ExperienceDetailsPage() {
                       Activity Schedule &amp; Timeline
                     </h3>
                     <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Hour-by-hour briefing of the guided adventure
+                      Hour-by-hour briefing of the experience schedule
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-2">
-                  {(exp.timeline || [
-                    { time: "06:00 AM", title: "Meeting & Gear Briefing", desc: "Meet at Table Land base point, fit harnesses and helmets." },
-                    { time: "06:45 AM", title: "Sunrise Ridge Trek", desc: "Climb through the ancient forest trails as dawn breaks." },
-                    { time: "08:15 AM", title: "Summit View & Breakfast", desc: "Enjoy panoramic Sahyadri views with fresh strawberry snacks." },
-                    { time: "09:30 AM", title: "Rappelling & Descent", desc: "Guided 60ft rappelling session followed by gentle descent." },
+                  {(exp.timeline && exp.timeline.length > 0 ? exp.timeline : [
+                    { time: "Start", title: "Welcome & Briefing", desc: "Arrival at meeting point and activity overview." },
+                    { time: "Session 1", title: "Core Activity Experience", desc: "Interactive session coordinated by our verified host." },
+                    { time: "Break", title: "Refreshments & Photos", desc: "Enjoy snacks, drinks, and photo moments." },
+                    { time: "Wrap-up", title: "Conclusion & Farewell", desc: "Wrap-up, feedback, and memorable send-off." },
                   ]).map((t, idx) => (
                     <div key={idx} className="flex items-start gap-3.5 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
                       <span className="px-2.5 py-1 rounded-lg bg-[#0B0A06] text-white text-[11px] font-bold font-poppins shrink-0">
@@ -1029,7 +1088,7 @@ export default function ExperienceDetailsPage() {
                     What this Experience Includes
                   </h3>
                   <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                    Full safety equipment, professional guides, and amenities
+                    All essentials, professional host support, and amenities
                   </p>
                 </div>
 
@@ -1040,13 +1099,22 @@ export default function ExperienceDetailsPage() {
                       <span>Included</span>
                     </h4>
                     <ul className="space-y-2 text-xs text-slate-700 font-roboto">
-                      {[
-                        "IMF Certified Wilderness Instructor & Safety Marshals",
-                        "UIAA Approved Helmets, Harnesses & Technical Gear",
-                        "Energy Drinks, Mineral Water & Traditional Maharashtrian Breakfast",
-                        "High-Resolution Action Photos & Drone Highlights",
-                        "Comprehensive First-Aid Kit & Emergency Oxygen on Site",
-                      ].map((inc, i) => (
+                      {(exp.inclusions && exp.inclusions.length > 0
+                        ? exp.inclusions.map((inc: any) =>
+                            typeof inc === "string"
+                              ? inc
+                              : inc.title
+                              ? `${inc.title}${inc.desc ? ` - ${inc.desc}` : ""}`
+                              : String(inc)
+                          )
+                        : [
+                            "Professional Activity Host & Coordinator",
+                            "All Essential Activity Gear & Setup",
+                            "Refreshments & Mineral Water",
+                            "First-Aid Kit & Host Support",
+                            "Activity Photos & Highlights",
+                          ]
+                      ).map((inc, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="text-emerald-600 font-bold text-xs mt-0.5">✓</span>
                           <span>{inc}</span>
@@ -1058,15 +1126,20 @@ export default function ExperienceDetailsPage() {
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider font-poppins mb-3 flex items-center gap-1.5">
                       <span className="w-4 h-4 rounded-full bg-slate-400 text-white flex items-center justify-center text-[10px]">✕</span>
-                      <span>What to Bring (Exclusions)</span>
+                      <span>What to Bring / Requirements</span>
                     </h4>
                     <ul className="space-y-2 text-xs text-slate-600 font-roboto">
-                      {[
-                        "Sturdy trekking shoes or sports shoes with good grip",
-                        "Comfortable breathable athletic wear",
-                        "Sunscreen, sunglasses & personal medication",
-                        "Small backpack to carry water bottle",
-                      ].map((exc, i) => (
+                      {(exp.whatToBring && exp.whatToBring.length > 0
+                        ? exp.whatToBring
+                        : exp.exclusions && exp.exclusions.length > 0
+                        ? exp.exclusions
+                        : [
+                            "Comfortable clothing suitable for the activity",
+                            "Valid government photo ID",
+                            "Personal medications (if required)",
+                            "Mobile phone for verification & photos",
+                          ]
+                      ).map((exc, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="text-slate-400 font-bold text-xs mt-0.5">•</span>
                           <span>{exc}</span>
@@ -1160,51 +1233,103 @@ export default function ExperienceDetailsPage() {
             {/* TAB 6: Location & Meeting Point                                */}
             {/* ============================================================== */}
             {(activeDetailTab === "location" || activeDetailTab === "all") && (
-              <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 font-poppins">
-                      Meeting Point &amp; Location
-                    </h3>
-                    <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Table Land Base Point, Panchgani, Maharashtra
-                    </p>
-                  </div>
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=Table+Land+Panchgani"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-poppins transition"
-                  >
-                    <span>Open in Maps</span>
-                    <span>↗</span>
-                  </a>
-                </div>
+              <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-5">
+                {(exp as any).locationType === "customer_location" || (exp as any).locationType === "both" ? (
+                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white border border-emerald-200/90 space-y-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-md shadow-emerald-600/25">
+                        🚗
+                      </div>
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                          ✓ Doorstep / Villa Setup Available
+                        </div>
+                        <h4 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
+                          Hosted Directly At Your Booked Stay / Villa / Resort
+                        </h4>
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-roboto">
+                          No traveling required! The verified host &amp; coordinator will arrive directly at your accommodation with all required props, instruments, sound system, and activity materials.
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="relative rounded-2xl overflow-hidden min-h-[300px] sm:min-h-[360px] bg-slate-100 border border-slate-200 shadow-inner">
-                  <iframe
-                    title="Experience Meeting Point Map"
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=73.78500%2C17.91500%2C73.81500%2C17.93500&layer=mapnik&marker=17.92420%2C73.80150"
-                    className="absolute inset-0 w-full h-full border-0"
-                    loading="lazy"
-                  />
-                  <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md text-xs font-bold font-poppins text-slate-800 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>{exp.title} Meeting Point</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-emerald-200/70">
+                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Service Coverage</span>
+                        <span className="text-xs font-bold text-slate-800">
+                          {(exp as any).serviceArea || "Mahabaleshwar & Panchgani Stays"}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Host Arrival</span>
+                        <span className="text-xs font-bold text-slate-800">
+                          20–30 mins prior to slot
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Address</span>
+                        <span className="text-xs font-bold text-slate-800">
+                          Provide villa name at checkout
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] font-mono">
-                    Table Land Base Point, Panchgani
+                ) : null}
+
+                {(exp as any).locationType !== "customer_location" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 font-poppins">
+                          {(exp as any).locationType === "both" ? "Host Basecamp / Venue (Alternative)" : "Meeting Point & Location"}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                          {exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`}
+                        </p>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-poppins transition"
+                      >
+                        <span>Open in Maps</span>
+                        <span>↗</span>
+                      </a>
+                    </div>
+
+                    <div className="relative rounded-2xl overflow-hidden min-h-[300px] sm:min-h-[360px] bg-slate-100 border border-slate-200 shadow-inner">
+                      {(() => {
+                        const lat = exp.coordinates?.lat || 17.9242;
+                        const lng = exp.coordinates?.lng || 73.6643;
+                        return (
+                          <iframe
+                            title="Experience Meeting Point Map"
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${(lng - 0.02).toFixed(5)}%2C${(lat - 0.015).toFixed(5)}%2C${(lng + 0.02).toFixed(5)}%2C${(lat + 0.015).toFixed(5)}&layer=mapnik&marker=${lat.toFixed(5)}%2C${lng.toFixed(5)}`}
+                            className="absolute inset-0 w-full h-full border-0"
+                            loading="lazy"
+                          />
+                        );
+                      })()}
+                      <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md text-xs font-bold font-poppins text-slate-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>{exp.title} Meeting Point</span>
+                      </div>
+                      <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] font-mono">
+                        {exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`}
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins shadow-md hover:bg-[#d00f0c] transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Open in Maps</span>
+                        <span>↗</span>
+                      </a>
+                    </div>
                   </div>
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=Table+Land+Panchgani"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins shadow-md hover:bg-[#d00f0c] transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Open in Maps</span>
-                    <span>↗</span>
-                  </a>
-                </div>
+                )}
               </div>
             )}
 
@@ -1216,19 +1341,23 @@ export default function ExperienceDetailsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 font-poppins flex items-center gap-2">
-                      <span>Adventurer Reviews &amp; Ratings</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                        ★ {exp.rating || 4.95} / 5.0
-                      </span>
+                      <span>Guest Reviews &amp; Ratings</span>
+                      {actualAvgRating && actualReviewsCount > 0 && (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                          ★ {actualAvgRating} / 5.0
+                        </span>
+                      )}
                     </h3>
                     <p className="text-xs text-slate-500 font-roboto mt-0.5">
-                      Based on {exp.reviewsCount || 112} verified adventure participants
+                      {actualReviewsCount > 0
+                        ? `Based on ${actualReviewsCount} verified participant ${actualReviewsCount === 1 ? "review" : "reviews"}`
+                        : "No reviews yet — be the first to share your experience"}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setWriteReviewOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins hover:bg-red-700 transition shadow-sm self-start"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins hover:bg-red-700 transition shadow-sm self-start cursor-pointer"
                   >
                     <span>Write a Review</span>
                   </button>
@@ -1236,10 +1365,10 @@ export default function ExperienceDetailsPage() {
 
                 <div className="space-y-4 pt-2">
                   {reviewsLoading ? (
-                    <div className="py-6 text-center text-xs text-slate-400">Loading adventurer reviews from database...</div>
+                    <div className="py-6 text-center text-xs text-slate-400">Loading reviews from database...</div>
                   ) : realReviews.length === 0 ? (
                     <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-2">
-                      <p className="text-xs text-slate-500 font-medium">No reviews written for this adventure experience yet.</p>
+                      <p className="text-xs text-slate-500 font-medium">No reviews written for this experience yet.</p>
                       <button
                         type="button"
                         onClick={() => setWriteReviewOpen(true)}
@@ -1289,10 +1418,10 @@ export default function ExperienceDetailsPage() {
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins">
                     ₹{pricePerPerson.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-slate-500 font-normal"> / {isPerNight ? "night" : "person"}</span>
-                  {isPerNight && (
-                    <span className="block text-[11px] text-slate-500 font-medium mt-0.5">
-                      Max limit: {personLimit} participants per booking
+                  <span className="text-xs text-slate-500 font-normal"> / {isFullSetup ? (isPerNight ? "night" : "activity setup") : "person"}</span>
+                  {isFullSetup && (
+                    <span className="block text-[11px] text-emerald-700 font-medium mt-0.5">
+                      Flat activity price • Covers up to {personLimit} participants
                     </span>
                   )}
                 </div>
@@ -1357,7 +1486,7 @@ export default function ExperienceDetailsPage() {
                     <div>
                       <div className="text-[10px] uppercase font-bold text-slate-400">Participants</div>
                       <div className="text-xs font-bold text-slate-800">
-                        {adults} Adults, {children} Child
+                        {adults} Adult{adults > 1 ? "s" : ""}, {children} Child{children > 1 ? "ren" : ""}
                       </div>
                     </div>
                   </div>
@@ -1393,7 +1522,13 @@ export default function ExperienceDetailsPage() {
                     <div className="flex items-center justify-between border-t border-slate-100 pt-2">
                       <div>
                         <div className="text-xs font-bold text-slate-900">Children</div>
-                        <div className="text-[10px] text-slate-400">Ages 10-12</div>
+                        <div className="text-[10px] text-slate-400">
+                          {isFullSetup
+                            ? `Included in flat setup (up to ${personLimit} total)`
+                            : hasChildPrice && childPrice !== null
+                            ? `₹${childPrice.toLocaleString("en-IN")} / child (${childAgeLimit})`
+                            : `Default adult rate (${childAgeLimit})`}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -1459,15 +1594,19 @@ export default function ExperienceDetailsPage() {
                       id: String(exp.id || (exp as any).code || experienceId),
                       title: exp.title,
                       tierId: selectedTier?.id || selectedTierId,
-                      tierName: selectedTier?.name || "Standard Guided Trek",
+                      tierName: selectedTier?.name || "Standard Pass",
                       slotId: selectedSlot?.id || selectedSlotId,
                       slotTime: selectedSlot?.time || "06:00 AM",
                       checkIn: bookingDate,
                       adults: String(adults),
                       children: String(children),
                       price: String(pricePerPerson),
+                      childPrice: String(effectiveChildPrice),
+                      hasChildPrice: String(hasChildPrice),
                       priceType: priceType,
                       personLimit: String(personLimit),
+                      locationType: (exp as any).locationType || "fixed_location",
+                      serviceArea: (exp as any).serviceArea || "",
                       discount: String(memberDiscountPercent),
                       cleaningFee: String(includeFee ? feeAmount : 0),
                       gst: String(gstPercent),
@@ -1487,7 +1626,7 @@ export default function ExperienceDetailsPage() {
                   <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  <span>Instant Confirmation • Certified Mountain Guide</span>
+                  <span>Instant Confirmation • {exp.guide?.role || "Verified Activity Host"}</span>
                 </span>
               </div>
 
@@ -1495,8 +1634,10 @@ export default function ExperienceDetailsPage() {
               <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>
-                    {isPerNight
-                      ? `₹${pricePerPerson.toLocaleString("en-IN")} / night (${totalParticipants} participants)`
+                    {isFullSetup
+                      ? `Flat Activity Setup (${totalParticipants} participant${totalParticipants > 1 ? "s" : ""}, up to ${personLimit})`
+                      : hasChildPrice && children > 0
+                      ? `₹${pricePerPerson.toLocaleString("en-IN")} × ${adults} adult${adults > 1 ? "s" : ""} + ₹${effectiveChildPrice.toLocaleString("en-IN")} × ${children} child${children > 1 ? "ren" : ""}`
                       : `₹${pricePerPerson.toLocaleString("en-IN")} × ${totalParticipants} participants`}
                   </span>
                   <span className="font-semibold text-slate-900">₹{basePrice.toLocaleString("en-IN")}</span>
@@ -1552,7 +1693,7 @@ export default function ExperienceDetailsPage() {
               <span className="text-lg font-bold text-slate-900 font-poppins">
                 ₹{grandTotal.toLocaleString("en-IN")}
               </span>
-              <span className="text-xs text-slate-500">/ {totalParticipants} persons</span>
+              <span className="text-xs text-slate-500">/ {isFullSetup ? "setup" : `${totalParticipants} persons`}</span>
             </div>
           </div>
           {isPersonLimitExceeded ? (
@@ -1572,7 +1713,7 @@ export default function ExperienceDetailsPage() {
                   id: String(exp.id || (exp as any).code || experienceId),
                   title: exp.title,
                   tierId: selectedTier?.id || selectedTierId,
-                  tierName: selectedTier?.name || "Standard Guided Trek",
+                  tierName: selectedTier?.name || "Standard Pass",
                   slotId: selectedSlot?.id || selectedSlotId,
                   slotTime: selectedSlot?.time || "06:00 AM",
                   checkIn: bookingDate,
@@ -1581,6 +1722,8 @@ export default function ExperienceDetailsPage() {
                   price: String(pricePerPerson),
                   priceType: priceType,
                   personLimit: String(personLimit),
+                  locationType: (exp as any).locationType || "fixed_location",
+                  serviceArea: (exp as any).serviceArea || "",
                   discount: String(memberDiscountPercent),
                   cleaningFee: String(includeFee ? feeAmount : 0),
                   gst: String(gstPercent),
@@ -1710,7 +1853,7 @@ export default function ExperienceDetailsPage() {
                     required
                     value={newReviewComment}
                     onChange={(e) => setNewReviewComment(e.target.value)}
-                    placeholder="Describe your trekking experience, guide assistance, safety and gear..."
+                    placeholder="Describe your experience, host assistance, activities, vibe and setup..."
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#ea110d] resize-none"
                   />
                 </div>

@@ -55,6 +55,28 @@ function parseCoord(val: any): number | null {
   return null;
 }
 
+// Extract real coordinates from Google Maps URLs (e.g. @17.92,73.65 or q=17.92,73.65)
+function extractCoordsFromUrl(url?: string): { lat: number; lng: number } | null {
+  if (!url || typeof url !== "string") return null;
+  const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (atMatch) {
+    const lat = parseFloat(atMatch[1]);
+    const lng = parseFloat(atMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng) && lat > 15 && lat < 20 && lng > 70 && lng < 76) {
+      return { lat, lng };
+    }
+  }
+  const qMatch = url.match(/[?&](?:q|ll|query|destination)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (qMatch) {
+    const lat = parseFloat(qMatch[1]);
+    const lng = parseFloat(qMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng) && lat > 15 && lat < 20 && lng > 70 && lng < 76) {
+      return { lat, lng };
+    }
+  }
+  return null;
+}
+
 export default function MahabaleshwarMapSection() {
   const dispatch = useAppDispatch();
   const properties = useAppSelector((state) => state.properties.items);
@@ -65,9 +87,9 @@ export default function MahabaleshwarMapSection() {
   const [activeFilter, setActiveFilter] = useState<"all" | "stays" | "experiences">("all");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
-  // Map state
+  // Map state (zoom level 12 comfortably fits both Mahabaleshwar and Panchgani simultaneously)
   const [center, setCenter] = useState(MAHABALESHWAR_CENTER);
-  const [zoom, setZoom] = useState(13);
+  const [zoom, setZoom] = useState(12);
   const [mapSize, setMapSize] = useState({ width: 1000, height: 600 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -100,10 +122,11 @@ export default function MahabaleshwarMapSection() {
   // Transform actual database properties and experiences using their exact latitude and longitude
   const allPlaces: MapPlaceItem[] = useMemo(() => {
     const list: MapPlaceItem[] = [];
+    const usedCoordSlots = new Map<string, number>();
 
     // Helper to resolve coordinates for stays using real latitude and longitude
     const resolveStayCoords = (prop: any, idx: number) => {
-      // 1. Check all candidate fields where latitude & longitude are stored in DB
+      // 1. Check if real custom coordinates are stored in DB (not the default town placeholder)
       const candidates: Array<[any, any]> = [
         [prop.address?.lat, prop.address?.lng],
         [prop.mapCoordinates?.lat, prop.mapCoordinates?.lng],
@@ -116,22 +139,71 @@ export default function MahabaleshwarMapSection() {
         const lat = parseCoord(rawLat);
         const lng = parseCoord(rawLng);
         if (lat !== null && lng !== null) {
-          return { lat, lng };
+          // If vendor saved distinct non-default coordinates, trust them directly
+          const isGenericPlaceholder =
+            Math.abs(lat - 17.9237) < 0.0005 && Math.abs(lng - 73.6586) < 0.0005;
+          if (!isGenericPlaceholder) {
+            return { lat, lng };
+          }
         }
       }
 
-      // 2. Only fallback if coordinates were completely omitted in DB
-      const text = `${prop.name || ""} ${prop.location || ""} ${prop.address?.fullAddress || ""} ${prop.city || ""}`.toLowerCase();
-      if (text.includes("panchgani") || text.includes("table")) return { lat: 17.9237, lng: 73.8010 };
-      if (text.includes("venna")) return { lat: 17.9290, lng: 73.6740 };
-      if (text.includes("arthur")) return { lat: 17.9850, lng: 73.6180 };
-      if (text.includes("kate")) return { lat: 17.9333, lng: 73.6933 };
-      if (text.includes("lingmala")) return { lat: 17.9180, lng: 73.6980 };
-      if (text.includes("tapola")) return { lat: 17.8200, lng: 73.7120 };
+      // 2. Check if a real Google Maps link contains exact coordinates
+      const fromUrl =
+        extractCoordsFromUrl(prop.address?.mapLink) ||
+        extractCoordsFromUrl(prop.mapLink) ||
+        extractCoordsFromUrl(prop.address?.fullAddress);
+      if (fromUrl) {
+        return fromUrl;
+      }
 
+      // 3. Resolve by known neighborhood / address text in Mahabaleshwar & Panchgani
+      const text = `${prop.name || ""} ${prop.location || ""} ${prop.address?.fullAddress || ""} ${prop.address?.mapLink || ""} ${prop.city || ""}`.toLowerCase();
+
+      if (text.includes("mapro") || text.includes("gureghar")) {
+        return { lat: 17.9255, lng: 73.7820 };
+      }
+      if (text.includes("panchgani") || text.includes("ambral") || text.includes("khingar") || text.includes("iconic")) {
+        return { lat: 17.9215, lng: 73.8150 };
+      }
+      if (text.includes("lingmala") || text.includes("metgutad") || text.includes("breeze mount")) {
+        return { lat: 17.9280, lng: 73.7020 };
+      }
+      if (text.includes("ranjanvadi") || text.includes("jungle book")) {
+        return { lat: 17.9380, lng: 73.6620 };
+      }
+      if (text.includes("venna")) {
+        return { lat: 17.9290, lng: 73.6740 };
+      }
+      if (text.includes("table land")) {
+        return { lat: 17.9242, lng: 73.8015 };
+      }
+      if (text.includes("bhilar")) {
+        return { lat: 17.9150, lng: 73.7900 };
+      }
+      if (text.includes("bhekavali")) {
+        return { lat: 17.9150, lng: 73.6850 };
+      }
+      if (text.includes("arthur")) {
+        return { lat: 17.9850, lng: 73.6180 };
+      }
+      if (text.includes("kate")) {
+        return { lat: 17.9333, lng: 73.6933 };
+      }
+      if (text.includes("tapola")) {
+        return { lat: 17.8200, lng: 73.7120 };
+      }
+      if (text.includes("avkali") || text.includes("avakali")) {
+        return { lat: 17.9270, lng: 73.7180 };
+      }
+      if (text.includes("swara")) {
+        return { lat: 17.9237, lng: 73.6586 };
+      }
+
+      // Fallback coordinate distributed across the scenic valley
       return {
-        lat: 17.9237 + (((idx * 7) % 11) - 5) * 0.003,
-        lng: 73.7400 + (((idx * 13) % 11) - 5) * 0.003,
+        lat: 17.9250 + (((idx * 7) % 9) - 4) * 0.0035,
+        lng: 73.7300 + (((idx * 11) % 9) - 4) * 0.0055,
       };
     };
 
@@ -149,24 +221,65 @@ export default function MahabaleshwarMapSection() {
         const lat = parseCoord(rawLat);
         const lng = parseCoord(rawLng);
         if (lat !== null && lng !== null) {
-          return { lat, lng };
+          const isGenericPlaceholder =
+            Math.abs(lat - 17.9237) < 0.0005 && Math.abs(lng - 73.6586) < 0.0005;
+          if (!isGenericPlaceholder) {
+            return { lat, lng };
+          }
         }
       }
 
+      const fromUrl =
+        extractCoordsFromUrl(exp.meetingPoint) ||
+        extractCoordsFromUrl(exp.mapLink) ||
+        extractCoordsFromUrl(exp.address?.mapLink);
+      if (fromUrl) {
+        return fromUrl;
+      }
+
       const text = `${exp.title || ""} ${exp.name || ""} ${exp.meetingPoint || ""} ${exp.city || ""}`.toLowerCase();
-      if (text.includes("trek") || text.includes("arthur")) return { lat: 17.9820, lng: 73.6210 };
-      if (text.includes("boat") || text.includes("venna")) return { lat: 17.9310, lng: 73.6760 };
-      if (text.includes("paraglid") || text.includes("panchgani")) return { lat: 17.9280, lng: 73.8050 };
+      if (text.includes("trek") || text.includes("arthur") || text.includes("tracking")) {
+        return { lat: 17.9420, lng: 73.6820 };
+      }
+      if (text.includes("boat") || text.includes("venna")) {
+        return { lat: 17.9310, lng: 73.6760 };
+      }
+      if (text.includes("paraglid") || text.includes("panchgani")) {
+        return { lat: 17.9280, lng: 73.8050 };
+      }
+      if (text.includes("strawberry") || text.includes("farm") || text.includes("mapro")) {
+        return { lat: 17.9265, lng: 73.7850 };
+      }
 
       return {
-        lat: 17.9300 + (((idx * 9) % 11) - 5) * 0.003,
-        lng: 73.7400 + (((idx * 11) % 11) - 5) * 0.003,
+        lat: 17.9300 + (((idx * 9) % 9) - 4) * 0.0035,
+        lng: 73.7400 + (((idx * 11) % 9) - 4) * 0.0055,
+      };
+    };
+
+    // Spidering anti-collision dispatcher so each place gets its own unique, visible marker
+    const getAntiCollisionCoords = (rawLat: number, rawLng: number) => {
+      const slotKey = `${rawLat.toFixed(3)},${rawLng.toFixed(3)}`;
+      const collisionCount = usedCoordSlots.get(slotKey) || 0;
+      usedCoordSlots.set(slotKey, collisionCount + 1);
+
+      if (collisionCount === 0) {
+        return { lat: rawLat, lng: rawLng };
+      }
+
+      // Radial offset dispersing multiple pins in the same vicinity
+      const angle = (collisionCount * 2 * Math.PI) / 6;
+      const radius = 0.0032;
+      return {
+        lat: rawLat + Math.cos(angle) * radius,
+        lng: rawLng + Math.sin(angle) * (radius * 1.25),
       };
     };
 
     // 1. Stays from API
     properties.forEach((prop, idx) => {
-      const coords = resolveStayCoords(prop, idx);
+      const rawCoords = resolveStayCoords(prop, idx);
+      const coords = getAntiCollisionCoords(rawCoords.lat, rawCoords.lng);
       const img =
         typeof prop.images?.[0] === "string"
           ? prop.images[0]
@@ -195,7 +308,8 @@ export default function MahabaleshwarMapSection() {
 
     // 2. Experiences from API
     experiences.forEach((exp, idx) => {
-      const coords = resolveExpCoords(exp, idx);
+      const rawCoords = resolveExpCoords(exp, idx);
+      const coords = getAntiCollisionCoords(rawCoords.lat, rawCoords.lng);
       const img =
         exp.image ||
         (Array.isArray(exp.gallery) && exp.gallery[0]) ||
@@ -297,7 +411,7 @@ export default function MahabaleshwarMapSection() {
   const handleZoomOut = () => setZoom((z) => Math.max(10, z - 1));
   const handleResetCenter = () => {
     setCenter(MAHABALESHWAR_CENTER);
-    setZoom(13);
+    setZoom(12);
   };
 
   // Dragging event handlers with smooth CSS translation

@@ -68,8 +68,13 @@ function CheckoutContent() {
   const gstParam = searchParams.get("gst");
   const priceTypeParam = searchParams.get("priceType");
   const personLimitParam = searchParams.get("personLimit");
-  const priceType = priceTypeParam === "per_night" ? "per_night" : "per_person";
+  const isFullSetup = priceTypeParam === "per_activity" || priceTypeParam === "full_setup" || priceTypeParam === "per_night";
+  const priceType = isFullSetup ? (priceTypeParam === "per_night" ? "per_night" : "per_activity") : "per_person";
   const personLimit = personLimitParam ? parseInt(personLimitParam, 10) : null;
+  const locationTypeParam = searchParams.get("locationType") || "fixed_location";
+  const serviceAreaParam = searchParams.get("serviceArea") || "";
+  const isCustomerLocation = bookingType === "experience" && (locationTypeParam === "customer_location" || locationTypeParam === "both");
+  const [customerLocation, setCustomerLocation] = useState("");
 
   // Form State
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -162,7 +167,12 @@ function CheckoutContent() {
     grandTotal = baseCost - memberDiscount + fee + taxes;
   } else {
     // experience
-    baseCost = priceType === "per_night" ? priceParam : (priceParam * adults + Math.round(priceParam * 0.7 * children));
+    const hasChildPrice = searchParams.get("hasChildPrice") === "true";
+    const childPriceParam = parseInt(searchParams.get("childPrice") || "0", 10);
+    const effectiveChildUnit = (hasChildPrice && childPriceParam > 0) ? childPriceParam : priceParam;
+    baseCost = isFullSetup
+      ? priceParam
+      : (priceParam * adults + effectiveChildUnit * children);
     memberDiscount = Math.round(baseCost * (discountPercent / 100));
     fee = customFee !== null ? customFee : 0;
     const gstRate = (customGstPercent !== null ? customGstPercent : 18) / 100;
@@ -394,8 +404,15 @@ function CheckoutContent() {
         guestEmail: formData.email.trim(),
         guestPhone: cleanPhoneDigits,
         billingState: formData.state,
-        specialRequests: formData.specialRequests.trim() || undefined,
-        notes: formData.specialRequests.trim() || undefined,
+        customerLocation: isCustomerLocation && customerLocation.trim() ? customerLocation.trim() : undefined,
+        specialRequests: [
+          isCustomerLocation && customerLocation.trim() ? `[Setup Location: ${customerLocation.trim()}]` : '',
+          formData.specialRequests.trim(),
+        ].filter(Boolean).join(' ') || undefined,
+        notes: [
+          isCustomerLocation && customerLocation.trim() ? `[Setup Location: ${customerLocation.trim()}]` : '',
+          formData.specialRequests.trim(),
+        ].filter(Boolean).join(' ') || undefined,
         paymentMethod: formData.paymentMethod === "pay_at_property" ? "pay_at_property" : "upi",
         couponCode: appliedCoupon?.code,
         pricing: {
@@ -972,6 +989,31 @@ function CheckoutContent() {
                     </select>
                   </div>
 
+                  {/* Customer Stay / Setup Location if at user's location */}
+                  {isCustomerLocation && (
+                    <div className="sm:col-span-2 p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🚗</span>
+                        <div>
+                          <label className="text-xs font-bold text-emerald-950 font-poppins block">
+                            Your Accommodation / Setup Location <span className="text-rose-600">*</span>
+                          </label>
+                          <p className="text-[11px] text-emerald-800">
+                            This activity is delivered directly to you ({serviceAreaParam || "Across Mahabaleshwar & Panchgani"}). Please provide your villa or hotel name &amp; room number:
+                          </p>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={customerLocation}
+                        onChange={(e) => setCustomerLocation(e.target.value)}
+                        placeholder="e.g. 3 BHK Villa Near Mapro Garden, Villa 2 or Room 104"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold text-slate-900 bg-white shadow-xs"
+                      />
+                    </div>
+                  )}
+
                   {/* Special Requests */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-slate-700 font-poppins mb-1.5">
@@ -1490,8 +1532,8 @@ function CheckoutContent() {
                     ₹{priceParam.toLocaleString("en-IN")}{" "}
                     {bookingType === "stay"
                       ? `× ${nights} nights`
-                      : priceType === "per_night"
-                        ? `(flat per night × ${bookingType === "package" ? nights : 1})`
+                      : isFullSetup
+                        ? `(flat setup for ${totalTravelers} participants)`
                         : `× ${totalTravelers} travelers`}
                   </span>
                   <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString("en-IN")}</span>

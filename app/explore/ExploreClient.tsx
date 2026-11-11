@@ -639,39 +639,11 @@ export default function ExplorePage() {
             {filterControls}
           </aside>
 
-          {/* ─── RIGHT CONTENT: TOOLBAR & GRID (EXACT LAYOUT FROM IMAGE 2) ── */}
-          <div className="flex-1 min-w-0 w-full space-y-6 pt-1">
-            {/* Mobile Filter Trigger Bar (Small Screens only) */}
-            <div className="flex lg:hidden items-center justify-between gap-3 w-full pb-1">
-              <button
-                type="button"
-                onClick={() => setIsMobileFilterOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs sm:text-sm font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer relative"
-                id="mobile-open-filters-btn"
-              >
-                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M7 20V4m0 0L3 8m4-4l4 4M17 4v16m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                </div>
-                <span>Filters</span>
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                )}
-              </button>
-
-              <div className="text-xs text-slate-500 font-medium">
-                {loading ? (
-                  <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded" />
-                ) : (
-                  <>Showing <span className="text-primary font-bold">{filteredStays.length}</span> stays</>
-                )}
-              </div>
-            </div>
-
+          {/* ─── RIGHT CONTENT: TOOLBAR & GRID ── */}
+          <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 lg:space-y-6 pt-1">
             {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (Shadow-highlighted) ─── */}
-            <div className="w-full pt-1 pb-1">
-              <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 px-1">
+            <div className="w-full">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 px-0.5">
                 {STAY_PROPERTY_TABS.map((tab) => {
                   const isActive =
                     (tab.id === "All" && (selectedPropertyType === "All" || !selectedPropertyType)) ||
@@ -681,7 +653,7 @@ export default function ExplorePage() {
                       key={tab.id}
                       type="button"
                       onClick={() => setSelectedPropertyType(tab.id)}
-                      className={`px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm md:text-base rounded-2xl whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                      className={`px-3.5 sm:px-5 lg:px-6 py-1.5 sm:py-2.5 lg:py-3 text-xs sm:text-sm md:text-base rounded-2xl whitespace-nowrap transition-all duration-200 cursor-pointer ${
                         isActive
                           ? "bg-white text-[#ea110d] shadow-md shadow-slate-900/10 font-bold"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium"
@@ -694,8 +666,83 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* Top Row: Title, Result Count, Search & Sort */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* ─── Mobile Unified Compact Action Bar (Search + Filter + Sort in ONE row) ─── */}
+            <div className="flex lg:hidden items-center gap-2 w-full">
+              {/* Search Bar on Mobile */}
+              <div className="relative flex-1 min-w-0">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search stays..."
+                  className="w-full pl-8 pr-2.5 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition shadow-xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filter Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer shrink-0 relative"
+                id="mobile-open-filters-btn"
+              >
+                <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 20V4m0 0L3 8m4-4l4 4M17 4v16m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                </div>
+                <span>Filters</span>
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                )}
+              </button>
+
+              {/* Mobile Sort Dropdown */}
+              <div className="relative shrink-0">
+                <div className="flex items-center gap-1 px-2.5 py-2 bg-white border border-slate-200 rounded-2xl shadow-xs text-xs font-semibold text-slate-800 hover:border-slate-300 transition">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-transparent pr-4 outline-none cursor-pointer text-slate-800 font-semibold text-xs"
+                    aria-label="Sort stays"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="rating">Top Rated</option>
+                    <option value="price-low">Price: Low</option>
+                    <option value="price-high">Price: High</option>
+                  </select>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Stays Count Sub-strip */}
+            <div className="flex lg:hidden items-center justify-between text-[11px] text-slate-500 font-medium px-0.5">
+              {loading ? (
+                <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
+              ) : (
+                <span>Showing <span className="text-primary font-bold">{filteredStays.length}</span> stays</span>
+              )}
+            </div>
+
+            {/* Desktop Top Row: Title, Result Count, Search & Sort (Hidden on Mobile) */}
+            <div className="hidden lg:flex flex-row items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   All Luxury Stays &amp; Escapes
@@ -712,10 +759,10 @@ export default function ExplorePage() {
                 </p>
               </div>
 
-              {/* Right: Search Input + Sort Dropdown */}
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Right: Search Input + Sort Dropdown on Desktop */}
+              <div className="flex items-center gap-3">
                 {/* Search Bar */}
-                <div className="relative w-full sm:w-72 lg:w-80">
+                <div className="relative w-72 lg:w-80">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                       <circle cx="11" cy="11" r="8" />

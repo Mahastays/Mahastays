@@ -19,31 +19,43 @@ export default function ExperiencesPage() {
   }, [dispatch]);
 
   const experiencesData = useMemo(() => {
-    return items.map((exp) => ({
-      id: exp.id,
-      _id: exp._id,
-      title: exp.title || exp.name,
-      name: exp.name || exp.title,
-      country: exp.country || "India",
-      flag: exp.flag || "🇮🇳",
-      city: exp.city || "Mahabaleshwar",
-      locationId: exp.locationId,
-      duration: exp.duration,
-      category: exp.category,
-      rating: exp.rating || (exp.ratingScore ? `${exp.ratingScore}/5 ★` : "4.9/5 ★"),
-      ratingScore: exp.ratingScore,
-      reviewsCount: exp.reviewsCount,
-      price: exp.price || `₹${exp.numericPrice?.toLocaleString("en-IN")}`,
-      numericPrice: exp.numericPrice,
-      originalPrice: exp.originalPrice,
-      difficulty: (exp.difficulty as any) || "Moderate",
-      ageLimit: exp.ageLimit || "10 - 65 yrs",
-      groupSize: exp.groupSize || "Small group",
-      language: exp.language || "English, Hindi, Marathi",
-      image: exp.image || exp.gallery?.[0] || "/hero-resort.jpg",
-      description: exp.description,
-      featured: exp.featured,
-    }));
+    return items.map((exp) => {
+      const displayLocation =
+        (exp as any).location ||
+        (exp.city && exp.city.toLowerCase() !== "india" ? exp.city : null) ||
+        exp.meetingPoint?.split(",")[0]?.trim() ||
+        (exp.country && exp.country.toLowerCase() !== "india" ? exp.country : "Mahabaleshwar");
+      return {
+        id: exp.id,
+        _id: exp._id,
+        title: exp.title || exp.name,
+        name: exp.name || exp.title,
+        country: displayLocation,
+        location: displayLocation,
+        flag: exp.flag || "📍",
+        city: exp.city || "Mahabaleshwar",
+        meetingPoint: exp.meetingPoint,
+        locationId: exp.locationId,
+        duration: exp.duration,
+        category: exp.category,
+        rating: exp.ratingScore && exp.ratingScore > 0 ? `${exp.ratingScore.toFixed(1)}/5 ★` : (exp.rating && !exp.rating.includes("4.9/5") ? exp.rating : "New"),
+        ratingScore: exp.ratingScore,
+        reviewsCount: exp.reviewsCount,
+        price: exp.price || `₹${exp.numericPrice?.toLocaleString("en-IN")}`,
+        numericPrice: exp.numericPrice,
+        originalPrice: exp.originalPrice,
+        priceType: exp.priceType,
+        personLimit: exp.personLimit,
+        difficulty: (exp.difficulty as any) || "Moderate",
+        ageLimit: exp.ageLimit || "10 - 65 yrs",
+        groupSize: exp.groupSize || "Small group",
+        language: exp.language || "English, Hindi, Marathi",
+        image: exp.image || exp.gallery?.[0] || "/hero-resort.jpg",
+        description: exp.description,
+        featured: exp.featured,
+        acceptingBookings: (exp as any).acceptingBookings !== false,
+      };
+    });
   }, [items]);
 
   // ─── Filter Sidebar State (Exact Same UI As In Explore) ────────
@@ -123,8 +135,13 @@ export default function ExperiencesPage() {
     return experiencesData.filter((exp) => {
       // 1. Activity Type Filter
       if (selectedPropertyType !== "All") {
-        const cat = exp.category || "";
-        if (!cat.toLowerCase().includes(selectedPropertyType.toLowerCase())) {
+        const cat = (exp.category || "").toLowerCase();
+        const propType = selectedPropertyType.toLowerCase();
+        const words = propType.split(/[&,/\s]+/).filter((w) => w.length > 2);
+        const matchesType =
+          cat.includes(propType) ||
+          words.some((w) => cat.includes(w) || (exp.title || "").toLowerCase().includes(w));
+        if (!matchesType) {
           return false;
         }
       }
@@ -146,15 +163,29 @@ export default function ExperiencesPage() {
         return false;
       }
 
-      // 4. Horizontal Amenity / Tag Filter
+      // 4. Horizontal Amenity / Category Filter
       if (selectedAmenity !== "all") {
-        const queryTag = selectedAmenity.toLowerCase();
-        const inTitle = (exp.title || "").toLowerCase().includes(queryTag);
-        const inDesc = (exp.description || "").toLowerCase().includes(queryTag);
-        const inCat = (exp.category || "").toLowerCase().includes(queryTag);
-        const inCity = (exp.city || "").toLowerCase().includes(queryTag);
-        const inCountry = (exp.country || "").toLowerCase().includes(queryTag);
-        if (!inTitle && !inDesc && !inCat && !inCity && !inCountry) {
+        const keywordsMap: Record<string, string[]> = {
+          fun: ['fun', 'resort games', 'games', 'indoor', 'lawn'],
+          karaoke: ['karaoke', 'night', 'entertainment', 'music', 'dj', 'singing'],
+          bonfire: ['bonfire', 'bonefire', 'fire', 'campfire', 'music', 'bbq'],
+          treasure: ['treasure', 'hunt', 'quest', 'clue'],
+          games: ['group games', 'team building', 'team', 'game'],
+          tower: ['tower', 'tower building', 'stack', 'blocks'],
+          musical: ['musical chair', 'chair', 'party games'],
+          balloon: ['balloon', 'couple balloon', 'couple', 'partner'],
+          antakshari: ['antakshari', 'antrakhri', 'musical games', 'songs'],
+          tambola: ['tambola', 'housie', 'bingo', 'ticket'],
+          trekking: ['trek', 'hiking', 'mountain', 'trail', 'climb', 'walk', 'peak'],
+          water: ['water', 'boating', 'lake', 'scuba', 'cruise', 'river', 'kayak', 'paddle', 'venna'],
+          camping: ['camping', 'stargazing', 'camp', 'tent', 'night sky'],
+          cycling: ['cycling', 'biking', 'bicycle', 'cycle'],
+          culture: ['culture', 'heritage', 'farm', 'strawberry', 'food', 'walk', 'tour'],
+        };
+        const terms = keywordsMap[selectedAmenity] || [selectedAmenity.toLowerCase()];
+        const combined = `${exp.title || ''} ${exp.description || ''} ${exp.category || ''} ${exp.city || ''}`.toLowerCase();
+        const matchesAny = terms.some((term) => combined.includes(term));
+        if (!matchesAny) {
           return false;
         }
       }
@@ -236,7 +267,7 @@ export default function ExperiencesPage() {
   const EXPERIENCE_TABS = [
     {
       id: "all",
-      label: "All",
+      label: "All Activities",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -247,8 +278,122 @@ export default function ExperiencesPage() {
       ),
     },
     {
+      id: "fun",
+      label: "Fun & Resort Games",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+          <line x1="9" y1="9" x2="9.01" y2="9" />
+          <line x1="15" y1="9" x2="15.01" y2="9" />
+        </svg>
+      ),
+    },
+    {
+      id: "karaoke",
+      label: "Night Karaoke & Entertainment",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+        </svg>
+      ),
+    },
+    {
+      id: "bonfire",
+      label: "Bonfire & Music",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        </svg>
+      ),
+    },
+    {
+      id: "treasure",
+      label: "Treasure Hunt",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      ),
+    },
+    {
+      id: "games",
+      label: "Group Games & Team",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
+          <rect width="20" height="12" x="2" y="6" rx="6" />
+        </svg>
+      ),
+    },
+    {
+      id: "tower",
+      label: "Tower Building",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="16" width="16" height="5" rx="1" />
+          <rect x="6" y="10" width="12" height="5" rx="1" />
+          <rect x="8" y="4" width="8" height="5" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      id: "musical",
+      label: "Musical Chair",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" />
+          <path d="M3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2Z" />
+          <path d="M6 18v3" />
+          <path d="M18 18v3" />
+        </svg>
+      ),
+    },
+    {
+      id: "balloon",
+      label: "Couple Balloon Games",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      ),
+    },
+    {
+      id: "antakshari",
+      label: "Antakshari",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+      ),
+    },
+    {
+      id: "tambola",
+      label: "Tambola & Housie",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+        </svg>
+      ),
+    },
+    {
+      id: "trekking",
+      label: "Trekking & Hiking",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+        </svg>
+      ),
+    },
+    {
       id: "water",
-      label: "Scuba & Water",
+      label: "Watersports & Boating",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 17c.6.5 1.2 1 2.5 1s2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1 2 .5 3 1 2.5-1 3.5-1" />
@@ -257,72 +402,34 @@ export default function ExperiencesPage() {
       ),
     },
     {
-      id: "aerial",
-      label: "Aerial & Sky",
+      id: "camping",
+      label: "Stargazing & Camping",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="m4.93 4.93 4.24 4.24" />
-          <path d="m14.83 9.17 4.24-4.24" />
-          <path d="m14.83 14.83 4.24 4.24" />
-          <path d="m9.17 14.83-4.24 4.24" />
+          <path d="m4 21 8-14 8 14H4z" />
+          <path d="M12 7v14" />
         </svg>
       ),
     },
     {
-      id: "safari",
-      label: "Desert Safari",
+      id: "cycling",
+      label: "Cycling & Mountain Biking",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2" />
-          <path d="M12 20v2" />
-          <path d="m4.93 4.93 1.41 1.41" />
-          <path d="m17.66 17.66 1.41 1.41" />
-          <path d="M2 12h2" />
-          <path d="M20 12h2" />
+          <circle cx="5.5" cy="17.5" r="3.5" />
+          <circle cx="18.5" cy="17.5" r="3.5" />
+          <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 6H5" />
+          <path d="M12 17.5V14l4-3 3 2.5" />
         </svg>
       ),
     },
     {
-      id: "trekking",
-      label: "Mountain Trek",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-        </svg>
-      ),
-    },
-    {
-      id: "culinary",
-      label: "Vineyard & Food",
+      id: "culture",
+      label: "Heritage & Strawberry Tour",
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8h1a4 4 0 1 1 0 8h-1" />
           <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-        </svg>
-      ),
-    },
-    {
-      id: "cruises",
-      label: "Sunset Cruises",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 20a2.4 2.4 0 0 0 2 1 2.4 2.4 0 0 0 2-1 2.4 2.4 0 0 1 2-1 2.4 2.4 0 0 1 2 1 2.4 2.4 0 0 0 2 1 2.4 2.4 0 0 0 2-1 2.4 2.4 0 0 1 2-1 2.4 2.4 0 0 1 2 1 2.4 2.4 0 0 0 2 1 2.4 2.4 0 0 0 2-1" />
-          <path d="M4 18 3 12h18l-1 6" />
-          <path d="M12 4v8" />
-          <path d="M8 8l4-4 4 4" />
-        </svg>
-      ),
-    },
-    {
-      id: "wellness",
-      label: "Spa & Wellness",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20" />
-          <path d="M12 4c-3 0-5 2-5 5h10c0-3-2-5-5-5z" />
-          <path d="M7 13c-2.5 0-4 1.5-4 4h18c0-2.5-1.5-4-4-4" />
         </svg>
       ),
     },
@@ -547,7 +654,26 @@ export default function ExperiencesPage() {
               <span>Activity Type</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {["All", "Water Sports", "Safari & Desert", "Trekking", "Culinary", "Aerial", "Cruises"].map((type) => {
+              {[
+                "All",
+                "Fun Activity & Resort Games",
+                "Night Karaoke & Entertainment",
+                "Bonfire & Music",
+                "Treasure Hunt",
+                "Group Games & Team Building",
+                "Tower Building",
+                "Musical Chair",
+                "Couple Balloon Games",
+                "Antakshari & Musical Games",
+                "Tambola & Housie",
+                "Trekking & Hiking",
+                "Watersports & Boating",
+                "Stargazing & Camping",
+                "Cycling & Mountain Biking",
+                "Cultural & Heritage Walk",
+                "Strawberry Farm Tour",
+                "Adventure & Wildlife Safari",
+              ].map((type) => {
                 const isActive = selectedPropertyType.toLowerCase() === type.toLowerCase();
                 return (
                   <button
@@ -639,16 +765,16 @@ export default function ExperiencesPage() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  All Curated Experiences &amp; Guided Adventures
+                  All Curated Experiences &amp; Guided Activities
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                   {loading ? (
                     <span className="inline-flex items-center gap-1.5 text-slate-400">
                       <span className="w-5 h-3.5 bg-slate-200 animate-pulse rounded inline-block" />
-                      <span>Loading handpicked outdoor adventures &amp; excursions...</span>
+                      <span>Loading handpicked activities &amp; experiences...</span>
                     </span>
                   ) : (
-                    <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked outdoor adventures &amp; excursions</>
+                    <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> handpicked activities &amp; experiences</>
                   )}
                 </p>
               </div>
