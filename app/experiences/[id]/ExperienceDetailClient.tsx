@@ -43,8 +43,11 @@ export default function ExperienceDetailsPage() {
           name: t.name || `Tier ${idx + 1}`,
           badge: t.badge,
           tagline: t.tagline || "",
-          pricePerPerson: t.pricePerPerson || e.numericPrice || 499,
-          originalPrice: t.originalPrice || Math.round((t.pricePerPerson || e.numericPrice || 499) * 1.3),
+          priceType: t.priceType || e.priceType || 'per_person',
+          personLimit: t.personLimit != null ? Number(t.personLimit) : (e.personLimit != null ? Number(e.personLimit) : 15),
+          childPricePerPerson: t.childPricePerPerson != null ? Number(t.childPricePerPerson) : null,
+          pricePerPerson: Number(t.pricePerPerson) || e.numericPrice || 499,
+          originalPrice: Number(t.originalPrice) || Math.round((Number(t.pricePerPerson) || e.numericPrice || 499) * 1.3),
           features: t.features || ["Certified Guide", "Refreshments Included"],
         }))
       : [
@@ -52,6 +55,8 @@ export default function ExperienceDetailsPage() {
             id: "tier-1",
             name: "Standard Experience",
             tagline: "Guided excursion with certified expert",
+            priceType: e.priceType || 'per_person',
+            personLimit: e.personLimit || 15,
             pricePerPerson: e.numericPrice || 499,
             originalPrice: Math.round((e.numericPrice || 499) * 1.3),
             features: ["Certified Guide", "Safety Equipment", "Refreshments"],
@@ -83,68 +88,74 @@ export default function ExperienceDetailsPage() {
           },
         ];
 
-    return {
-      _id: e._id || e.id,
-      id: e.id || e._id,
-      vendorId: e.vendorId || "",
-      title: e.title || e.name || "Curated Experience",
-      name: e.name || e.title || "Curated Experience",
-      country: e.country || "India",
-      flag: e.flag || "🇮🇳",
-      city: e.city || "Mahabaleshwar",
-      locationId: e.locationId || "",
-      duration: e.duration || "2 Hours",
-      category: e.category || "Adventure",
-      rating: typeof e.rating === "number" ? e.rating : 0,
-      ratingScore: typeof e.rating === "number" ? e.rating : 0,
-      reviewsCount: typeof e.reviewsCount === "number" ? e.reviewsCount : 0,
-      price: e.price || `₹${(e.numericPrice || 499).toLocaleString("en-IN")} / person`,
-      numericPrice: e.numericPrice || 499,
-      originalPrice: e.originalPrice || Math.round((e.numericPrice || 499) * 1.3),
-      difficulty: (e.difficulty as any) || "Moderate",
-      ageLimit: e.ageLimit || "10 - 65 yrs",
-      groupSize: e.groupSize || "Small group",
-      language: e.language || "English, Hindi, Marathi",
-      image: e.image || e.gallery?.[0] || "/hero-resort.jpg",
-      gallery: e.gallery || (e.image ? [e.image] : ["/hero-resort.jpg"]),
-      description: e.description || "",
-      overview: e.overview || e.description || "",
-      highlights: e.highlights || [],
-      timeline: e.timeline || [],
-      inclusions: e.inclusions || [],
-      exclusions: e.exclusions || [],
-      whatToBring: e.whatToBring || [],
-      locationType: (e as any).locationType || "fixed_location",
-      serviceArea: (e as any).serviceArea || "",
-      location: (e as any).location || e.city || e.meetingPoint?.split(',')[0]?.trim() || "Mahabaleshwar",
-      meetingPoint: e.meetingPoint || `Directly at activity location, ${e.city || "Mahabaleshwar"}`,
-      coordinates: e.coordinates || { lat: 17.9237, lng: 73.6586 },
-      schedule: e.schedule,
-      videoUrl: e.videoUrl || e.video || (e.videos && e.videos[0]) || "",
-      keyHighlights: e.keyHighlights || [],
-      slots: rawSlots,
-      tiers: rawTiers,
-      guide: e.guide || {
-        name: e.guideName || e.vendorName || "Verified Host",
-        role: e.guideRole || "Verified Activity Host & Coordinator",
-        experience: e.guideExperience || "Experienced Host",
-        staysCount: e.guideStaysCount || "50+ Experiences Hosted",
-        avatar: e.guideAvatar,
-        confirmationBadge: "Instant Booking Confirmed",
-        verified: true,
-      },
-      guideName: e.guideName || e.guide?.name || "Verified Host",
-      guideRole: e.guideRole || e.guide?.role || "Verified Activity Host & Coordinator",
-      guideAvatar: e.guideAvatar || e.guide?.avatar,
-      reviews: e.reviews || [],
-      cancellationPolicy: e.cancellationPolicy || "Free cancellation up to 24 hours before activity start.",
-      status: e.status || "active",
-      featured: e.featured,
-      acceptingBookings: e.acceptingBookings !== false,
-      priceType: e.priceType || 'per_person',
-      personLimit: e.personLimit || 15,
-      pricingRules: e.pricingRules || (selectedExperience as any)?.pricingRules || null,
-    };
+      const expPriceType = (rawTiers[0]?.priceType) || e.priceType || 'per_person';
+      const isExpFullSetup = expPriceType === 'per_activity' || expPriceType === 'full_setup';
+      const isExpPerNight = expPriceType === 'per_night';
+      const expUnitText = isExpFullSetup ? 'setup' : isExpPerNight ? 'night' : 'person';
+      const displayPrice = e.price && (isExpFullSetup ? (e.price.includes('setup') ? e.price : `₹${(e.numericPrice || 499).toLocaleString("en-IN")} / setup`) : isExpPerNight ? (e.price.includes('night') ? e.price : `₹${(e.numericPrice || 499).toLocaleString("en-IN")} / night`) : e.price) || `₹${(e.numericPrice || 499).toLocaleString("en-IN")} / ${expUnitText}`;
+
+      return {
+        _id: e._id || e.id,
+        id: e.id || e._id,
+        vendorId: e.vendorId || "",
+        title: e.title || e.name || "Curated Experience",
+        name: e.name || e.title || "Curated Experience",
+        country: e.country || "India",
+        flag: e.flag || "🇮🇳",
+        city: e.city || "Mahabaleshwar",
+        locationId: e.locationId || "",
+        duration: e.duration || "2 Hours",
+        category: e.category || "Adventure",
+        rating: typeof e.rating === "number" ? e.rating : 0,
+        ratingScore: typeof e.rating === "number" ? e.rating : 0,
+        reviewsCount: typeof e.reviewsCount === "number" ? e.reviewsCount : 0,
+        price: displayPrice,
+        numericPrice: e.numericPrice || 499,
+        originalPrice: e.originalPrice || Math.round((e.numericPrice || 499) * 1.3),
+        difficulty: (e.difficulty as any) || "Moderate",
+        ageLimit: e.ageLimit || "10 - 65 yrs",
+        groupSize: e.groupSize || "Small group",
+        language: e.language || "English, Hindi, Marathi",
+        image: e.image || e.gallery?.[0] || "/hero-resort.jpg",
+        gallery: e.gallery || (e.image ? [e.image] : ["/hero-resort.jpg"]),
+        description: e.description || "",
+        overview: e.overview || e.description || "",
+        highlights: e.highlights || [],
+        timeline: e.timeline || [],
+        inclusions: e.inclusions || [],
+        exclusions: e.exclusions || [],
+        whatToBring: e.whatToBring || [],
+        locationType: (e as any).locationType || "fixed_location",
+        serviceArea: (e as any).serviceArea || "",
+        location: (e as any).location || e.city || e.meetingPoint?.split(',')[0]?.trim() || "Mahabaleshwar",
+        meetingPoint: e.meetingPoint || `Directly at activity location, ${e.city || "Mahabaleshwar"}`,
+        coordinates: e.coordinates || { lat: 17.9237, lng: 73.6586 },
+        schedule: e.schedule,
+        videoUrl: e.videoUrl || e.video || (e.videos && e.videos[0]) || "",
+        keyHighlights: e.keyHighlights || [],
+        slots: rawSlots,
+        tiers: rawTiers,
+        guide: e.guide || {
+          name: e.guideName || e.vendorName || "Verified Host",
+          role: e.guideRole || "Verified Activity Host & Coordinator",
+          experience: e.guideExperience || "Experienced Host",
+          staysCount: e.guideStaysCount || "50+ Experiences Hosted",
+          avatar: e.guideAvatar,
+          confirmationBadge: "Instant Booking Confirmed",
+          verified: true,
+        },
+        guideName: e.guideName || e.guide?.name || "Verified Host",
+        guideRole: e.guideRole || e.guide?.role || "Verified Activity Host & Coordinator",
+        guideAvatar: e.guideAvatar || e.guide?.avatar,
+        reviews: e.reviews || [],
+        cancellationPolicy: e.cancellationPolicy || "Free cancellation up to 24 hours before activity start.",
+        status: e.status || "active",
+        featured: e.featured,
+        acceptingBookings: e.acceptingBookings !== false,
+        priceType: expPriceType,
+        personLimit: (rawTiers[0]?.personLimit) || e.personLimit || 15,
+        pricingRules: e.pricingRules || (selectedExperience as any)?.pricingRules || null,
+      };
   }, [selectedExperience, experienceId]);
 
   // Combined gallery
@@ -322,9 +333,9 @@ export default function ExperienceDetailsPage() {
 
   // Price calculations
   const rawPriceType = (selectedTier as any)?.priceType || (exp as any)?.priceType || 'per_person';
-  const isFullSetup = rawPriceType === 'per_activity' || rawPriceType === 'full_setup' || rawPriceType === 'per_night';
+  const isFullSetup = rawPriceType === 'per_activity' || rawPriceType === 'full_setup';
   const isPerNight = rawPriceType === 'per_night';
-  const priceType = isFullSetup ? (rawPriceType === 'per_night' ? 'per_night' : 'per_activity') : 'per_person';
+  const priceType = isFullSetup ? 'full_setup' : isPerNight ? 'per_night' : 'per_person';
   const personLimit = (selectedTier as any)?.personLimit || (exp as any)?.personLimit || selectedSlot?.availableSpots || 15;
   const totalParticipants = adults + children;
   const isPersonLimitExceeded = totalParticipants > personLimit;
@@ -350,8 +361,8 @@ export default function ExperienceDetailsPage() {
     : (pricingRules?.includeGst === false ? 0 : 18);
   const gstRate = gstPercent / 100;
 
-  // If full setup / per_activity, the base price is fixed flat for the activity and does not increase with more participants
-  const basePrice = isFullSetup
+  // If full setup / per_activity or per_night, flat price does NOT increase with guest count:
+  const basePrice = (isFullSetup || isPerNight)
     ? pricePerPerson
     : (pricePerPerson * adults + effectiveChildPrice * children);
   const discountAmount = Math.round(basePrice * (memberDiscountPercent / 100));
@@ -1430,10 +1441,15 @@ export default function ExperienceDetailsPage() {
                   <span className="text-xl sm:text-2xl font-extrabold text-slate-900 font-poppins">
                     ₹{pricePerPerson.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-slate-500 font-normal"> / {isFullSetup ? (isPerNight ? "night" : "setup") : "person"}</span>
+                  <span className="text-xs text-slate-500 font-normal"> / {isFullSetup ? "setup" : isPerNight ? "night" : "person"}</span>
                   {isFullSetup && (
                     <span className="block text-[10px] text-emerald-700 font-medium mt-0.5">
-                      Flat activity price • Covers up to {personLimit} participants
+                      Flat activity setup • Covers up to {personLimit} participants (no extra charge per person)
+                    </span>
+                  )}
+                  {isPerNight && (
+                    <span className="block text-[10px] text-emerald-700 font-medium mt-0.5">
+                      Flat night session • Covers up to {personLimit} participants
                     </span>
                   )}
                 </div>
@@ -1647,7 +1663,9 @@ export default function ExperienceDetailsPage() {
                 <div className="flex justify-between text-slate-600">
                   <span className="text-[11px] truncate pr-2">
                     {isFullSetup
-                      ? `Flat Activity Setup (${totalParticipants} participant${totalParticipants > 1 ? "s" : ""}, up to ${personLimit})`
+                      ? `Flat Activity Setup (covers ${totalParticipants} participant${totalParticipants > 1 ? "s" : ""}, up to ${personLimit})`
+                      : isPerNight
+                      ? `Flat Night Session (covers ${totalParticipants} participant${totalParticipants > 1 ? "s" : ""}, up to ${personLimit})`
                       : hasChildPrice && children > 0
                       ? `₹${pricePerPerson.toLocaleString("en-IN")} × ${adults} adult${adults > 1 ? "s" : ""} + ₹${effectiveChildPrice.toLocaleString("en-IN")} × ${children} child${children > 1 ? "ren" : ""}`
                       : `₹${pricePerPerson.toLocaleString("en-IN")} × ${totalParticipants} participants`}
@@ -1705,7 +1723,7 @@ export default function ExperienceDetailsPage() {
               <span className="text-lg font-bold text-slate-900 font-poppins">
                 ₹{grandTotal.toLocaleString("en-IN")}
               </span>
-              <span className="text-xs text-slate-500">/ {isFullSetup ? "setup" : `${totalParticipants} persons`}</span>
+              <span className="text-xs text-slate-500">/ {isFullSetup ? "setup" : isPerNight ? "night" : `${totalParticipants} persons`}</span>
             </div>
           </div>
           {exp.acceptingBookings === false ? (

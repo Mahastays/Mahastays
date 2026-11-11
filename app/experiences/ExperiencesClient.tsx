@@ -25,6 +25,8 @@ export default function ExperiencesPage() {
         (exp.city && exp.city.toLowerCase() !== "india" ? exp.city : null) ||
         exp.meetingPoint?.split(",")[0]?.trim() ||
         (exp.country && exp.country.toLowerCase() !== "india" ? exp.country : "Mahabaleshwar");
+      const effectivePriceType = exp.priceType || (exp.tiers && (exp.tiers as any)[0]?.priceType) || 'per_person';
+      const effectivePersonLimit = exp.personLimit || (exp.tiers && (exp.tiers as any)[0]?.personLimit);
       return {
         id: exp.id,
         _id: exp._id,
@@ -44,8 +46,8 @@ export default function ExperiencesPage() {
         price: exp.price || `₹${exp.numericPrice?.toLocaleString("en-IN")}`,
         numericPrice: exp.numericPrice,
         originalPrice: exp.originalPrice,
-        priceType: exp.priceType,
-        personLimit: exp.personLimit,
+        priceType: effectivePriceType,
+        personLimit: effectivePersonLimit,
         difficulty: (exp.difficulty as any) || "Moderate",
         ageLimit: exp.ageLimit || "10 - 65 yrs",
         groupSize: exp.groupSize || "Small group",

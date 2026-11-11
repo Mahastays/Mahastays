@@ -173,7 +173,13 @@ export default function ExperienceCard({ item, onBook }: ExperienceCardProps) {
               {item.priceType === 'per_activity' || item.priceType === 'full_setup' ? 'Flat Setup Price' : item.priceType === 'per_night' ? 'Per Night' : 'Price from'}
               {(item.priceType === 'per_activity' || item.priceType === 'full_setup' || item.priceType === 'per_night') && item.personLimit ? ` (Max ${item.personLimit})` : ''}
             </span>
-            <span className="text-xs sm:text-sm md:text-base font-bold text-white tracking-tight truncate">{item.price}</span>
+            <span className="text-xs sm:text-sm md:text-base font-bold text-white tracking-tight truncate">
+              {item.priceType === 'per_activity' || item.priceType === 'full_setup'
+                ? (item.price?.includes('setup') ? item.price : `₹${item.numericPrice?.toLocaleString('en-IN')} / setup`)
+                : item.priceType === 'per_night'
+                ? (item.price?.includes('night') ? item.price : `₹${item.numericPrice?.toLocaleString('en-IN')} / night`)
+                : (item.price?.includes('person') ? item.price : `₹${item.numericPrice?.toLocaleString('en-IN')} / person`)}
+            </span>
           </div>
 
           {item.acceptingBookings === false ? (

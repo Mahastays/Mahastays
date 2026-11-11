@@ -37,6 +37,9 @@ export interface ExperienceTier {
   name: string;
   badge?: string;
   tagline: string;
+  priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night';
+  personLimit?: number;
+  childPricePerPerson?: number;
   pricePerPerson: number;
   originalPrice: number;
   features: string[];
