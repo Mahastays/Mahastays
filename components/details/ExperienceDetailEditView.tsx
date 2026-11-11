@@ -309,7 +309,14 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
     if (!exp) return;
     const updated = [...tiers];
     updated[index] = { ...updated[index], [field]: value };
-    setExp({ ...exp, tiers: updated });
+    const nextExp: any = { ...exp, tiers: updated };
+    if (field === 'priceType') {
+      nextExp.priceType = value;
+    }
+    if (field === 'personLimit') {
+      nextExp.personLimit = value;
+    }
+    setExp(nextExp);
   };
 
   const handleRemoveTier = (index: number) => {
@@ -2905,7 +2912,15 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3 mb-2 text-xs">
                   <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
                     <span>Experience Pricing &amp; Fees</span>
-                    <span className="text-[10px] text-amber-600 font-normal">Saves on &ldquo;Save to Backend&rdquo;</span>
+                    <button
+                      type="button"
+                      onClick={handleSaveChanges}
+                      className="px-2.5 py-1 rounded-lg bg-[#ea110d] hover:bg-[#d00f0c] text-white font-bold text-[10px] transition shadow-xs cursor-pointer flex items-center gap-1"
+                      title="Save rate and fee changes to backend immediately"
+                    >
+                      <Save className="w-3 h-3" />
+                      <span>Save to Backend</span>
+                    </button>
                   </div>
 
                   {/* 0. Pricing Model (Per Person vs Per Activity / Full Setup vs Per Night) */}

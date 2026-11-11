@@ -251,15 +251,10 @@ export const updateExperienceAsync = createAsyncThunk(
       } else {
         await api
           .put(`/admin/experiences/${updatedExp.id}`, updatedExp)
-          .catch(() => api.put(`/vendor/experiences/${updatedExp.id}`, updatedExp))
-          .catch(() =>
-            api.patch(`/admin/experiences/${updatedExp.id}/content`, {
-              description: updatedExp.description,
-            })
-          );
+          .catch(() => api.put(`/vendor/experiences/${updatedExp.id}`, updatedExp));
       }
-    } catch {
-      // Offline fallback
+    } catch (err) {
+      console.error('Failed to update experience in backend:', err);
     }
 
     const state = getState() as { experiences: ExperiencesState };
