@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-footer-bg text-white pt-20 pb-9 relative overflow-hidden border-t border-white/10" id="footer">
+    <footer className="bg-footer-bg text-white pt-20 pb-24 sm:pb-28 lg:pb-9 relative overflow-hidden border-t border-white/10" id="footer">
       {/* ─── Top Call-To-Action Block (Tailwind utility classes) ─ */}
       <div className="max-w-4xl mx-auto px-6 text-center relative z-10 flex flex-col items-center">
         <span className="text-xs font-bold tracking-widest uppercase text-primary mb-3">

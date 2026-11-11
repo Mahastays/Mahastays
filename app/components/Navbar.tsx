@@ -159,6 +159,14 @@ export default function Navbar() {
   ];
 
   const isHomePage = pathname === "/";
+  const isDetailPage = Boolean(
+    (pathname?.startsWith("/explore/") && pathname !== "/explore") ||
+    (pathname?.startsWith("/stays/") && pathname !== "/stays") ||
+    pathname?.startsWith("/stay/") ||
+    (pathname?.startsWith("/packages/") && pathname !== "/packages") ||
+    (pathname?.startsWith("/experiences/") && pathname !== "/experiences")
+  );
+  const hideBottomNav = Boolean(pathname?.startsWith("/checkout") || isDetailPage);
 
   return (
     <>
@@ -205,8 +213,8 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Desktop Nav Links (Hidden on mobile/small screens; rendered at bottom navbar on small screens) */}
-          <ul className="hidden md:flex items-center gap-1.5 list-none">
+          {/* Desktop Nav Links (Hidden on mobile & tablet; rendered as floating rounded tab at bottom on < lg) */}
+          <ul className="hidden lg:flex items-center gap-1.5 list-none">
             {navItems.map((item) => {
               const currentPath = pathname || "/";
               const isActive =
@@ -400,13 +408,13 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* ─── Mobile Bottom Navigation Bar (Phone & Small Screens) ─── */}
-      {!pathname?.startsWith("/checkout") && (
+      {/* ─── Floating Bottom Navigation Tab (Mobile & Tablets: < lg) ─── */}
+      {!hideBottomNav && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] px-2 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]"
-          aria-label="Mobile Navigation"
+          className="fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 lg:hidden w-[95%] max-w-md sm:max-w-xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.15)] rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-all duration-300"
+          aria-label="Bottom Navigation Menu"
         >
-          <div className="flex items-center justify-around max-w-lg mx-auto">
+          <div className="flex items-center justify-between gap-1 sm:gap-1.5">
             {navItems.map((item) => {
               const currentPath = pathname || "/";
               const isActive =
@@ -431,24 +439,22 @@ export default function Navbar() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setActiveTab(item.name)}
-                  className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-2xl transition-all duration-200 select-none ${
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-initial py-1 sm:py-2 px-1.5 sm:px-4 rounded-full transition-all duration-200 select-none cursor-pointer ${
                     isActive
-                      ? "text-[#ea110d]"
-                      : "text-slate-500 hover:text-slate-900 active:scale-95"
+                      ? "bg-[#ea110d] text-white shadow-[0_3px_12px_rgba(234,17,13,0.35)] font-bold scale-[1.02]"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 active:scale-95 font-medium"
                   }`}
                 >
-                  <div
-                    className={`flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200 ${
-                      isActive
-                        ? "bg-red-50 text-[#ea110d] scale-110"
-                        : "text-slate-500"
+                  <span
+                    className={`inline-flex items-center justify-center transition-transform duration-200 ${
+                      isActive ? "text-white" : "text-slate-500"
                     }`}
                   >
                     {item.icon}
-                  </div>
+                  </span>
                   <span
-                    className={`text-[11px] leading-tight transition-all duration-200 mt-0.5 ${
-                      isActive ? "font-bold text-[#ea110d]" : "font-medium text-slate-500"
+                    className={`text-[10px] sm:text-xs tracking-tight whitespace-nowrap transition-colors duration-200 ${
+                      isActive ? "text-white font-bold" : "text-slate-600"
                     }`}
                   >
                     {item.name}

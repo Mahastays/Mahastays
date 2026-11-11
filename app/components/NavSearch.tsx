@@ -336,7 +336,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
       {/* ─── Desktop Search Input Bar ───────────────────────────────── */}
       <div ref={containerRef} className="relative hidden md:block">
         <div
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 h-10 w-48 lg:w-64 xl:w-72 focus-within:w-64 lg:focus-within:w-80 xl:focus-within:w-96 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 ${
+          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 h-10 w-44 md:w-56 lg:w-64 xl:w-72 focus-within:w-56 md:focus-within:w-72 lg:focus-within:w-80 xl:focus-within:w-96 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 ${
             isScrolled || !isHomePage
               ? "bg-slate-100 border border-slate-200"
               : "bg-white/85 backdrop-blur-md border border-white/60"
@@ -391,7 +391,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
 
         {/* ─── Desktop Live Search Dropdown ──────────────────────────── */}
         {isOpen && (
-          <div data-lenis-prevent className="absolute right-0 mt-2.5 w-[420px] lg:w-[480px] bg-white rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.14)] border border-slate-200/90 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[82vh] overflow-y-auto custom-scrollbar">
+          <div data-lenis-prevent className="absolute right-0 mt-2.5 w-[420px] lg:w-[480px] max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.14)] border border-slate-200/90 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[82vh] overflow-y-auto custom-scrollbar">
             {/* Category Filter Pills */}
             <div className="px-3.5 pb-2.5 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {[

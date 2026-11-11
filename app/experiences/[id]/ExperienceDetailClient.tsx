@@ -1698,7 +1698,7 @@ export default function ExperienceDetailsPage() {
         </div>
 
         {/* Floating Mobile Booking Bar */}
-        <div className="lg:hidden fixed bottom-[58px] md:bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 flex items-center justify-between shadow-2xl">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between shadow-2xl">
           <div>
             <div className="text-[10px] text-slate-500 uppercase font-semibold">Total Price</div>
             <div className="flex items-baseline gap-1">
