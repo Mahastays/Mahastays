@@ -95,6 +95,22 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
       slots: [
         { slotId: `slot_${Date.now()}`, time: '07:00 AM - 11:00 AM', label: 'Morning Batch', capacity: 10, price: basePriceNum },
       ],
+      tiers: [
+        {
+          tierId: `tier_${Date.now()}`,
+          name: 'Standard Pass',
+          tagline: 'Standard Admission & Guided Excursion',
+          badge: 'Popular',
+          priceType,
+          personLimit: parseInt(personLimit, 10) || 15,
+          pricePerPerson: basePriceNum,
+          originalPrice: Math.round(basePriceNum * 1.3),
+          hasChildPrice,
+          childPricePerPerson: cPriceNum,
+          childAgeLimit: hasChildPrice ? (childAgeLimit.trim() || 'Below 12 years') : undefined,
+          features: ['Full Activity Access', 'Certified Guide Assistance'],
+        },
+      ],
       highlights: ['Certified Guide'],
     });
 

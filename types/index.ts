@@ -281,7 +281,9 @@ export interface ExperienceTierItem {
   priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
   personLimit?: number;
   pricePerPerson: number;
+  hasChildPrice?: boolean;
   childPricePerPerson?: number;
+  childAgeLimit?: string;
   originalPrice?: number;
   features: string[];
 }

@@ -800,14 +800,20 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
   const pricePerPerson = currentTier?.pricePerPerson || exp.numericPrice;
   const originalPricePerPerson = currentTier?.originalPrice || exp.originalPrice || pricePerPerson + 800;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
-  const hasChildPrice = exp.hasChildPrice ?? exp.pricingRules?.hasChildPrice ?? false;
+  const hasChildPrice = Boolean(
+    currentTier?.hasChildPrice ??
+    (currentTier?.childPricePerPerson != null && currentTier.childPricePerPerson > 0) ??
+    exp.hasChildPrice ??
+    exp.pricingRules?.hasChildPrice ??
+    false
+  );
   const configuredChildPrice = currentTier?.childPricePerPerson ?? exp.childPrice ?? exp.pricingRules?.childPrice ?? null;
-  const childPriceLimit = exp.childAgeLimit ?? exp.pricingRules?.childAgeLimit ?? 'Below 12 years';
+  const childPriceLimit = currentTier?.childAgeLimit ?? exp.childAgeLimit ?? exp.pricingRules?.childAgeLimit ?? 'Below 12 years';
   const effectiveChildPrice = hasChildPrice && configuredChildPrice !== null ? configuredChildPrice : pricePerPerson;
 
   const baseCost = isFullSetup
     ? pricePerPerson
-    : pricePerPerson * Math.max(1, adults) + effectiveChildPrice * children;
+    : pricePerPerson * Math.max(1, adults) + (hasChildPrice ? effectiveChildPrice : pricePerPerson) * children;
 
   // Custom Pricing, Discounts & GST Rules
   const pricingRules = exp.pricingRules || {};
@@ -1696,15 +1702,15 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                           )}
                         </div>
 
-                        {/* Tier-specific Price Model & Settings */}
+                        {/* Tier-specific Price Model, Limits & Child Price */}
                         {isEditMode ? (
-                          <div className="space-y-1.5 mb-2">
+                          <div className="space-y-2 mb-2">
                             <input
                               type="text"
                               value={tier.tagline || ''}
                               onChange={(e) => handleUpdateTier(idx, 'tagline', e.target.value)}
-                              placeholder="Tagline / brief"
-                              className="text-xs text-slate-500 w-full border border-slate-200 rounded px-1.5 py-0.5"
+                              placeholder="Tagline / brief description"
+                              className="text-xs text-slate-500 w-full border border-slate-200 rounded px-1.5 py-1"
                             />
                             <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-50 border border-slate-200 flex-wrap">
                               <span className="text-[10px] font-bold text-slate-500 mr-1">Model:</span>
@@ -1729,7 +1735,7 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                                 );
                               })}
                             </div>
-                            <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-lg bg-slate-50/70 border border-slate-200 text-[10px]">
+                            <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-lg bg-slate-50/70 border border-slate-200 text-[10px]">
                               <div>
                                 <span className="text-slate-500 block font-bold">Orig ₹</span>
                                 <input
@@ -1737,40 +1743,88 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                                   value={tier.originalPrice || ''}
                                   placeholder="9100"
                                   onChange={(e) => handleUpdateTier(idx, 'originalPrice', e.target.value ? Number(e.target.value) : undefined)}
-                                  className="w-full text-xs font-medium border border-slate-200 rounded px-1 py-0.5 bg-white"
+                                  className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-0.5 bg-white"
                                 />
                               </div>
                               <div>
-                                <span className="text-slate-500 block font-bold">Cap / Limit</span>
+                                <span className="text-slate-500 block font-bold">Cap / Limit (Max guests)</span>
                                 <input
                                   type="number"
                                   value={tier.personLimit || ''}
                                   placeholder="15"
                                   onChange={(e) => handleUpdateTier(idx, 'personLimit', e.target.value ? Number(e.target.value) : undefined)}
-                                  className="w-full text-xs font-medium border border-slate-200 rounded px-1 py-0.5 bg-white"
-                                />
-                              </div>
-                              <div>
-                                <span className="text-slate-500 block font-bold">Child ₹</span>
-                                <input
-                                  type="number"
-                                  value={tier.childPricePerPerson || ''}
-                                  placeholder="Child"
-                                  onChange={(e) => handleUpdateTier(idx, 'childPricePerPerson', e.target.value ? Number(e.target.value) : undefined)}
-                                  className="w-full text-xs font-medium border border-slate-200 rounded px-1 py-0.5 bg-white"
+                                  className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-0.5 bg-white"
                                 />
                               </div>
                             </div>
+
+                            {/* Child Price Check Feature */}
+                            <div className="p-2 rounded-lg bg-slate-50/80 border border-slate-200 text-[10px] space-y-1.5">
+                              <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(tier.hasChildPrice || (tier.childPricePerPerson != null && tier.childPricePerPerson > 0))}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    handleUpdateTier(idx, 'hasChildPrice', checked);
+                                    if (!checked) {
+                                      handleUpdateTier(idx, 'childPricePerPerson', undefined);
+                                    } else if (tier.childPricePerPerson == null) {
+                                      handleUpdateTier(idx, 'childPricePerPerson', Math.round((tier.pricePerPerson || 100) * 0.6));
+                                      if (!tier.childAgeLimit) handleUpdateTier(idx, 'childAgeLimit', 'Below 12 years');
+                                    }
+                                  }}
+                                  className="w-3.5 h-3.5 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+                                />
+                                <span>Enable Child Price for this tier</span>
+                              </label>
+                              {Boolean(tier.hasChildPrice || (tier.childPricePerPerson != null && tier.childPricePerPerson > 0)) && (
+                                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/60">
+                                  <div>
+                                    <span className="text-slate-500 block font-bold">Child Rate (₹)</span>
+                                    <input
+                                      type="number"
+                                      value={tier.childPricePerPerson ?? ''}
+                                      placeholder="Child rate"
+                                      onChange={(e) => handleUpdateTier(idx, 'childPricePerPerson', e.target.value ? Number(e.target.value) : undefined)}
+                                      className="w-full text-xs font-bold border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-900"
+                                    />
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block font-bold">Child Age Limit</span>
+                                    <input
+                                      type="text"
+                                      value={tier.childAgeLimit || 'Below 12 years'}
+                                      placeholder="Below 12 years"
+                                      onChange={(e) => handleUpdateTier(idx, 'childAgeLimit', e.target.value)}
+                                      className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-700"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : (
-                          <>
-                            {tier.tagline && <p className="text-xs text-slate-500 mb-1">{tier.tagline}</p>}
-                            {((tier.priceType || exp.priceType) === 'per_activity' || (tier.priceType || exp.priceType) === 'full_setup') && (
-                              <p className="text-[10px] text-emerald-600 font-bold mb-2">
-                                🎪 Flat setup rate • covers up to {tier.personLimit || exp.personLimit || 15} participants
-                              </p>
-                            )}
-                          </>
+                          <div className="space-y-1 mb-2">
+                            {tier.tagline && <p className="text-xs text-slate-500">{tier.tagline}</p>}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {(tier.priceType || exp.priceType) === 'per_activity' || (tier.priceType || exp.priceType) === 'full_setup' ? '🎪 Full Setup' : (tier.priceType || exp.priceType) === 'per_night' ? '🌙 Per Night' : '👤 Per Person'}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                👥 Max {tier.personLimit || exp.personLimit || 15} guests
+                              </span>
+                              {Boolean(tier.hasChildPrice || (tier.childPricePerPerson != null && tier.childPricePerPerson > 0)) ? (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  👶 Child: ₹{tier.childPricePerPerson?.toLocaleString('en-IN')} ({tier.childAgeLimit || 'Below 12 yrs'})
+                                </span>
+                              ) : ((tier.priceType || exp.priceType) === 'per_activity' || (tier.priceType || exp.priceType) === 'full_setup') ? (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  👶 Children included in setup
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
                         )}
                         <div className="space-y-1.5 border-t border-slate-100 pt-3">
                           {isEditMode ? (
@@ -2923,88 +2977,6 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                     </button>
                   </div>
 
-                  {/* 0. Pricing Model (Per Person vs Per Activity / Full Setup vs Per Night) */}
-                  <div className="space-y-1.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Price Model</span>
-                      <span className="text-[10px] text-rose-600 font-bold uppercase">{activeTierPriceType}</span>
-                    </label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updatedTiers = tiers.map((t, i) => i === selectedTierIndex ? { ...t, priceType: 'per_person' } : t);
-                          setExp({ ...exp, priceType: 'per_person', tiers: updatedTiers });
-                        }}
-                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
-                          activeTierPriceType === 'per_person'
-                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
-                        }`}
-                      >
-                        👤 Per Person
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updatedTiers = tiers.map((t, i) => i === selectedTierIndex ? { ...t, priceType: 'per_activity' } : t);
-                          setExp({ ...exp, priceType: 'per_activity', tiers: updatedTiers });
-                        }}
-                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
-                          activeTierPriceType === 'per_activity' || activeTierPriceType === 'full_setup'
-                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
-                        }`}
-                      >
-                        🎪 Full Setup
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updatedTiers = tiers.map((t, i) => i === selectedTierIndex ? { ...t, priceType: 'per_night' } : t);
-                          setExp({ ...exp, priceType: 'per_night', tiers: updatedTiers });
-                        }}
-                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
-                          activeTierPriceType === 'per_night'
-                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
-                        }`}
-                      >
-                        🌙 Per Night
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">
-                      {isFullSetup
-                        ? '🎪 Full Setup / Per Activity: Flat rate for the entire activity setup. Price does NOT increase with guest count.'
-                        : isPerNight
-                        ? '🌙 Per Night: Flat session rate per night.'
-                        : '👤 Per Person: Total price multiplies by adult & child participants.'}
-                    </p>
-                  </div>
-
-                  {/* 0B. Person Limit */}
-                  <div className="space-y-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Person Limit (Max Participants)</span>
-                      <span className="text-[10px] text-slate-400">Capacity</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="2000"
-                        value={personLimit}
-                        onChange={(e) => {
-                          const val = Math.max(1, parseInt(e.target.value, 10) || 15);
-                          const updatedTiers = tiers.map((t, i) => i === selectedTierIndex ? { ...t, personLimit: val } : t);
-                          setExp({ ...exp, personLimit: val, tiers: updatedTiers });
-                        }}
-                        className="w-20 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800"
-                      />
-                      <span className="text-[11px] text-slate-500 font-medium">explorers limit</span>
-                    </div>
-                  </div>
-
                   {/* 1. Discount Percentage */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
@@ -3126,90 +3098,6 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  {/* 4. Child Pricing Configuration */}
-                  <div className="space-y-2 pt-2 border-t border-slate-200/60 dark:border-slate-700">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Different Child Pricing</span>
-                        <span className="text-[10px] text-slate-400">If unchecked, children use default adult rate</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={hasChildPrice}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setExp((prev) => {
-                            if (!prev) return prev;
-                            const defaultC = prev.childPrice || Math.round(pricePerPerson * 0.6);
-                            return {
-                              ...prev,
-                              hasChildPrice: val,
-                              childPrice: val ? defaultC : undefined,
-                              pricingRules: {
-                                ...(prev.pricingRules || {}),
-                                hasChildPrice: val,
-                                childPrice: val ? defaultC : undefined,
-                              },
-                            };
-                          });
-                        }}
-                        className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
-                      />
-                    </div>
-
-                    {hasChildPrice && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block">Child Rate (₹)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="399"
-                            value={configuredChildPrice ?? ''}
-                            onChange={(e) => {
-                              const val = Math.max(0, parseInt(e.target.value, 10) || 0);
-                              setExp((prev) => {
-                                if (!prev) return prev;
-                                return {
-                                  ...prev,
-                                  childPrice: val,
-                                  pricingRules: {
-                                    ...(prev.pricingRules || {}),
-                                    childPrice: val,
-                                  },
-                                };
-                              });
-                            }}
-                            className="w-full p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-900"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block">Child Age Limit</label>
-                          <input
-                            type="text"
-                            placeholder="Below 12 years"
-                            value={childPriceLimit}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setExp((prev) => {
-                                if (!prev) return prev;
-                                return {
-                                  ...prev,
-                                  childAgeLimit: val,
-                                  pricingRules: {
-                                    ...(prev.pricingRules || {}),
-                                    childAgeLimit: val,
-                                  },
-                                };
-                              });
-                            }}
-                            className="w-full p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-900"
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
