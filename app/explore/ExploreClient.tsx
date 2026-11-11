@@ -608,9 +608,9 @@ export default function ExplorePage() {
       <ExploreHotelAdCarousel onSelectSlide={handleHotelAdSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-8 sm:py-12" : "pt-24 sm:pt-28 pb-12"}`} id="catalog-section">
+      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="catalog-section">
         {/* Main 2-Column Layout */}
-        <div className="flex flex-col lg:flex-row items-start gap-8">
+        <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT LAYOUT FROM IMAGE 1) ── */}
           {/* ─── LEFT SIDEBAR: FILTERS CARD (Desktop Only) ── */}
           <aside className="hidden lg:block w-80 xl:w-84 shrink-0 lg:sticky lg:top-24 bg-white rounded-[28px] p-6 border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] space-y-5">
@@ -640,7 +640,7 @@ export default function ExplorePage() {
           </aside>
 
           {/* ─── RIGHT CONTENT: TOOLBAR & GRID ── */}
-          <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 lg:space-y-6 pt-1">
+          <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 pt-0">
             {/* ─── Stays Property Type Tabs: Resorts, Villas, Hotels (Shadow-highlighted) ─── */}
             <div className="w-full">
               <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 px-0.5">

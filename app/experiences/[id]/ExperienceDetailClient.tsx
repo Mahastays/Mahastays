@@ -321,11 +321,11 @@ export default function ExperienceDetailsPage() {
   }, [exp?.slots, selectedSlotId]);
 
   // Price calculations
-  const rawPriceType = (exp as any)?.priceType;
+  const rawPriceType = (selectedTier as any)?.priceType || (exp as any)?.priceType || 'per_person';
   const isFullSetup = rawPriceType === 'per_activity' || rawPriceType === 'full_setup' || rawPriceType === 'per_night';
   const isPerNight = rawPriceType === 'per_night';
   const priceType = isFullSetup ? (rawPriceType === 'per_night' ? 'per_night' : 'per_activity') : 'per_person';
-  const personLimit = (exp as any)?.personLimit || selectedSlot?.availableSpots || 15;
+  const personLimit = (selectedTier as any)?.personLimit || (exp as any)?.personLimit || selectedSlot?.availableSpots || 15;
   const totalParticipants = adults + children;
   const isPersonLimitExceeded = totalParticipants > personLimit;
 
@@ -392,12 +392,12 @@ export default function ExperienceDetailsPage() {
   return (
     <div className="min-h-screen bg-[#fcfcfd] font-roboto text-slate-800">
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 lg:pt-36 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-24 pb-16">
         {/* Breadcrumbs & Action Bar */}
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Link href="/" className="hover:text-slate-900 transition-colors flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               </svg>
               <span>Home</span>
@@ -423,10 +423,10 @@ export default function ExperienceDetailsPage() {
                   setTimeout(() => setShowShareToast(false), 2400);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium font-poppins transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium font-poppins transition shadow-2xs"
               aria-label="Share experience"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
                 <circle cx="18" cy="5" r="3" />
                 <circle cx="6" cy="12" r="3" />
                 <circle cx="18" cy="19" r="3" />
@@ -440,7 +440,7 @@ export default function ExperienceDetailsPage() {
               onClick={async () => {
                 await toggleWishlistAction();
               }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium font-poppins transition shadow-sm ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium font-poppins transition shadow-2xs ${
                 isWishlist
                   ? "border-red-200 bg-red-50 text-[#ea110d]"
                   : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
@@ -448,8 +448,8 @@ export default function ExperienceDetailsPage() {
               aria-label="Save to wishlist"
             >
               <svg
-                width="14"
-                height="14"
+                width="13"
+                height="13"
                 viewBox="0 0 24 24"
                 fill={isWishlist ? "currentColor" : "none"}
                 stroke="currentColor"
@@ -464,8 +464,8 @@ export default function ExperienceDetailsPage() {
 
         {/* Share Toast Notification */}
         {showShareToast && (
-          <div className="fixed top-20 right-6 z-50 bg-[#0B0A06] text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-medium font-poppins animate-fade-in flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
+          <div className="fixed top-20 right-6 z-50 bg-[#0B0A06] text-white px-3.5 py-2 rounded-xl shadow-xl text-xs font-medium font-poppins animate-fade-in flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2.5}>
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span>Experience link copied to clipboard!</span>
@@ -473,15 +473,15 @@ export default function ExperienceDetailsPage() {
         )}
 
         {/* Experience Header */}
-        <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold font-poppins bg-[#ea110d] text-white tracking-wide">
+        <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+            <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold font-poppins bg-[#ea110d] text-white tracking-wide">
               {exp.category || "Experience"}
             </span>
-            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-slate-100 text-slate-700">
+            <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold font-poppins bg-slate-100 text-slate-700">
               {exp.duration || "2 Hours"}
             </span>
-            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold font-poppins bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold font-poppins bg-emerald-50 text-emerald-700 border border-emerald-200">
               {exp.difficulty || "Easy"}
             </span>
             {actualReviewsCount > 0 && actualAvgRating ? (
@@ -499,25 +499,25 @@ export default function ExperienceDetailsPage() {
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-poppins">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight font-poppins">
             {exp.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-4 mt-2 text-xs sm:text-sm text-slate-600">
+          <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-slate-600">
             <span className="flex items-center gap-1.5 text-slate-700 font-medium">
               {(exp as any).locationType === "customer_location" ? (
                 <>
-                  <span className="text-base leading-none">🚗</span>
+                  <span className="text-sm leading-none">🚗</span>
                   <span className="text-emerald-700 font-bold">At Your Stay / Villa (Delivered to You)</span>
                 </>
               ) : (exp as any).locationType === "both" ? (
                 <>
-                  <span className="text-base leading-none">🔄</span>
+                  <span className="text-sm leading-none">🔄</span>
                   <span className="text-blue-700 font-bold">At Host Venue or Delivered At Your Stay</span>
                 </>
               ) : (
                 <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea110d" strokeWidth="2.2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ea110d" strokeWidth="2.2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
@@ -527,7 +527,7 @@ export default function ExperienceDetailsPage() {
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-emerald-700 font-medium flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               <span>Free cancellation up to 48 hours</span>
@@ -536,10 +536,10 @@ export default function ExperienceDetailsPage() {
         </div>
 
         {/* 5-Photo Mosaic Gallery */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-8 h-auto sm:h-[460px] lg:h-[500px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-2.5 mb-5 h-auto sm:h-[340px] lg:h-[360px]">
           <div
             onClick={() => setLightboxOpen(true)}
-            className="lg:col-span-7 relative rounded-[28px] overflow-hidden bg-slate-200 group cursor-pointer h-[260px] sm:h-[460px] lg:h-full border border-slate-100 shadow-sm"
+            className="lg:col-span-7 relative rounded-xl overflow-hidden bg-slate-200 group cursor-pointer h-[220px] sm:h-full border border-slate-100 shadow-xs"
           >
             <Image
               src={allPhotos[activePhotoIndex] || allPhotos[0]}
@@ -553,36 +553,36 @@ export default function ExperienceDetailsPage() {
 
             <button
               onClick={handlePrevPhoto}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition z-10"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition z-10"
               aria-label="Previous photo"
             >
               ‹
             </button>
             <button
               onClick={handleNextPhoto}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition z-10"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition z-10"
               aria-label="Next photo"
             >
               ›
             </button>
 
-            <div className="absolute bottom-4 left-4 z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-medium font-poppins">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="absolute bottom-3 left-3 z-10">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-medium font-poppins">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span>Featured Action View</span>
               </span>
             </div>
-            <div className="absolute bottom-4 right-4 z-10">
-              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold font-poppins">
+            <div className="absolute bottom-3 right-3 z-10">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold font-poppins">
                 <span>{activePhotoIndex + 1} / {allPhotos.length}</span>
               </span>
             </div>
           </div>
 
-          <div className="lg:col-span-5 grid grid-cols-2 gap-3 h-[240px] sm:h-[460px] lg:h-full">
+          <div className="lg:col-span-5 grid grid-cols-2 gap-2 sm:gap-2.5 h-[180px] sm:h-full">
             {allPhotos.slice(1, 5).map((photoUrl, idx) => (
               <div
                 key={idx}
@@ -590,7 +590,7 @@ export default function ExperienceDetailsPage() {
                   setActivePhotoIndex(idx + 1);
                   setLightboxOpen(true);
                 }}
-                className="relative rounded-[22px] overflow-hidden bg-slate-200 group cursor-pointer border border-slate-100 shadow-sm"
+                className="relative rounded-xl overflow-hidden bg-slate-200 group cursor-pointer border border-slate-100 shadow-xs"
               >
                 <Image
                   src={photoUrl}
@@ -607,9 +607,9 @@ export default function ExperienceDetailsPage() {
                       e.stopPropagation();
                       setLightboxOpen(true);
                     }}
-                    className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-white text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm transition-transform active:scale-95"
+                    className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 hover:bg-white text-slate-900 text-[11px] font-bold font-poppins shadow-md backdrop-blur-sm transition-transform active:scale-95"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <polyline points="21 15 16 10 5 21" />
@@ -623,50 +623,51 @@ export default function ExperienceDetailsPage() {
         </div>
 
         {/* Two-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start mb-8">
           {/* ============================================================== */}
           {/* LEFT COLUMN: Tabs + Content (8 cols)                           */}
           {/* ============================================================== */}
-          <div className="lg:col-span-8 flex flex-col gap-4 sm:gap-5">
+          <div className="lg:col-span-8 flex flex-col gap-3 sm:gap-4">
             {/* Guide Card */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-100 shadow-2xs flex flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 {exp.guide?.avatar || (exp as any).vendor?.avatarUrl ? (
                   <img
                     src={exp.guide?.avatar || (exp as any).vendor?.avatarUrl}
                     alt={exp.guide?.name || "Guide Profile"}
                     loading="lazy"
                     decoding="async"
-                    className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-sm"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shrink-0 ring-2 ring-rose-100 shadow-2xs"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-[#0B0A06] text-white font-extrabold text-base flex items-center justify-center font-poppins shrink-0 shadow-sm">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#0B0A06] text-white font-extrabold text-sm flex items-center justify-center font-poppins shrink-0 shadow-2xs">
                     {(exp.guide?.name || "T")[0].toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins flex items-center gap-1.5">
-                    <span>Curated &amp; Hosted by {exp.guide?.name || "Verified Host"}</span>
+                <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 font-poppins flex items-center gap-1 truncate">
+                    <span className="truncate">Hosted by {exp.guide?.name || "Verified Host"}</span>
                     {((exp.guide as any)?.verified !== false) && (
-                      <span className="w-4 h-4 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[10px] font-bold shrink-0" title="Verified Host">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#ea110d] text-white flex items-center justify-center text-[9px] font-bold shrink-0" title="Verified Host">
                         ✓
                       </span>
                     )}
                   </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-roboto">
-                    {exp.guide?.role || "Verified Activity Host & Coordinator"} • {(exp.guide as any)?.experience || "Experienced Host"} • {(exp.guide as any)?.staysCount || "50+ Experiences Hosted"}
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-roboto truncate">
+                    {exp.guide?.role || "Activity Host"} • {(exp.guide as any)?.experience || "Experienced Host"} • {(exp.guide as any)?.staysCount || "50+ Hosted"}
                   </p>
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50/80 border border-red-100 text-xs font-bold text-[#ea110d] font-poppins shrink-0">
-                <span className="text-[#ea110d] font-bold">✓</span>
-                <span>{(exp.guide as any)?.confirmationBadge || "Instant Booking Confirmed"}</span>
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50/80 border border-red-100 text-[11px] font-bold text-[#ea110d] font-poppins shrink-0">
+                <span className="text-[#ea110d] font-bold text-[10px]">✓</span>
+                <span className="hidden sm:inline">{(exp.guide as any)?.confirmationBadge || "Instant Booking Confirmed"}</span>
+                <span className="sm:hidden">Instant Confirmed</span>
               </div>
             </div>
 
             {/* Quick Highlights Strip (Clean 1-line strip with Mahastays logo bullet & dividers) */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
               <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-slate-100 sm:divide-x sm:divide-slate-200/80">
                 {(((exp as any).keyHighlights && (exp as any).keyHighlights.length > 0)
                   ? (exp as any).keyHighlights.map((ka: any) => ({
@@ -688,18 +689,18 @@ export default function ExperienceDetailsPage() {
                   <div
                     key={i}
                     title={h.desc ? `${h.title} • ${h.desc}` : h.title}
-                    className="group flex items-center justify-center sm:justify-start gap-2.5 px-3.5 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                    className="group flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 hover:bg-slate-50/70 transition-colors"
                   >
-                    <div className="relative w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 flex items-center justify-center">
+                    <div className="relative w-4 h-4 shrink-0 flex items-center justify-center">
                       <Image
                         src="/brand/mahastays-logo-main.png"
                         alt="Mahastays"
-                        width={22}
-                        height={22}
+                        width={18}
+                        height={18}
                         className="w-full h-full object-contain filter grayscale contrast-125 opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
                       />
                     </div>
-                    <span className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 group-hover:text-[#ea110d] transition-colors font-poppins truncate tracking-tight">
                       {h.title}
                     </span>
                   </div>
@@ -710,21 +711,21 @@ export default function ExperienceDetailsPage() {
             {/* Sticky Navigation Tabs Bar with Left/Right Slide Buttons & White Gradient */}
             <div
               id="detail-tabs-bar"
-              className="relative sticky top-16 sm:top-20 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.04)]"
+              className="relative sticky top-16 sm:top-20 z-30 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/80 p-1 shadow-xs"
             >
               {/* Left Gradient & Slide Button */}
               <div
-                className={`absolute left-1.5 top-1.5 bottom-1.5 z-10 flex items-center pr-8 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none rounded-l-xl transition-opacity duration-300 ${
+                className={`absolute left-1 top-1 bottom-1 z-10 flex items-center pr-6 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none rounded-l-lg transition-opacity duration-300 ${
                   canScrollTabsLeft ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => scrollTabs("left")}
-                  className="pointer-events-auto w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 hover:text-[#ea110d] hover:border-[#ea110d]/40 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                  className="pointer-events-auto w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-xs border border-slate-200 text-slate-700 hover:text-[#ea110d] hover:border-[#ea110d]/40 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                   aria-label="Scroll tabs left"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
@@ -741,7 +742,7 @@ export default function ExperienceDetailsPage() {
                   id: "tiers",
                   label: "Tiers & Slots",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
@@ -751,7 +752,7 @@ export default function ExperienceDetailsPage() {
                   id: "about",
                   label: "About",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                   ),
@@ -760,7 +761,7 @@ export default function ExperienceDetailsPage() {
                   id: "timeline",
                   label: "Timeline",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
@@ -770,7 +771,7 @@ export default function ExperienceDetailsPage() {
                   id: "facilities",
                   label: "Inclusions",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   ),
@@ -779,7 +780,7 @@ export default function ExperienceDetailsPage() {
                   id: "rules",
                   label: "Policies",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   ),
@@ -788,7 +789,7 @@ export default function ExperienceDetailsPage() {
                   id: "location",
                   label: "Location",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -798,7 +799,7 @@ export default function ExperienceDetailsPage() {
                   id: "reviews",
                   label: "Reviews",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   ),
@@ -807,7 +808,7 @@ export default function ExperienceDetailsPage() {
                   id: "all",
                   label: "All Details",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <rect x="3" y="3" width="7" height="7" rx="1.5" />
                       <rect x="14" y="3" width="7" height="7" rx="1.5" />
                       <rect x="14" y="14" width="7" height="7" rx="1.5" />
@@ -822,7 +823,7 @@ export default function ExperienceDetailsPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold font-poppins rounded-xl transition-all whitespace-nowrap cursor-pointer relative ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold font-poppins rounded-lg transition-all whitespace-nowrap cursor-pointer relative ${
                       isActive
                         ? "text-[#ea110d] bg-red-50/70"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -831,26 +832,26 @@ export default function ExperienceDetailsPage() {
                     <span className={isActive ? "text-[#ea110d]" : "text-slate-400"}>{tab.icon}</span>
                     <span>{tab.label}</span>
                     {isActive && (
-                      <span className="absolute bottom-0 left-2.5 right-2.5 h-0.5 bg-[#ea110d] rounded-full" />
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#ea110d] rounded-full" />
                     )}
-                                    </button>
+                  </button>
                 );
               })}
               </div>
 
               {/* Right Gradient & Slide Button */}
               <div
-                className={`absolute right-1.5 top-1.5 bottom-1.5 z-10 flex items-center pl-8 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none rounded-r-xl transition-opacity duration-300 ${
+                className={`absolute right-1 top-1 bottom-1 z-10 flex items-center pl-6 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none rounded-r-lg transition-opacity duration-300 ${
                   canScrollTabsRight ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => scrollTabs("right")}
-                  className="pointer-events-auto w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 hover:text-[#ea110d] hover:border-[#ea110d]/40 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                  className="pointer-events-auto w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-xs border border-slate-200 text-slate-700 hover:text-[#ea110d] hover:border-[#ea110d]/40 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                   aria-label="Scroll tabs right"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -861,80 +862,91 @@ export default function ExperienceDetailsPage() {
             {/* TAB 1: Tiers & Slots (Default Open)                            */}
             {/* ============================================================== */}
             {(activeDetailTab === "tiers" || activeDetailTab === "all") && (
-              <div id="tiers" className="flex flex-col gap-4">
+              <div id="tiers" className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight font-poppins">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-poppins">
                       Available Experience Tiers &amp; Time Slots
                     </h2>
-                    <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-roboto mt-0.5">
                       Select your preferred experience tier and convenient time slot
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-slate-400 font-poppins">
+                  <span className="text-[11px] font-bold text-slate-400 font-poppins">
                     {exp.tiers.length} Tiers Available
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {exp.tiers.map((tier) => {
                     const isSelected = selectedTierId === tier.id;
                     return (
                       <div
                         key={tier.id}
-                        className={`rounded-2xl p-4 sm:p-5 transition-all bg-white border ${
+                        className={`rounded-xl p-3 sm:p-3.5 transition-all bg-white border ${
                           isSelected
                             ? "border-[#ea110d] ring-2 ring-red-500/20 shadow-md"
-                            : "border-slate-100 hover:border-slate-200 shadow-sm"
+                            : "border-slate-100 hover:border-slate-200 shadow-2xs"
                         }`}
                       >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins truncate">
                                 {tier.name}
                               </h3>
                               {tier.badge && (
-                                <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[#ea110d] text-[10px] font-bold font-poppins border border-rose-200">
+                                <span className="px-1.5 py-0.5 rounded-md bg-rose-50 text-[#ea110d] text-[9px] font-bold font-poppins border border-rose-200 shrink-0">
                                   {tier.badge}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-500 font-roboto line-clamp-2 mb-3">
+                            <p className="text-[11px] text-slate-500 font-roboto line-clamp-1 sm:line-clamp-2 mb-2">
                               {tier.tagline || (tier as any).description}
                             </p>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-600">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-600">
                               {(tier.features && tier.features.length > 0 ? tier.features : [
                                 "Verified Activity Host",
                                 "All Essential Activity Equipment",
                                 "Refreshments & Snacks",
                               ]).map((feat, fi) => (
-                                <span key={fi} className="flex items-center gap-1.5">
-                                  <span className="text-[#ea110d] font-bold text-xs">✓</span>
+                                <span key={fi} className="flex items-center gap-1 truncate">
+                                  <span className="text-[#ea110d] font-bold text-[10px]">✓</span>
                                   <span>{feat}</span>
                                 </span>
                               ))}
                             </div>
                           </div>
 
-                          <div className="flex md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5 shrink-0">
+                          <div className="flex md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 pt-2.5 md:pt-0 md:pl-4 shrink-0">
                             <div className="md:text-right">
-                              <span className="text-xs text-slate-400 line-through block font-medium">
+                              <span className="text-[11px] text-slate-400 line-through block font-medium">
                                 ₹{(tier.originalPrice || Math.round(tier.pricePerPerson * 1.3)).toLocaleString("en-IN")}
                               </span>
                               <div className="flex items-baseline md:justify-end gap-1">
-                                <span className="text-xl sm:text-2xl font-extrabold text-slate-900 font-poppins">
+                                <span className="text-lg sm:text-xl font-extrabold text-slate-900 font-poppins">
                                   ₹{tier.pricePerPerson.toLocaleString("en-IN")}
                                 </span>
-                                <span className="text-xs text-slate-500">/ person</span>
+                                <span className="text-[11px] text-slate-500 font-normal">
+                                  / {((tier as any).priceType || (exp as any)?.priceType) === 'full_setup' || ((tier as any).priceType || (exp as any)?.priceType) === 'per_activity'
+                                    ? 'setup'
+                                    : ((tier as any).priceType || (exp as any)?.priceType) === 'per_night'
+                                    ? 'night'
+                                    : 'person'}
+                                </span>
                               </div>
+                              {(((tier as any).priceType || (exp as any)?.priceType) === 'full_setup' || ((tier as any).priceType || (exp as any)?.priceType) === 'per_activity') && (
+                                <span className="text-[9px] text-emerald-600 font-semibold block md:text-right mt-0.5">
+                                  Flat setup • up to {(tier as any).personLimit || (exp as any)?.personLimit || 15} participants
+                                </span>
+                              )}
                             </div>
 
                             <button
                               type="button"
                               onClick={() => setSelectedTierId(tier.id)}
-                              className={`mt-2 py-2 px-4 rounded-xl text-xs font-bold font-poppins transition-all shadow-sm ${
+                              className={`mt-1.5 py-1.5 px-3.5 rounded-lg text-xs font-bold font-poppins transition-all shadow-xs cursor-pointer ${
                                 isSelected
                                   ? "bg-[#ea110d] text-white shadow-red-200"
                                   : "bg-white border border-slate-300 text-slate-700 hover:border-slate-800 hover:text-slate-900"
@@ -951,11 +963,11 @@ export default function ExperienceDetailsPage() {
 
                 {/* Slots Selector */}
                 {exp.slots && exp.slots.length > 0 && (
-                  <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-poppins mb-3">
+                  <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-100 shadow-2xs">
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-poppins mb-2">
                       Select Departure Time Slot
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {exp.slots.map((slot) => {
                         const isSlotSelected = selectedSlotId === slot.id;
                         return (
@@ -963,15 +975,15 @@ export default function ExperienceDetailsPage() {
                             key={slot.id}
                             type="button"
                             onClick={() => setSelectedSlotId(slot.id)}
-                            className={`p-3 rounded-xl border text-left transition-all ${
+                            className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
                               isSlotSelected
                                 ? "border-[#ea110d] bg-red-50/60 ring-2 ring-red-500/20"
                                 : "border-slate-200 hover:border-slate-300 bg-white"
                             }`}
                           >
                             <div className="text-xs font-bold text-slate-900 font-poppins">{slot.time}</div>
-                            <div className="text-[10px] text-slate-500 mt-0.5">{slot.label}</div>
-                            <div className="text-[10px] text-emerald-600 font-semibold mt-1">
+                            <div className="text-[9px] text-slate-500 mt-0.5">{slot.label}</div>
+                            <div className="text-[9px] text-emerald-600 font-semibold mt-0.5">
                               {slot.availableSpots} spots left
                             </div>
                           </button>
@@ -987,31 +999,31 @@ export default function ExperienceDetailsPage() {
             {/* TAB 2: About this Experience                                   */}
             {/* ============================================================== */}
             {(activeDetailTab === "about" || activeDetailTab === "all") && (
-              <div id="about" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div id="about" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
                   <div className="md:col-span-7 flex flex-col justify-between">
-                    <h3 className="text-xl font-bold text-slate-900 font-poppins mb-3">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins mb-2">
                       About this Experience
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-roboto mb-5">
+                    <p className="text-xs text-slate-600 leading-relaxed font-roboto mb-4">
                       {exp.description || exp.overview}
                     </p>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Duration</div>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-[9px] uppercase font-bold text-slate-400">Duration</div>
                         <div className="text-xs font-bold text-slate-800 mt-0.5">{exp.duration}</div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Difficulty</div>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-[9px] uppercase font-bold text-slate-400">Difficulty</div>
                         <div className="text-xs font-bold text-slate-800 mt-0.5">{exp.difficulty}</div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Group Size</div>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-[9px] uppercase font-bold text-slate-400">Group Size</div>
                         <div className="text-xs font-bold text-slate-800 mt-0.5">Max {exp.groupSize}</div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Language</div>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-[9px] uppercase font-bold text-slate-400">Language</div>
                         <div className="text-xs font-bold text-slate-800 mt-0.5">{exp.language || "English, Hindi"}</div>
                       </div>
                     </div>
@@ -1019,7 +1031,7 @@ export default function ExperienceDetailsPage() {
 
                   <div
                     onClick={() => setVideoModalOpen(true)}
-                    className="md:col-span-5 relative rounded-2xl overflow-hidden h-48 sm:h-52 bg-slate-900 group cursor-pointer border border-slate-200"
+                    className="md:col-span-5 relative rounded-xl overflow-hidden h-40 sm:h-44 bg-slate-900 group cursor-pointer border border-slate-200"
                   >
                     <Image
                       src={allPhotos[1] || allPhotos[0]}
@@ -1030,9 +1042,9 @@ export default function ExperienceDetailsPage() {
                       className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                    <div className="absolute bottom-3 right-3">
-                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 text-slate-900 text-xs font-bold font-poppins shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform">
-                        <span className="text-[#ea110d] text-xs">▶</span>
+                    <div className="absolute bottom-2.5 right-2.5">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-bold font-poppins shadow-md backdrop-blur-sm group-hover:scale-105 transition-transform">
+                        <span className="text-[#ea110d] text-[10px]">▶</span>
                         <span>Watch Action Preview</span>
                       </div>
                     </div>
@@ -1045,32 +1057,32 @@ export default function ExperienceDetailsPage() {
             {/* TAB 3: Activity Timeline                                       */}
             {/* ============================================================== */}
             {(activeDetailTab === "timeline" || activeDetailTab === "all") && (
-              <div id="timeline" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
+              <div id="timeline" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 font-poppins">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
                       Activity Schedule &amp; Timeline
                     </h3>
-                    <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-roboto mt-0.5">
                       Hour-by-hour briefing of the experience schedule
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-2.5 pt-1">
                   {(exp.timeline && exp.timeline.length > 0 ? exp.timeline : [
                     { time: "Start", title: "Welcome & Briefing", desc: "Arrival at meeting point and activity overview." },
                     { time: "Session 1", title: "Core Activity Experience", desc: "Interactive session coordinated by our verified host." },
                     { time: "Break", title: "Refreshments & Photos", desc: "Enjoy snacks, drinks, and photo moments." },
                     { time: "Wrap-up", title: "Conclusion & Farewell", desc: "Wrap-up, feedback, and memorable send-off." },
                   ]).map((t, idx) => (
-                    <div key={idx} className="flex items-start gap-3.5 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="px-2.5 py-1 rounded-lg bg-[#0B0A06] text-white text-[11px] font-bold font-poppins shrink-0">
+                    <div key={idx} className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="px-2 py-0.5 rounded-md bg-[#0B0A06] text-white text-[10px] font-bold font-poppins shrink-0">
                         {t.time}
                       </span>
                       <div>
                         <div className="text-xs sm:text-sm font-bold text-slate-900 font-poppins">{t.title}</div>
-                        <div className="text-xs text-slate-600 mt-0.5">{t.desc}</div>
+                        <div className="text-[11px] text-slate-600 mt-0.5">{t.desc}</div>
                       </div>
                     </div>
                   ))}
@@ -1082,23 +1094,23 @@ export default function ExperienceDetailsPage() {
             {/* TAB 4: Inclusions & What to Bring                              */}
             {/* ============================================================== */}
             {(activeDetailTab === "facilities" || activeDetailTab === "all") && (
-              <div id="facilities" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-5">
+              <div id="facilities" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-poppins">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
                     What this Experience Includes
                   </h3>
-                  <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-roboto mt-0.5">
                     All essentials, professional host support, and amenities
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                    <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider font-poppins mb-3 flex items-center gap-1.5">
-                      <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                    <h4 className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider font-poppins mb-2.5 flex items-center gap-1.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px]">✓</span>
                       <span>Included</span>
                     </h4>
-                    <ul className="space-y-2 text-xs text-slate-700 font-roboto">
+                    <ul className="space-y-1.5 text-xs text-slate-700 font-roboto">
                       {(exp.inclusions && exp.inclusions.length > 0
                         ? exp.inclusions.map((inc: any) =>
                             typeof inc === "string"
@@ -1123,12 +1135,12 @@ export default function ExperienceDetailsPage() {
                     </ul>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider font-poppins mb-3 flex items-center gap-1.5">
-                      <span className="w-4 h-4 rounded-full bg-slate-400 text-white flex items-center justify-center text-[10px]">✕</span>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-poppins mb-2.5 flex items-center gap-1.5">
+                      <span className="w-3.5 h-3.5 rounded-full bg-slate-400 text-white flex items-center justify-center text-[9px]">✕</span>
                       <span>What to Bring / Requirements</span>
                     </h4>
-                    <ul className="space-y-2 text-xs text-slate-600 font-roboto">
+                    <ul className="space-y-1.5 text-xs text-slate-600 font-roboto">
                       {(exp.whatToBring && exp.whatToBring.length > 0
                         ? exp.whatToBring
                         : exp.exclusions && exp.exclusions.length > 0
@@ -1155,71 +1167,71 @@ export default function ExperienceDetailsPage() {
             {/* TAB 5: Safety Policies & Rules                                 */}
             {/* ============================================================== */}
             {(activeDetailTab === "rules" || activeDetailTab === "all") && (
-              <div id="rules" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-4">
+              <div id="rules" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col gap-3">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-poppins mb-1">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins mb-0.5">
                     Safety Rules &amp; Guidelines
                   </h3>
-                  <p className="text-xs text-slate-500 font-roboto">
+                  <p className="text-[11px] text-slate-500 font-roboto">
                     Strict adherence to safety standards for an enjoyable adventure
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Cancellation Policy</div>
-                      <div className="text-xs text-emerald-700 font-semibold mt-1">Free Cancellation</div>
-                      <div className="text-xs text-slate-600 mt-0.5">
+                      <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">Free Cancellation</div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">
                         Cancel up to 48 hours before the start time for a 100% full refund.
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Health &amp; Age Limit</div>
-                      <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
+                      <ul className="text-[11px] text-slate-600 mt-0.5 space-y-0.5">
                         <li>• Minimum age: 10 years</li>
-                        <li>• Not suitable for pregnant women or individuals with severe heart conditions</li>
+                        <li>• Not suitable for pregnant women or severe conditions</li>
                         <li>• Physical fitness level: Moderate</li>
                       </ul>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                       </svg>
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">Weather Contingency</div>
-                      <div className="text-xs text-slate-600 mt-1">
-                        In case of severe rain or unsafe winds, your slot will be rescheduled at your convenience or fully refunded.
+                      <div className="text-[11px] text-slate-600 mt-0.5">
+                        In case of severe rain or unsafe winds, your slot will be rescheduled or fully refunded.
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                       </svg>
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900 font-poppins">ID &amp; Punctuality</div>
-                      <ul className="text-xs text-slate-600 mt-1 space-y-0.5">
+                      <ul className="text-[11px] text-slate-600 mt-0.5 space-y-0.5">
                         <li>• Please arrive 15 minutes before slot time</li>
                         <li>• Valid government photo ID required</li>
                       </ul>
@@ -1233,41 +1245,41 @@ export default function ExperienceDetailsPage() {
             {/* TAB 6: Location & Meeting Point                                */}
             {/* ============================================================== */}
             {(activeDetailTab === "location" || activeDetailTab === "all") && (
-              <div id="location" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-5">
+              <div id="location" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col gap-4">
                 {(exp as any).locationType === "customer_location" || (exp as any).locationType === "both" ? (
-                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white border border-emerald-200/90 space-y-4">
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-md shadow-emerald-600/25">
+                  <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white border border-emerald-200/90 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-emerald-600/25">
                         🚗
                       </div>
-                      <div className="space-y-1">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                      <div className="space-y-0.5">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                           ✓ Doorstep / Villa Setup Available
                         </div>
-                        <h4 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 font-poppins">
                           Hosted Directly At Your Booked Stay / Villa / Resort
                         </h4>
-                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-roboto">
-                          No traveling required! The verified host &amp; coordinator will arrive directly at your accommodation with all required props, instruments, sound system, and activity materials.
+                        <p className="text-xs text-slate-600 leading-relaxed font-roboto">
+                          No traveling required! The verified host will arrive directly at your accommodation with all required props, instruments, and activity materials.
                         </p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-emerald-200/70">
-                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Service Coverage</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2.5 border-t border-emerald-200/70">
+                      <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-100">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Service Coverage</span>
                         <span className="text-xs font-bold text-slate-800">
                           {(exp as any).serviceArea || "Mahabaleshwar & Panchgani Stays"}
                         </span>
                       </div>
-                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Host Arrival</span>
+                      <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-100">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Host Arrival</span>
                         <span className="text-xs font-bold text-slate-800">
                           20–30 mins prior to slot
                         </span>
                       </div>
-                      <div className="p-3 rounded-xl bg-white/90 border border-emerald-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Address</span>
+                      <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-100">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Your Address</span>
                         <span className="text-xs font-bold text-slate-800">
                           Provide villa name at checkout
                         </span>
@@ -1277,13 +1289,13 @@ export default function ExperienceDetailsPage() {
                 ) : null}
 
                 {(exp as any).locationType !== "customer_location" && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-xl font-bold text-slate-900 font-poppins">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins">
                           {(exp as any).locationType === "both" ? "Host Basecamp / Venue (Alternative)" : "Meeting Point & Location"}
                         </h3>
-                        <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                        <p className="text-[11px] text-slate-500 font-roboto mt-0.5">
                           {exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`}
                         </p>
                       </div>
@@ -1291,14 +1303,14 @@ export default function ExperienceDetailsPage() {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-poppins transition"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold font-poppins transition"
                       >
                         <span>Open in Maps</span>
                         <span>↗</span>
                       </a>
                     </div>
 
-                    <div className="relative rounded-2xl overflow-hidden min-h-[300px] sm:min-h-[360px] bg-slate-100 border border-slate-200 shadow-inner">
+                    <div className="relative rounded-xl overflow-hidden min-h-[220px] sm:min-h-[260px] bg-slate-100 border border-slate-200 shadow-inner">
                       {(() => {
                         const lat = exp.coordinates?.lat || 17.9242;
                         const lng = exp.coordinates?.lng || 73.6643;
@@ -1311,18 +1323,18 @@ export default function ExperienceDetailsPage() {
                           />
                         );
                       })()}
-                      <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md text-xs font-bold font-poppins text-slate-800 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md shadow-sm text-[11px] font-bold font-poppins text-slate-800 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span>{exp.title} Meeting Point</span>
                       </div>
-                      <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] font-mono">
+                      <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-white text-[9px] font-mono">
                         {exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`}
                       </div>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(exp.meetingPoint || `${(exp as any).location || exp.city || "Mahabaleshwar"}, Maharashtra`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins shadow-md hover:bg-[#d00f0c] transition flex items-center gap-1 cursor-pointer"
+                        className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-[#ea110d] text-white text-[11px] font-bold font-poppins shadow-md hover:bg-[#d00f0c] transition flex items-center gap-1 cursor-pointer"
                       >
                         <span>Open in Maps</span>
                         <span>↗</span>
@@ -1337,18 +1349,18 @@ export default function ExperienceDetailsPage() {
             {/* TAB 7: Reviews & Ratings                                       */}
             {/* ============================================================== */}
             {(activeDetailTab === "reviews" || activeDetailTab === "all") && (
-              <div id="reviews" className="bg-white rounded-[26px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col gap-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
+              <div id="reviews" className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-xs flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3.5">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
                       <span>Guest Reviews &amp; Ratings</span>
                       {actualAvgRating && actualReviewsCount > 0 && (
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
                           ★ {actualAvgRating} / 5.0
                         </span>
                       )}
                     </h3>
-                    <p className="text-xs text-slate-500 font-roboto mt-0.5">
+                    <p className="text-[11px] text-slate-500 font-roboto mt-0.5">
                       {actualReviewsCount > 0
                         ? `Based on ${actualReviewsCount} verified participant ${actualReviewsCount === 1 ? "review" : "reviews"}`
                         : "No reviews yet — be the first to share your experience"}
@@ -1357,17 +1369,17 @@ export default function ExperienceDetailsPage() {
                   <button
                     type="button"
                     onClick={() => setWriteReviewOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ea110d] text-white text-xs font-bold font-poppins hover:bg-red-700 transition shadow-sm self-start cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#ea110d] text-white text-xs font-bold font-poppins hover:bg-red-700 transition shadow-2xs self-start cursor-pointer"
                   >
                     <span>Write a Review</span>
                   </button>
                 </div>
 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-2.5 pt-1">
                   {reviewsLoading ? (
-                    <div className="py-6 text-center text-xs text-slate-400">Loading reviews from database...</div>
+                    <div className="py-4 text-center text-xs text-slate-400">Loading reviews from database...</div>
                   ) : realReviews.length === 0 ? (
-                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-2">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center space-y-1.5">
                       <p className="text-xs text-slate-500 font-medium">No reviews written for this experience yet.</p>
                       <button
                         type="button"
@@ -1379,10 +1391,10 @@ export default function ExperienceDetailsPage() {
                     </div>
                   ) : (
                     realReviews.map((rev, i) => (
-                      <div key={rev.id || i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
+                      <div key={rev.id || i} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center font-poppins">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center font-poppins">
                               {rev.author ? rev.author[0].toUpperCase() : "G"}
                             </div>
                             <div>
@@ -1410,27 +1422,27 @@ export default function ExperienceDetailsPage() {
           {/* ============================================================== */}
           {/* RIGHT COLUMN: Sticky Booking Ledger Card (4 cols)               */}
           {/* ============================================================== */}
-          <div className="lg:col-span-4 lg:sticky lg:top-24 z-20 self-start">
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col gap-4">
+          <div className="lg:col-span-4 lg:sticky lg:top-20 z-20 self-start">
+            <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/90 shadow-md flex flex-col gap-3">
               {/* Top Rate */}
               <div className="flex items-baseline justify-between">
                 <div>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins">
+                  <span className="text-xl sm:text-2xl font-extrabold text-slate-900 font-poppins">
                     ₹{pricePerPerson.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-xs text-slate-500 font-normal"> / {isFullSetup ? (isPerNight ? "night" : "activity setup") : "person"}</span>
+                  <span className="text-xs text-slate-500 font-normal"> / {isFullSetup ? (isPerNight ? "night" : "setup") : "person"}</span>
                   {isFullSetup && (
-                    <span className="block text-[11px] text-emerald-700 font-medium mt-0.5">
+                    <span className="block text-[10px] text-emerald-700 font-medium mt-0.5">
                       Flat activity price • Covers up to {personLimit} participants
                     </span>
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-slate-400 line-through block font-poppins">
+                  <span className="text-[11px] text-slate-400 line-through block font-poppins">
                     ₹{originalPricePerPerson.toLocaleString("en-IN")}
                   </span>
                   {savingsPerPerson > 0 && (
-                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold font-poppins border border-emerald-200">
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold font-poppins border border-emerald-200">
                       Save ₹{savingsPerPerson.toLocaleString("en-IN")}
                     </span>
                   )}
@@ -1440,13 +1452,13 @@ export default function ExperienceDetailsPage() {
               {/* Selected Tier & Slot Box */}
               <div
                 onClick={() => handleTabChange("tiers")}
-                className="p-3 rounded-xl bg-rose-50/70 border border-rose-100 hover:bg-rose-50 transition-colors cursor-pointer flex items-center justify-between"
+                className="p-2.5 rounded-lg bg-rose-50/70 border border-rose-100 hover:bg-rose-50 transition-colors cursor-pointer flex items-center justify-between"
               >
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#ea110d] tracking-wider font-poppins">
+                  <div className="text-[9px] uppercase font-bold text-[#ea110d] tracking-wider font-poppins">
                     SELECTED TIER &amp; SLOT
                   </div>
-                  <div className="text-xs sm:text-sm font-bold text-slate-900 font-poppins truncate max-w-[210px]">
+                  <div className="text-xs font-bold text-slate-900 font-poppins truncate max-w-[210px]">
                     {selectedTier?.name} • {selectedSlot?.time}
                   </div>
                 </div>
@@ -1454,15 +1466,15 @@ export default function ExperienceDetailsPage() {
               </div>
 
               {/* Booking Date Selector */}
-              <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/50 flex items-start gap-2">
-                <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-lg border border-slate-200 p-2 bg-slate-50/50 flex items-start gap-2">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
                 <div className="flex-1 min-w-0">
-                  <label className="text-[10px] uppercase font-bold text-slate-400 block">Experience Date</label>
+                  <label className="text-[9px] uppercase font-bold text-slate-400 block">Experience Date</label>
                   <input
                     type="date"
                     value={bookingDate}
@@ -1477,14 +1489,14 @@ export default function ExperienceDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setIsGuestPickerOpen(!isGuestPickerOpen)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between text-left"
+                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50/50 flex items-center justify-between text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Participants</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-400">Participants</div>
                       <div className="text-xs font-bold text-slate-800">
                         {adults} Adult{adults > 1 ? "s" : ""}, {children} Child{children > 1 ? "ren" : ""}
                       </div>
@@ -1494,17 +1506,17 @@ export default function ExperienceDetailsPage() {
                 </button>
 
                 {isGuestPickerOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 p-3 rounded-xl bg-white border border-slate-200 shadow-xl z-30 flex flex-col gap-3">
+                  <div className="absolute top-full left-0 right-0 mt-1 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xl z-30 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-xs font-bold text-slate-900">Adults</div>
-                        <div className="text-[10px] text-slate-400">Age 13+</div>
+                        <div className="text-[9px] text-slate-400">Age 13+</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setAdults(Math.max(1, adults - 1))}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
+                          className="w-6 h-6 rounded-md border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
                         >
                           -
                         </button>
@@ -1512,7 +1524,7 @@ export default function ExperienceDetailsPage() {
                         <button
                           type="button"
                           onClick={() => setAdults(adults + 1)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
+                          className="w-6 h-6 rounded-md border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
                         >
                           +
                         </button>
@@ -1522,7 +1534,7 @@ export default function ExperienceDetailsPage() {
                     <div className="flex items-center justify-between border-t border-slate-100 pt-2">
                       <div>
                         <div className="text-xs font-bold text-slate-900">Children</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[9px] text-slate-400">
                           {isFullSetup
                             ? `Included in flat setup (up to ${personLimit} total)`
                             : hasChildPrice && childPrice !== null
@@ -1534,7 +1546,7 @@ export default function ExperienceDetailsPage() {
                         <button
                           type="button"
                           onClick={() => setChildren(Math.max(0, children - 1))}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
+                          className="w-6 h-6 rounded-md border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
                         >
                           -
                         </button>
@@ -1542,7 +1554,7 @@ export default function ExperienceDetailsPage() {
                         <button
                           type="button"
                           onClick={() => setChildren(children + 1)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
+                          className="w-6 h-6 rounded-md border border-slate-200 flex items-center justify-center text-xs font-bold hover:bg-slate-50"
                         >
                           +
                         </button>
@@ -1554,33 +1566,33 @@ export default function ExperienceDetailsPage() {
 
               {/* Primary Booking Button */}
               {exp.acceptingBookings === false ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <button
                     type="button"
                     disabled
-                    className="w-full py-3.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm font-poppins cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <span>Bookings Paused</span>
                   </button>
-                  <p className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200/90 text-center font-medium leading-relaxed">
+                  <p className="text-[10px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/90 text-center font-medium leading-relaxed">
                     This experience is temporarily not accepting reservations. Please check back shortly or reach out to concierge.
                   </p>
                 </div>
               ) : isPersonLimitExceeded ? (
-                <div className="space-y-2.5">
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-2">
-                    <svg className="w-4 h-4 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="space-y-2">
+                  <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-900 flex items-start gap-2">
+                    <svg className="w-3.5 h-3.5 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                     </svg>
-                    <div className="text-xs">
+                    <div className="text-[11px]">
                       <span className="font-bold">Participant limit exceeded: </span>
-                      <span>This experience accommodates a maximum of {personLimit} participants ({totalParticipants} selected). Sorry, please reduce the participant count to continue.</span>
+                      <span>This experience accommodates a maximum of {personLimit} participants ({totalParticipants} selected). Please reduce the participant count to continue.</span>
                     </div>
                   </div>
                   <button
                     type="button"
                     disabled
-                    className="w-full py-3.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm font-poppins cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <span>Participant Limit Exceeded (Max {personLimit})</span>
                   </button>
@@ -1614,7 +1626,7 @@ export default function ExperienceDetailsPage() {
                     });
                     router.push(`/checkout?${queryParams.toString()}`);
                   }}
-                  className="w-full py-3.5 px-4 rounded-xl bg-[#ea110d] hover:bg-[#d00f0c] text-white font-bold text-sm font-poppins shadow-lg shadow-red-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-3 rounded-lg bg-[#ea110d] hover:bg-[#d00f0c] text-white font-bold text-xs font-poppins shadow-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Reserve Experience</span>
                   <span>→</span>
@@ -1622,8 +1634,8 @@ export default function ExperienceDetailsPage() {
               )}
 
               <div className="text-center">
-                <span className="text-[11px] text-slate-500 font-roboto inline-flex items-center justify-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <span className="text-[10px] text-slate-500 font-roboto inline-flex items-center justify-center gap-1">
+                  <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                   <span>Instant Confirmation • {exp.guide?.role || "Verified Activity Host"}</span>
@@ -1631,52 +1643,52 @@ export default function ExperienceDetailsPage() {
               </div>
 
               {/* Price Breakdown Ledger */}
-              <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
+              <div className="border-t border-slate-100 pt-2.5 space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>
+                  <span className="text-[11px] truncate pr-2">
                     {isFullSetup
                       ? `Flat Activity Setup (${totalParticipants} participant${totalParticipants > 1 ? "s" : ""}, up to ${personLimit})`
                       : hasChildPrice && children > 0
                       ? `₹${pricePerPerson.toLocaleString("en-IN")} × ${adults} adult${adults > 1 ? "s" : ""} + ₹${effectiveChildPrice.toLocaleString("en-IN")} × ${children} child${children > 1 ? "ren" : ""}`
                       : `₹${pricePerPerson.toLocaleString("en-IN")} × ${totalParticipants} participants`}
                   </span>
-                  <span className="font-semibold text-slate-900">₹{basePrice.toLocaleString("en-IN")}</span>
+                  <span className="font-semibold text-slate-900 shrink-0">₹{basePrice.toLocaleString("en-IN")}</span>
                 </div>
 
                 {memberDiscountPercent > 0 && discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-medium">
+                  <div className="flex justify-between text-emerald-600 font-medium text-[11px]">
                     <span>Mahastays Member Discount ({memberDiscountPercent}%)</span>
                     <span>-₹{discountAmount.toLocaleString("en-IN")}</span>
                   </div>
                 )}
 
                 {includeFee && feeAmount > 0 && (
-                  <div className="flex justify-between text-slate-600">
+                  <div className="flex justify-between text-slate-600 text-[11px]">
                     <span>Safety Gear &amp; Forest Fee</span>
                     <span className="font-semibold text-slate-900">₹{feeAmount.toLocaleString("en-IN")}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between text-slate-600">
+                <div className="flex justify-between text-slate-600 text-[11px]">
                   <span>GST &amp; Safety Cess ({gstPercent}%)</span>
                   <span className="font-semibold text-slate-900">₹{taxesAndGst.toLocaleString("en-IN")}</span>
                 </div>
 
-                <div className="border-t border-slate-200/80 pt-2 flex justify-between items-baseline">
-                  <span className="font-bold text-slate-900 text-sm font-poppins">Total (INR)</span>
-                  <span className="font-extrabold text-slate-900 text-xl font-poppins">
+                <div className="border-t border-slate-200/80 pt-1.5 flex justify-between items-baseline">
+                  <span className="font-bold text-slate-900 text-xs font-poppins">Total (INR)</span>
+                  <span className="font-extrabold text-slate-900 text-lg font-poppins">
                     ₹{grandTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>
 
               {/* Badges */}
-              <div className="border-t border-slate-100 pt-3 flex flex-col gap-1.5 text-[11px] text-slate-500 font-roboto">
-                <div className="flex items-center gap-2">
+              <div className="border-t border-slate-100 pt-2 flex flex-col gap-1 text-[10px] text-slate-500 font-roboto">
+                <div className="flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span>100% Verified Experience with Safe Guarantee</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span>Free Cancellation up to 48 hours before start</span>
                 </div>
@@ -1696,7 +1708,16 @@ export default function ExperienceDetailsPage() {
               <span className="text-xs text-slate-500">/ {isFullSetup ? "setup" : `${totalParticipants} persons`}</span>
             </div>
           </div>
-          {isPersonLimitExceeded ? (
+          {exp.acceptingBookings === false ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs font-poppins cursor-not-allowed flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Bookings Paused</span>
+            </button>
+          ) : isPersonLimitExceeded ? (
             <button
               type="button"
               disabled
@@ -1708,6 +1729,7 @@ export default function ExperienceDetailsPage() {
             <button
               type="button"
               onClick={() => {
+                if (exp.acceptingBookings === false) return;
                 const queryParams = new URLSearchParams({
                   type: "experience",
                   id: String(exp.id || (exp as any).code || experienceId),
@@ -1722,6 +1744,7 @@ export default function ExperienceDetailsPage() {
                   price: String(pricePerPerson),
                   priceType: priceType,
                   personLimit: String(personLimit),
+                  acceptingBookings: String((exp as any).acceptingBookings !== false),
                   locationType: (exp as any).locationType || "fixed_location",
                   serviceArea: (exp as any).serviceArea || "",
                   discount: String(memberDiscountPercent),

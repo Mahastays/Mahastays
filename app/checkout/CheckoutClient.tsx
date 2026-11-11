@@ -9,6 +9,7 @@ import BookingInvoiceModal from "../components/booking/BookingInvoiceModal";
 import BookingConfirmationView, { BookingConfirmationData } from "../components/booking/BookingConfirmationView";
 import { FileText, Download } from "lucide-react";
 import { MAHASTAYS_LOGO_DATA_URI } from "./brandLogoData";
+import { api } from "@/lib/api";
 
 const getRazorpayBrandLogo = (): string => {
   if (typeof window !== "undefined") {
@@ -101,6 +102,12 @@ function CheckoutContent() {
   const [platformBookingsMessage, setPlatformBookingsMessage] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  // Listing-level Booking Status State
+  const isParamPaused =
+    searchParams.get("acceptingBookings") === "false" ||
+    searchParams.get("paused") === "true";
+  const [isListingPaused, setIsListingPaused] = useState(isParamPaused);
+
   // Check public platform configuration for global booking killswitch
   useEffect(() => {
     fetch("/api/config/public")
@@ -116,6 +123,27 @@ function CheckoutContent() {
       })
       .catch(() => {});
   }, []);
+
+  // Check specific listing booking status from backend
+  useEffect(() => {
+    if (!itemId) return;
+    const path =
+      bookingType === "stay"
+        ? `/properties/${itemId}`
+        : bookingType === "package"
+        ? `/packages/${itemId}`
+        : `/experiences/${itemId}`;
+
+    api
+      .get(path)
+      .then((res) => {
+        const item = res.data?.data || res.data;
+        if (item && item.acceptingBookings === false) {
+          setIsListingPaused(true);
+        }
+      })
+      .catch(() => {});
+  }, [bookingType, itemId]);
 
   // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -339,8 +367,10 @@ function CheckoutContent() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!platformBookingsEnabled) {
-      const msg = platformBookingsMessage || "Reservations are currently paused across the platform by administration.";
+    if (!platformBookingsEnabled || isListingPaused) {
+      const msg = isListingPaused
+        ? `Reservations for "${title}" are currently paused by the host. Checkout cannot be completed at this time.`
+        : platformBookingsMessage || "Reservations are currently paused across the platform by administration.";
       setErrorMsg(msg);
       toast.warning(msg, "Bookings Paused");
       return;
@@ -777,6 +807,55 @@ function CheckoutContent() {
           {/* ══════════════════════════════════════════════════════════════ */}
           <div className="lg:col-span-8 flex flex-col gap-5">
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {/* Listing Bookings Paused Warning Banner */}
+              {isListingPaused && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start gap-4 shadow-sm">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold text-xl shadow-sm">
+                    ⏸
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base font-bold text-amber-950 font-poppins">
+                      Bookings Are Paused For This Listing
+                    </h4>
+                    <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+                      Reservations for <strong className="font-semibold text-amber-950">{title}</strong> are temporarily paused by the host. Checkouts cannot be submitted at this time.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const backUrl =
+                            bookingType === "stay"
+                              ? `/explore/${itemId}`
+                              : bookingType === "package"
+                              ? `/packages/${itemId}`
+                              : `/experiences/${itemId}`;
+                          router.push(backUrl);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs font-poppins shadow-xs transition-all cursor-pointer"
+                      >
+                        ← Back to Listing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const catalogUrl =
+                            bookingType === "stay"
+                              ? `/explore`
+                              : bookingType === "package"
+                              ? `/packages`
+                              : `/experiences`;
+                          router.push(catalogUrl);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-white border border-amber-300 hover:bg-amber-50 text-amber-950 font-bold text-xs font-poppins transition-all cursor-pointer"
+                      >
+                        Browse Other {bookingType === "stay" ? "Stays" : bookingType === "package" ? "Packages" : "Experiences"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Platform Bookings Paused Warning Banner */}
               {!platformBookingsEnabled && (
                 <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm">
@@ -1143,11 +1222,11 @@ function CheckoutContent() {
                 {/* Primary Submit Button */}
                 <button
                   type="submit"
-                  disabled={isLoading || !platformBookingsEnabled || isLimitExceeded}
+                  disabled={isLoading || !platformBookingsEnabled || isListingPaused || isLimitExceeded}
                   className={`w-full py-4 px-6 sm:py-3.5 sm:px-6 rounded-2xl text-white font-bold tracking-wide font-poppins transition-all flex items-center justify-center ${
                     isLoading ? 'justify-center' : 'sm:justify-between'
                   } ${
-                    !platformBookingsEnabled || isLimitExceeded
+                    !platformBookingsEnabled || isListingPaused || isLimitExceeded
                       ? 'bg-slate-400 cursor-not-allowed shadow-none'
                       : 'bg-[#ea110d] hover:bg-[#d00f0c] active:scale-[0.99] shadow-xl shadow-red-500/25 cursor-pointer disabled:opacity-85'
                   }`}
@@ -1177,6 +1256,8 @@ function CheckoutContent() {
                     <span className="font-extrabold text-sm font-poppins">
                       {!platformBookingsEnabled
                         ? "Platform Bookings Paused"
+                        : isListingPaused
+                        ? "Bookings Paused for this Listing"
                         : isLimitExceeded
                         ? `Guest Limit Exceeded (Max ${personLimit})`
                         : !isLoggedIn
@@ -1194,6 +1275,8 @@ function CheckoutContent() {
                       <span className="text-base sm:text-lg font-extrabold font-poppins">
                         {!platformBookingsEnabled
                           ? "Platform Bookings Paused by Administration"
+                          : isListingPaused
+                          ? "Bookings Paused for this Listing"
                           : isLimitExceeded
                           ? `Capacity Exceeded (Max ${personLimit} persons)`
                           : !isLoggedIn

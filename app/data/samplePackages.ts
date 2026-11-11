@@ -73,6 +73,8 @@ export interface PackageTier {
   pricePerPerson: number;
   originalPrice: number;
   features: string[];
+  priceType?: string;
+  personLimit?: number;
 }
 
 export interface PackageReview {

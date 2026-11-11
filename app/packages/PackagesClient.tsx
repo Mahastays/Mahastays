@@ -73,7 +73,7 @@ export default function PackagesPage() {
       setDestinationSearch(slide.filterDestination);
     }
     if (slide.filterCategory) {
-      setSelectedAmenity(slide.filterCategory);
+      setSelectedPropertyType(slide.filterCategory);
     }
     const catalogElement = document.getElementById("packages-catalog");
     if (catalogElement) {
@@ -89,7 +89,7 @@ export default function PackagesPage() {
       const type = params.get("type");
       const dest = params.get("destination");
       const q = params.get("search") || params.get("q");
-      if (cat) setSelectedAmenity(cat);
+      if (cat) setSelectedPropertyType(cat);
       if (type) setSelectedPropertyType(type);
       if (dest) setDestinationSearch(dest);
       if (q) setSearchQuery(q);
@@ -139,14 +139,21 @@ export default function PackagesPage() {
         return false;
       }
 
-      // 4. Horizontal Amenity / Tag Filter
-      if (selectedAmenity !== "all") {
-        const queryTag = selectedAmenity.toLowerCase();
+      // 4. Package Type / Category Filter (from Filters modal/sidebar)
+      if (selectedPropertyType !== "All") {
+        const queryTag = selectedPropertyType.toLowerCase();
+        const words = queryTag.split(/[&,/\s]+/).filter((w) => w.length > 2);
         const inTitle = pkg.title.toLowerCase().includes(queryTag);
         const inDesc = (pkg.shortDesc + " " + (pkg.fullDesc || "")).toLowerCase().includes(queryTag);
         const inCat = pkg.category.toLowerCase().includes(queryTag);
+        const inType = ((pkg as any).packageType || "").toLowerCase().includes(queryTag);
         const inLoc = pkg.location.toLowerCase().includes(queryTag);
-        if (!inTitle && !inDesc && !inCat && !inLoc) {
+        const wordMatch = words.some((w) =>
+          pkg.title.toLowerCase().includes(w) ||
+          pkg.category.toLowerCase().includes(w) ||
+          ((pkg as any).packageType || "").toLowerCase().includes(w)
+        );
+        if (!inTitle && !inDesc && !inCat && !inType && !inLoc && !wordMatch) {
           return false;
         }
       }
@@ -207,7 +214,6 @@ export default function PackagesPage() {
     guestsCount !== 2 ||
     maxPriceValue < 150000 ||
     selectedPropertyType !== "All" ||
-    selectedAmenity !== "all" ||
     searchQuery.trim() !== "" ||
     sortBy !== "featured";
 
@@ -312,13 +318,11 @@ export default function PackagesPage() {
 
   const activeFilterItems: ActiveFilterItem[] = useMemo(() => {
     const list: ActiveFilterItem[] = [];
-    if (selectedAmenity && selectedAmenity !== "all") {
-      const tab = PACKAGE_TABS.find((t) => t.id === selectedAmenity);
+    if (selectedPropertyType && selectedPropertyType !== "All") {
       list.push({
-        id: "category",
-        label: tab?.label || selectedAmenity,
-        icon: tab?.icon,
-        onRemove: () => setSelectedAmenity("all"),
+        id: "type",
+        label: `Category: ${selectedPropertyType}`,
+        onRemove: () => setSelectedPropertyType("All"),
       });
     }
     if (destinationSearch.trim()) {
@@ -520,17 +524,28 @@ export default function PackagesPage() {
             </div>
           </div>
 
-          {/* 5. Property / Package Type Section */}
+          {/* 5. Package Category & Theme Section */}
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2.5">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              <span>Package Type</span>
+              <span>Package Category</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {["All", "Honeymoon", "Adventure", "Wellness", "Island", "Heritage", "Luxury"].map((type) => {
+              {[
+                "All",
+                "Beach & Islands",
+                "Mountains & Nature",
+                "Honeymoon & Romantic",
+                "Adventure & Safari",
+                "Wellness & Spa",
+                "Heritage & Culture",
+                "Luxury Escapes",
+                "Family & Group",
+                "Weekend Getaways",
+              ].map((type) => {
                 const isActive = selectedPropertyType.toLowerCase() === type.toLowerCase();
                 return (
                   <button
@@ -558,10 +573,9 @@ export default function PackagesPage() {
       <PackagesOfferAdCarousel onSelectSlide={handlePackageOfferSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-8 sm:py-12" : "pt-24 sm:pt-28 pb-12"}`} id="packages-catalog">
+      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="packages-catalog">
         {/* Main 2-Column Layout */}
-        <div className="flex flex-col lg:flex-row items-start gap-8">
-          {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT MATCHING UI AS IN EXPLORE) ── */}
+        <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (Desktop Only) ── */}
           <aside className="hidden lg:block w-80 xl:w-84 shrink-0 lg:sticky lg:top-24 bg-white rounded-[28px] p-6 border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] space-y-5">
             {/* Header: Up-Down Arrows Icon + Filters + Clear All */}
@@ -589,18 +603,44 @@ export default function PackagesPage() {
             {filterControls}
           </aside>
 
-          {/* ─── RIGHT CONTENT: TOOLBAR & GRID (EXACT MATCHING UI AS IN EXPLORE) ── */}
-          <div className="flex-1 min-w-0 w-full space-y-6 pt-1">
-            {/* Mobile Filter Trigger Bar (Small Screens only) */}
-            <div className="flex lg:hidden items-center justify-between gap-3 w-full pb-1">
+          {/* ─── RIGHT CONTENT: TOOLBAR & GRID ── */}
+          <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 pt-0">
+            {/* ─── Mobile Unified Action Bar (Search + Filter + Sort in ONE compact row) ─── */}
+            <div className="flex lg:hidden items-center gap-2 w-full">
+              {/* Search Bar on Mobile */}
+              <div className="relative flex-1 min-w-0">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search packages..."
+                  className="w-full pl-8 pr-2.5 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition shadow-xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filter Button */}
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs sm:text-sm font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer relative"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer shrink-0 relative"
                 id="mobile-open-filters-btn"
               >
-                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 20V4m0 0L3 8m4-4l4 4M17 4v16m0 0l4-4m-4 4l-4-4" />
                   </svg>
                 </div>
@@ -610,16 +650,38 @@ export default function PackagesPage() {
                 )}
               </button>
 
-              <div className="text-xs text-slate-500 font-medium">
-                {loading ? (
-                  <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded" />
-                ) : (
-                  <>Showing <span className="text-primary font-bold">{filteredPackages.length}</span> packages</>
-                )}
+              {/* Mobile Sort Dropdown */}
+              <div className="relative shrink-0">
+                <div className="flex items-center gap-1 px-2.5 py-2 bg-white border border-slate-200 rounded-2xl shadow-xs text-xs font-semibold text-slate-800 hover:border-slate-300 transition">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-transparent pr-4 outline-none cursor-pointer text-slate-800 font-semibold text-xs"
+                    aria-label="Sort packages"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="rating">Top Rated</option>
+                    <option value="price-low">Price: Low</option>
+                    <option value="price-high">Price: High</option>
+                  </select>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
               </div>
             </div>
-            {/* Top Row: Title, Result Count, Search & Sort */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+            {/* Mobile Packages Count Sub-strip */}
+            <div className="flex lg:hidden items-center justify-between text-[11px] text-slate-500 font-medium px-0.5">
+              {loading ? (
+                <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
+              ) : (
+                <span>Showing <span className="text-primary font-bold">{filteredPackages.length}</span> packages</span>
+              )}
+            </div>
+
+            {/* Desktop Top Row: Title, Result Count, Search & Sort (Hidden on Mobile) */}
+            <div className="hidden lg:flex flex-row items-center justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   All Luxury Holiday Packages &amp; Escapes
@@ -636,10 +698,10 @@ export default function PackagesPage() {
                 </p>
               </div>
 
-              {/* Right: Search Input + Sort Dropdown */}
-              <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+              {/* Right: Search Input + Sort Dropdown on Desktop */}
+              <div className="flex items-center gap-3">
                 {/* Search Bar */}
-                <div className="relative flex-1 sm:flex-initial sm:w-64 md:w-72">
+                <div className="relative w-72 lg:w-80">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                       <circle cx="11" cy="11" r="8" />
@@ -687,29 +749,6 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            {/* Second Row: Horizontal Category / Amenity Tabs with Icons (Exact As in Explore) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none">
-              {PACKAGE_TABS.map((tab) => {
-                const isActive = selectedAmenity === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSelectedAmenity(tab.id)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-primary text-white shadow-sm shadow-red-500/20"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs"
-                    }`}
-                  >
-                    <span className={isActive ? "text-white" : "text-slate-600"}>
-                      {tab.icon}
-                    </span>
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Active Filter Badges */}
             {hasActiveFilters && filteredPackages.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap pt-1">
@@ -728,14 +767,8 @@ export default function PackagesPage() {
                 )}
                 {selectedPropertyType !== "All" && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                    Type: {selectedPropertyType}
+                    Category: {selectedPropertyType}
                     <button onClick={() => setSelectedPropertyType("All")} className="hover:text-black cursor-pointer font-bold">×</button>
-                  </span>
-                )}
-                {selectedAmenity !== "all" && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                    Theme: {PACKAGE_TABS.find(t => t.id === selectedAmenity)?.label || selectedAmenity}
-                    <button onClick={() => setSelectedAmenity("all")} className="hover:text-black cursor-pointer font-bold">×</button>
                   </span>
                 )}
                 {maxPriceValue < 150000 && (

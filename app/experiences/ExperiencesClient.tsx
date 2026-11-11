@@ -108,7 +108,7 @@ export default function ExperiencesPage() {
       const type = params.get("type");
       const dest = params.get("destination");
       const q = params.get("search") || params.get("q");
-      if (cat) setSelectedAmenity(cat);
+      if (cat) setSelectedPropertyType(cat);
       if (type) setSelectedPropertyType(type);
       if (dest) setDestinationSearch(dest);
       if (q) setSearchQuery(q);
@@ -701,10 +701,9 @@ export default function ExperiencesPage() {
       <ExperiencesOfferAdCarousel onSelectSlide={handleExperienceOfferSelect} onAdsLoaded={setHasAds} />
 
       {/* ─── Main Catalog Section (Expanded Width: max-w-[1440px]) ── */}
-      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-8 sm:py-12" : "pt-24 sm:pt-28 pb-12"}`} id="experiences-catalog">
+      <section className={`max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 w-full transition-all ${hasAds ? "py-4 sm:py-8" : "pt-12 sm:pt-16 pb-8"}`} id="experiences-catalog">
         {/* Main 2-Column Layout */}
-        <div className="flex flex-col lg:flex-row items-start gap-8">
-          {/* ─── LEFT SIDEBAR: FILTERS CARD (EXACT MATCHING UI AS IN EXPLORE) ── */}
+        <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* ─── LEFT SIDEBAR: FILTERS CARD (Desktop Only) ── */}
           <aside className="hidden lg:block w-80 xl:w-84 shrink-0 lg:sticky lg:top-24 bg-white rounded-[28px] p-6 border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] space-y-5">
             {/* Header: Up-Down Arrows Icon + Filters + Clear All */}
@@ -732,18 +731,44 @@ export default function ExperiencesPage() {
             {filterControls}
           </aside>
 
-          {/* ─── RIGHT CONTENT: TOOLBAR & GRID (EXACT MATCHING UI AS IN EXPLORE) ── */}
-          <div className="flex-1 min-w-0 w-full space-y-6 pt-1">
-            {/* Mobile Filter Trigger Bar (Small Screens only) */}
-            <div className="flex lg:hidden items-center justify-between gap-3 w-full pb-1">
+          {/* ─── RIGHT CONTENT: TOOLBAR & GRID ── */}
+          <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 pt-0">
+            {/* ─── Mobile Unified Action Bar (Search + Filter + Sort in ONE compact row) ─── */}
+            <div className="flex lg:hidden items-center gap-2 w-full">
+              {/* Search Bar on Mobile */}
+              <div className="relative flex-1 min-w-0">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search experiences..."
+                  className="w-full pl-8 pr-2.5 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition shadow-xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filter Button */}
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs sm:text-sm font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer relative"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200/90 rounded-2xl shadow-xs text-xs font-bold text-slate-800 hover:border-primary active:scale-95 transition-all cursor-pointer shrink-0 relative"
                 id="mobile-open-filters-btn"
               >
-                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 20V4m0 0L3 8m4-4l4 4M17 4v16m0 0l4-4m-4 4l-4-4" />
                   </svg>
                 </div>
@@ -753,16 +778,38 @@ export default function ExperiencesPage() {
                 )}
               </button>
 
-              <div className="text-xs text-slate-500 font-medium">
-                {loading ? (
-                  <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded" />
-                ) : (
-                  <>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> experiences</>
-                )}
+              {/* Mobile Sort Dropdown */}
+              <div className="relative shrink-0">
+                <div className="flex items-center gap-1 px-2.5 py-2 bg-white border border-slate-200 rounded-2xl shadow-xs text-xs font-semibold text-slate-800 hover:border-slate-300 transition">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-transparent pr-4 outline-none cursor-pointer text-slate-800 font-semibold text-xs"
+                    aria-label="Sort experiences"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="rating">Top Rated</option>
+                    <option value="price-low">Price: Low</option>
+                    <option value="price-high">Price: High</option>
+                  </select>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
               </div>
             </div>
-            {/* Top Row: Title, Result Count, Search & Sort */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+            {/* Mobile Experiences Count Sub-strip */}
+            <div className="flex lg:hidden items-center justify-between text-[11px] text-slate-500 font-medium px-0.5">
+              {loading ? (
+                <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
+              ) : (
+                <span>Showing <span className="text-primary font-bold">{filteredExperiences.length}</span> experiences</span>
+              )}
+            </div>
+
+            {/* Desktop Top Row: Title, Result Count, Search & Sort (Hidden on Mobile) */}
+            <div className="hidden lg:flex flex-row items-center justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   All Curated Experiences &amp; Guided Activities
@@ -779,10 +826,10 @@ export default function ExperiencesPage() {
                 </p>
               </div>
 
-              {/* Right: Search Input + Sort Dropdown */}
-              <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+              {/* Right: Search Input + Sort Dropdown on Desktop */}
+              <div className="flex items-center gap-3">
                 {/* Search Bar */}
-                <div className="relative flex-1 sm:flex-initial sm:w-64 md:w-72">
+                <div className="relative w-72 lg:w-80">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                       <circle cx="11" cy="11" r="8" />
@@ -830,29 +877,6 @@ export default function ExperiencesPage() {
               </div>
             </div>
 
-            {/* Second Row: Horizontal Category / Amenity Tabs with Icons (Exact As in Explore) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none">
-              {EXPERIENCE_TABS.map((tab) => {
-                const isActive = selectedAmenity === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSelectedAmenity(tab.id)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-primary text-white shadow-sm shadow-red-500/20"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs"
-                    }`}
-                  >
-                    <span className={isActive ? "text-white" : "text-slate-600"}>
-                      {tab.icon}
-                    </span>
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Active Filter Badges */}
             {hasActiveFilters && filteredExperiences.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap pt-1">
@@ -871,14 +895,8 @@ export default function ExperiencesPage() {
                 )}
                 {selectedPropertyType !== "All" && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                    Type: {selectedPropertyType}
+                    Category: {selectedPropertyType}
                     <button onClick={() => setSelectedPropertyType("All")} className="hover:text-black cursor-pointer font-bold">×</button>
-                  </span>
-                )}
-                {selectedAmenity !== "all" && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                    Category: {EXPERIENCE_TABS.find(t => t.id === selectedAmenity)?.label || selectedAmenity}
-                    <button onClick={() => setSelectedAmenity("all")} className="hover:text-black cursor-pointer font-bold">×</button>
                   </span>
                 )}
                 {maxPriceValue < 25000 && (
