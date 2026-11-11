@@ -230,14 +230,22 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
     : [];
 
   const selectedTier = tiers[selectedTierIndex] || tiers[0];
-  const isPerNight = pkg.priceType === 'per_night';
-  const personLimit = pkg.personLimit || 6;
+  const activeTierPriceType = selectedTier?.priceType || pkg.priceType || 'per_person';
+  const isPackageOrSetup = activeTierPriceType === 'full_setup' || activeTierPriceType === 'per_package';
+  const isCouple = activeTierPriceType === 'per_couple';
+  const isPerNight = activeTierPriceType === 'per_night';
+  const activeUnitText = isPerNight ? 'night' : isPackageOrSetup ? 'package' : isCouple ? 'couple' : 'person';
+  const personLimit = selectedTier?.personLimit || pkg.personLimit || 6;
   const pricePerPerson = selectedTier.pricePerPerson || pkg.numericPrice || 8500;
   const originalPricePerPerson = selectedTier.originalPrice || pricePerPerson + 3000;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const baseCost = isPerNight
     ? pricePerPerson * Math.max(1, pkg.durationNights || 1)
+    : isPackageOrSetup
+    ? pricePerPerson
+    : isCouple
+    ? pricePerPerson * Math.ceil(Math.max(1, adults + children) / 2)
     : pricePerPerson * Math.max(1, adults) + Math.round(pricePerPerson * 0.6) * children;
 
   // Custom Pricing, Discounts & GST Rules
@@ -1776,7 +1784,27 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                     <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 gap-1.5">
                       {isEditMode ? (
                         <div className="space-y-1 text-right">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 justify-end flex-wrap pb-0.5">
+                            <span className="text-[10px] font-bold text-slate-500">Model:</span>
+                            {(['per_person', 'per_couple', 'full_setup', 'per_night'] as const).map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateTier(idx, 'priceType', m);
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${
+                                  (tier.priceType || pkg.priceType || 'per_person') === m
+                                    ? 'bg-rose-50 border-rose-400 text-rose-700'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                {m === 'per_person' ? 'Person' : m === 'per_couple' ? 'Couple' : m === 'full_setup' ? 'Package' : 'Night'}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-1 justify-end">
                             <span className="text-[10px] text-slate-400">Orig ₹:</span>
                             <input
                               type="number"
@@ -1785,13 +1813,23 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                               className="border border-slate-200 rounded px-1 py-0.5 text-xs w-20 text-right"
                             />
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 justify-end">
                             <span className="text-[10px] font-bold text-slate-600">Price ₹:</span>
                             <input
                               type="number"
                               value={tier.pricePerPerson || tPrice}
                               onChange={(e) => handleUpdateTier(idx, 'pricePerPerson', Number(e.target.value))}
                               className="border border-slate-200 rounded px-1 py-0.5 text-xs font-bold w-20 text-right"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-[10px] text-slate-400">Cap:</span>
+                            <input
+                              type="number"
+                              value={tier.personLimit || ''}
+                              placeholder="Max"
+                              onChange={(e) => handleUpdateTier(idx, 'personLimit', e.target.value ? Number(e.target.value) : undefined)}
+                              className="border border-slate-200 rounded px-1 py-0.5 text-xs w-16 text-right"
                             />
                           </div>
                           {tiers.length > 1 && (
@@ -1815,7 +1853,15 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                           </span>
                           <div className="text-base sm:text-lg font-extrabold text-slate-900 font-poppins">
                             ₹{tPrice.toLocaleString('en-IN')}{' '}
-                            <span className="text-xs font-normal text-slate-500">/ person</span>
+                            <span className="text-xs font-normal text-slate-500">
+                              {(tier.priceType || pkg.priceType) === 'per_night'
+                                ? '/ night'
+                                : (tier.priceType || pkg.priceType) === 'full_setup' || (tier.priceType || pkg.priceType) === 'per_package'
+                                ? '/ package'
+                                : (tier.priceType || pkg.priceType) === 'per_couple'
+                                ? '/ couple'
+                                : '/ person'}
+                            </span>
                           </div>
                           {tSavings > 0 && (
                             <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold font-poppins border border-emerald-200">
@@ -2625,7 +2671,7 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                 <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-poppins">
                   ₹{pricePerPerson.toLocaleString('en-IN')}
                 </span>
-                <span className="text-xs text-slate-500 font-normal"> / person</span>
+                <span className="text-xs text-slate-500 font-normal"> / {activeUnitText}</span>
               </div>
               <div className="text-right">
                 <span className="text-xs text-slate-400 line-through block font-poppins">
@@ -2912,6 +2958,10 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
                 <span>
                   {isPerNight
                     ? `₹${pricePerPerson.toLocaleString('en-IN')} / night × ${Math.max(1, pkg.durationNights || 1)} nights (flat up to ${personLimit} guests)`
+                    : isPackageOrSetup
+                    ? `₹${pricePerPerson.toLocaleString('en-IN')} flat package rate (up to ${personLimit} guests)`
+                    : isCouple
+                    ? `₹${pricePerPerson.toLocaleString('en-IN')} / couple × ${Math.ceil(Math.max(1, adults + children) / 2)} couples`
                     : `₹${pricePerPerson.toLocaleString('en-IN')} × ${adults} adults${children > 0 ? ` + ${children} kids` : ''}`}
                 </span>
                 <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString('en-IN')}</span>

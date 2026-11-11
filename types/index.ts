@@ -181,6 +181,8 @@ export interface PackageTierItem {
   badge?: string;
   tagline?: string;
   hotelType?: string;
+  priceType?: 'per_person' | 'per_couple' | 'full_setup' | 'per_package' | 'per_night' | string;
+  personLimit?: number;
   pricePerPerson: number;
   originalPrice?: number;
   features: string[];
@@ -271,8 +273,13 @@ export interface ExperienceSlotItem {
 
 export interface ExperienceTierItem {
   tierId: string;
+  id?: string;
   name: string;
+  badge?: string;
   tagline?: string;
+  description?: string;
+  priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
+  personLimit?: number;
   pricePerPerson: number;
   childPricePerPerson?: number;
   originalPrice?: number;

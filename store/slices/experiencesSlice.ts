@@ -60,11 +60,16 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
 
   const rawTiers = Array.isArray(raw.tiers) ? raw.tiers : [];
   const tiers = rawTiers.map((t: any, idx: number) => ({
+    tierId: t.tierId || t.id || `tier_${idx + 1}`,
     id: t.id || t.tierId || `tier_${idx + 1}`,
     name: t.name || 'Standard Pass',
     badge: t.badge || 'Popular',
-    pricePerPerson: t.pricePerPerson || raw.numericPrice || 250,
-    originalPrice: t.originalPrice || raw.originalPrice,
+    tagline: t.tagline || '',
+    priceType: t.priceType || raw.priceType || 'per_person',
+    personLimit: t.personLimit != null ? Number(t.personLimit) : (raw.personLimit != null ? Number(raw.personLimit) : null),
+    pricePerPerson: Number(t.pricePerPerson) || raw.numericPrice || 250,
+    childPricePerPerson: t.childPricePerPerson != null ? Number(t.childPricePerPerson) : null,
+    originalPrice: t.originalPrice ? Number(t.originalPrice) : raw.originalPrice,
     description: t.description || 'General entry & guided trail pass',
     features: Array.isArray(t.features) ? t.features : ['Expert Guide Included', 'Safety Gear', 'Valley Viewpoint Access'],
   }));
