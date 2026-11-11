@@ -21,9 +21,31 @@ import { useData } from '../../context/DataContext';
 import { ExperienceItem } from '../../types';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
 import DashboardSkeleton from '../common/DashboardSkeleton';
+import { toast } from '../ui/Toast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchExperiences } from '../../store/slices/experiencesSlice';
+import { fetchExperiences, updateExperienceAsync } from '../../store/slices/experiencesSlice';
 import { fetchVendors } from '../../store/slices/vendorsSlice';
+
+const EXPERIENCE_CATEGORIES = [
+  'Fun Activity & Resort Games',
+  'Night Karaoke & Entertainment',
+  'Bonfire & Music',
+  'Treasure Hunt',
+  'Group Games & Team Building',
+  'Tower Building',
+  'Musical Chair',
+  'Couple Balloon Games',
+  'Antakshari & Musical Games',
+  'Tambola & Housie',
+  'Trekking & Hiking',
+  'Watersports & Boating',
+  'Stargazing & Camping',
+  'Cycling & Mountain Biking',
+  'Cultural & Heritage Walk',
+  'Strawberry Farm Tour',
+  'Adventure & Wildlife Safari',
+  'Nature & Sightseeing',
+];
 
 interface ExperiencesViewProps {
   onOpenCreateModal: () => void;
@@ -41,7 +63,11 @@ export default function ExperiencesView({
 
   const [filter, setFilter] = useState<'all' | 'active' | 'pending_approval' | 'rejected'>('all');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [experienceToDelete, setExperienceToDelete] = useState<ExperienceItem | null>(null);
+  const [categoryModalExperience, setCategoryModalExperience] = useState<ExperienceItem | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState<string>('');
+  const [isSavingCategory, setIsSavingCategory] = useState<boolean>(false);
 
   const isAdmin = activeViewMode === 'admin';
   const currentVendorId = user?.vendorId || (user?.role === 'vendor' ? user?.id : undefined);
@@ -51,6 +77,20 @@ export default function ExperiencesView({
     dispatch(fetchExperiences());
     dispatch(fetchVendors());
   }, [dispatch]);
+
+  const handleQuickCategoryChange = async (exp: ExperienceItem, newCat: string) => {
+    if (!newCat || newCat === exp.category) {
+      setCategoryModalExperience(null);
+      return;
+    }
+    try {
+      await dispatch(updateExperienceAsync({ ...exp, category: newCat })).unwrap();
+      toast.success(`Category updated to "${newCat}"`, 'Category Updated');
+      setCategoryModalExperience(null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update category', 'Update Failed');
+    }
+  };
 
   const roleFiltered = experiences.filter((exp) => {
     if (!isAdmin) {
@@ -65,6 +105,7 @@ export default function ExperiencesView({
     } else {
       if (selectedVendorFilter !== 'all' && exp.vendorId !== selectedVendorFilter) return false;
     }
+    if (selectedCategoryFilter !== 'all' && exp.category !== selectedCategoryFilter) return false;
     if (filter === 'all') return true;
     return exp.status === filter;
   });
@@ -97,6 +138,23 @@ export default function ExperiencesView({
             ))}
           </div>
 
+          {/* Category Filter Dropdown */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-400 font-medium">Category:</span>
+            <select
+              value={selectedCategoryFilter}
+              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer max-w-[210px]"
+            >
+              <option value="all">All Categories</option>
+              {EXPERIENCE_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Admin Vendor Filter Dropdown */}
           {isAdmin && (
             <div className="flex items-center gap-1.5">
@@ -122,7 +180,7 @@ export default function ExperiencesView({
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Mountain Experience</span>
+          <span>Add Experience / Activity</span>
         </button>
       </div>
 
@@ -148,9 +206,20 @@ export default function ExperiencesView({
                   />
 
                   <div className="absolute top-3 left-3 flex gap-1.5">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 uppercase tracking-wider backdrop-blur-md">
-                      {exp.category}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCategoryModalExperience(exp);
+                        setEditingCategoryValue(exp.category);
+                      }}
+                      title="Click to edit activity category"
+                      className="group/cat inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-200 uppercase tracking-wider backdrop-blur-md hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer shadow-xs border border-transparent hover:border-rose-200"
+                    >
+                      <span>{exp.category}</span>
+                      <Edit3 className="w-2.5 h-2.5 opacity-60 group-hover/cat:opacity-100" />
+                    </button>
                     <span
                       className={`px-2.5 py-1 rounded-full text-[10px] font-bold text-white backdrop-blur-md ${
                         exp.difficulty === 'Easy'
@@ -298,6 +367,18 @@ export default function ExperiencesView({
                         >
                           {exp.acceptingBookings === false ? "Resume Bookings" : "Pause Bookings"}
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryModalExperience(exp);
+                            setEditingCategoryValue(exp.category);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1 cursor-pointer transition"
+                          title="Change activity category"
+                        >
+                          <Edit3 className="w-3 h-3 text-slate-500" />
+                          <span>Category</span>
+                        </button>
                         <span className="text-xs text-slate-500 font-medium hidden sm:inline">
                           Guide: {exp.guide?.name?.split(' ')[0] || 'Naturalist'}
                         </span>
@@ -320,6 +401,76 @@ export default function ExperiencesView({
           );
         })}
       </div>
+
+      {/* Quick Edit Category Modal */}
+      {categoryModalExperience && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📂</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Edit Activity Category
+                  </h3>
+                  <p className="text-[11px] text-slate-500 truncate max-w-[280px]">
+                    {categoryModalExperience.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCategoryModalExperience(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                Select Activity Category
+              </label>
+              <select
+                value={editingCategoryValue}
+                onChange={(e) => setEditingCategoryValue(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+              >
+                {EXPERIENCE_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Updating the category immediately updates this activity genre across customer explore, search, and booking filters.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setCategoryModalExperience(null)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSavingCategory || editingCategoryValue === categoryModalExperience.category}
+                onClick={async () => {
+                  setIsSavingCategory(true);
+                  await handleQuickCategoryChange(categoryModalExperience, editingCategoryValue);
+                  setIsSavingCategory(false);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{isSavingCategory ? 'Saving...' : 'Update Category'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Delete Modal */}
       <ConfirmDeleteModal

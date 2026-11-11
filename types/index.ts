@@ -170,6 +170,9 @@ export interface PricingBreakdownConfig {
   includeGst?: boolean;
   otherFeeName?: string;
   otherFeeAmount?: number;
+  hasChildPrice?: boolean;
+  childPrice?: number;
+  childAgeLimit?: string;
 }
 
 export interface PackageTierItem {
@@ -271,6 +274,7 @@ export interface ExperienceTierItem {
   name: string;
   tagline?: string;
   pricePerPerson: number;
+  childPricePerPerson?: number;
   originalPrice?: number;
   features: string[];
 }
@@ -282,7 +286,7 @@ export interface ExperienceItem {
   vendorId: string;
   vendorName: string;
   title: string;
-  priceType?: 'per_person' | 'per_night';
+  priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night' | string;
   personLimit?: number;
   category: string;
   difficulty: Difficulty;
@@ -291,6 +295,9 @@ export interface ExperienceItem {
   location?: string;
   numericPrice: number;
   originalPrice?: number;
+  hasChildPrice?: boolean;
+  childPrice?: number;
+  childAgeLimit?: string;
   image: string;
   gallery?: string[];
   description: string;
@@ -303,6 +310,8 @@ export interface ExperienceItem {
   exclusions?: string[];
   whatToBring?: string[];
   meetingPoint?: string;
+  locationType?: 'fixed_location' | 'customer_location' | 'both';
+  serviceArea?: string;
   maxGroupSize?: number;
   cancellationPolicy?: string;
   guide?: {

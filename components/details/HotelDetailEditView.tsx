@@ -44,6 +44,8 @@ import {
   Loader2,
   Layers,
   RotateCw,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/upload';
 import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
@@ -56,6 +58,7 @@ import {
   updatePropertyAsync,
   approvePropertyAsync,
   rejectPropertyAsync,
+  togglePropertyBookingAsync,
 } from '@/store/slices/propertiesSlice';
 import { PropertyItem, RoomItem, PropertyType } from '@/types';
 import { toast } from '@/components/ui/Toast';
@@ -750,6 +753,21 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
     }
   };
 
+  const handleToggleBooking = async () => {
+    if (!property) return;
+    const next = property.acceptingBookings === false ? true : false;
+    setProperty((prev) => (prev ? { ...prev, acceptingBookings: next } : prev));
+    try {
+      await dispatch(togglePropertyBookingAsync({ id: property.id, acceptingBookings: next })).unwrap();
+      toast.success(
+        next ? 'Property is now accepting bookings.' : 'Property bookings are now paused.',
+        'Booking Status'
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update booking status', 'Error');
+    }
+  };
+
   const guestStayUrl = `http://localhost:3000/stay/${property.id || property.code || property.slug}`;
 
   return (
@@ -791,6 +809,18 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
               <Building className="w-3 h-3 text-slate-400" />
               <span>{property.vendorName || 'Partner Host'}</span>
             </span>
+
+            {property.acceptingBookings === false ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs">
+                <PauseCircle className="w-3.5 h-3.5" />
+                Bookings Paused
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Bookings Open
+              </span>
+            )}
           </div>
         </div>
 
@@ -816,6 +846,30 @@ export default function HotelDetailEditView({ id }: HotelDetailEditViewProps) {
           >
             <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+
+          {/* Pause / Resume Bookings Button */}
+          <button
+            type="button"
+            onClick={handleToggleBooking}
+            title={property.acceptingBookings === false ? 'Click to resume accepting bookings' : 'Click to pause bookings'}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs border ${
+              property.acceptingBookings === false
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+            }`}
+          >
+            {property.acceptingBookings === false ? (
+              <>
+                <PlayCircle className="w-3.5 h-3.5" />
+                <span>Resume Bookings</span>
+              </>
+            ) : (
+              <>
+                <PauseCircle className="w-3.5 h-3.5" />
+                <span>Pause Bookings</span>
+              </>
+            )}
           </button>
 
           {/* Toggle between Customer View and Live Edit Mode */}

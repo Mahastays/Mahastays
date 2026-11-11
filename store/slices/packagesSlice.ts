@@ -126,6 +126,7 @@ export const normalizePackage = (raw: any): PackageItem => {
     rating: raw.ratingScore || raw.rating || 0,
     reviewsCount: raw.reviewsCount || 0,
     featured: !!raw.featured,
+    acceptingBookings: raw.acceptingBookings !== false,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
     pricingRules: raw.pricingRules || undefined,
@@ -461,6 +462,7 @@ export const packagesSlice = createSlice({
         if (state.selectedPackage && state.selectedPackage.id === action.payload.id) {
           state.selectedPackage.acceptingBookings = action.payload.acceptingBookings;
         }
+        savePackages(state.items);
       })
       .addCase(createPackageAsync.fulfilled, (state, action) => {
         state.items = [action.payload, ...state.items];

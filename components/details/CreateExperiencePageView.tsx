@@ -31,12 +31,24 @@ import { toast } from '@/components/ui/Toast';
 import { ExperienceItem, Difficulty, ExperienceSlotItem } from '@/types';
 
 const CATEGORIES = [
+  'Fun Activity & Resort Games',
+  'Night Karaoke & Entertainment',
+  'Bonfire & Music',
+  'Treasure Hunt',
+  'Group Games & Team Building',
+  'Tower Building',
+  'Musical Chair',
+  'Couple Balloon Games',
+  'Antakshari & Musical Games',
+  'Tambola & Housie',
   'Trekking & Hiking',
   'Watersports & Boating',
   'Stargazing & Camping',
   'Cycling & Mountain Biking',
   'Cultural & Heritage Walk',
   'Strawberry Farm Tour',
+  'Adventure & Wildlife Safari',
+  'Nature & Sightseeing',
 ];
 
 const DIFFICULTIES: Difficulty[] = ['Easy', 'Moderate', 'Challenging'];
@@ -75,9 +87,11 @@ export default function CreateExperiencePageView() {
   const [duration, setDuration] = useState('4 Hours');
   const [city, setCity] = useState('Mahabaleshwar');
   const [location, setLocation] = useState('Arthur Seat Base, Mahabaleshwar');
+  const [locationType, setLocationType] = useState<'fixed_location' | 'customer_location' | 'both'>('fixed_location');
+  const [serviceArea, setServiceArea] = useState('Across Mahabaleshwar & Panchgani stays/villas');
   const [numericPrice, setNumericPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
-  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_activity' | 'per_night'>('per_person');
   const [personLimit, setPersonLimit] = useState('15');
   const [description, setDescription] = useState('');
   const [maxGroupSize, setMaxGroupSize] = useState('15');
@@ -88,6 +102,11 @@ export default function CreateExperiencePageView() {
   const [includeCleaningFee, setIncludeCleaningFee] = useState(false);
   const [cleaningFeeAmount, setCleaningFeeAmount] = useState('0');
   const [gstPercentRate, setGstPercentRate] = useState('18');
+
+  // Child Pricing Configuration
+  const [hasChildPrice, setHasChildPrice] = useState(false);
+  const [childPrice, setChildPrice] = useState('');
+  const [childAgeLimit, setChildAgeLimit] = useState('Below 12 years');
 
   // Media & Upload States
   const [image, setImage] = useState('');
@@ -302,10 +321,15 @@ export default function CreateExperiencePageView() {
       difficulty,
       duration,
       city: city.trim(),
-      location: location.trim(),
-      meetingPoint: location.trim(),
+      locationType,
+      serviceArea: locationType !== 'fixed_location' ? serviceArea.trim() : undefined,
+      location: locationType === 'customer_location' ? 'Delivered at Customer Villa / Stay' : location.trim(),
+      meetingPoint: locationType === 'customer_location' ? 'Delivered at customer stay / villa' : location.trim(),
       numericPrice: priceNum,
       originalPrice: origPriceNum,
+      hasChildPrice,
+      childPrice: hasChildPrice ? (parseInt(childPrice, 10) || Math.round(priceNum * 0.6)) : undefined,
+      childAgeLimit: hasChildPrice ? (childAgeLimit.trim() || 'Below 12 years') : undefined,
       description: description.trim(),
       overview: description.trim(),
       image: image.trim(),
@@ -339,6 +363,9 @@ export default function CreateExperiencePageView() {
         includeCleaningFee,
         gstPercent: parseInt(gstPercentRate, 10) || 0,
         includeGst: (parseInt(gstPercentRate, 10) || 0) > 0,
+        hasChildPrice,
+        childPrice: hasChildPrice ? (parseInt(childPrice, 10) || Math.round(priceNum * 0.6)) : undefined,
+        childAgeLimit: hasChildPrice ? (childAgeLimit.trim() || 'Below 12 years') : undefined,
       },
       status: 'pending_approval',
     };
@@ -557,9 +584,15 @@ export default function CreateExperiencePageView() {
                 onChange={(e) => setPriceType(e.target.value as any)}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
               >
-                <option value="per_person">👤 Per Person (Multiplies by participants)</option>
+                <option value="per_person">👤 Per Person (Multiplies price by guest count)</option>
+                <option value="per_activity">🎪 Per Activity / Full Setup (Flat setup price, does NOT increase by person count)</option>
                 <option value="per_night">🌙 Per Night / Flat Session</option>
               </select>
+              {priceType === 'per_activity' && (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                  💡 Full Setup pricing: The booking total stays flat regardless of how many adults or children join (up to the Person Limit capacity).
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -578,16 +611,80 @@ export default function CreateExperiencePageView() {
 
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Meeting Point / Landmark Address
+                Experience Location Type
               </label>
-              <input
-                type="text"
-                placeholder="Arthur Seat Point Road, Mahabaleshwar"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLocationType('fixed_location')}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 ${
+                    locationType === 'fixed_location'
+                      ? 'bg-rose-50 border-rose-400 text-rose-900 dark:bg-rose-950/40 dark:border-rose-700 dark:text-rose-100'
+                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span className="text-xs font-bold">📍 Specific Host Venue</span>
+                  <span className="text-[10px] text-slate-500 leading-tight">Fixed trailhead or meeting point (e.g. Trekking, Boating, Nature Trail).</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationType('customer_location')}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 ${
+                    locationType === 'customer_location'
+                      ? 'bg-rose-50 border-rose-400 text-rose-900 dark:bg-rose-950/40 dark:border-rose-700 dark:text-rose-100'
+                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span className="text-xs font-bold">🚗 At Customer's Location</span>
+                  <span className="text-[10px] text-slate-500 leading-tight">Delivered at user's villa/stay (e.g. Karaoke, Bonfire, Group games).</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationType('both')}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 ${
+                    locationType === 'both'
+                      ? 'bg-rose-50 border-rose-400 text-rose-900 dark:bg-rose-950/40 dark:border-rose-700 dark:text-rose-100'
+                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span className="text-xs font-bold">🔄 Flexible / Both</span>
+                  <span className="text-[10px] text-slate-500 leading-tight">Host can conduct at venue OR deliver setup to user's stay.</span>
+                </button>
+              </div>
             </div>
+
+            {locationType !== 'customer_location' && (
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Meeting Point / Landmark Address (Specific Location)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Arthur Seat Point Road, Mahabaleshwar"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+            )}
+
+            {locationType !== 'fixed_location' && (
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Service Area / Delivery Radius (Customer's Stay / Villa)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. All villas, hotels & resorts across Mahabaleshwar & Panchgani (within 20 km)"
+                  value={serviceArea}
+                  onChange={(e) => setServiceArea(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+                <p className="text-[11px] text-slate-500 font-normal">
+                  💡 Customers will be prompted to provide their specific stay/villa name & room during checkout.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -749,6 +846,82 @@ export default function CreateExperiencePageView() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Child Pricing Toggle & Configuration */}
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    Different Pricing for Children
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${hasChildPrice ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>
+                    {hasChildPrice ? 'Custom Child Rate' : 'Default Adult Rate'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Enable if you want a separate discount or discounted ticket rate for children. If disabled, children are charged the default adult ticket price.
+                </p>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={hasChildPrice}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHasChildPrice(checked);
+                    if (checked && !childPrice) {
+                      const p = parseInt(numericPrice, 10);
+                      setChildPrice(p ? String(Math.round(p * 0.6)) : '399');
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-rose-500"></div>
+              </label>
+            </div>
+
+            {hasChildPrice && (
+              <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700/60 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Child Ticket Price (₹ per child) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 399"
+                      value={childPrice}
+                      onChange={(e) => setChildPrice(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                  <span className="text-[11px] text-slate-400">
+                    Will be multiplied by number of children booked.
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Child Age / Eligibility Limit
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Below 12 years / Ages 3-12"
+                    value={childAgeLimit}
+                    onChange={(e) => setChildAgeLimit(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                  <span className="text-[11px] text-slate-400">
+                    Shown to customer during booking selection.
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

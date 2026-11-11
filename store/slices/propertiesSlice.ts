@@ -153,6 +153,7 @@ export const normalizeProperty = (raw: any): PropertyItem => {
         ? raw.amenities.map((a: any) => (typeof a === 'string' ? a : a.name || ''))
         : [],
     featured: !!raw.featured,
+    acceptingBookings: raw.acceptingBookings !== false,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
     pricingRules: raw.pricingRules || undefined,
@@ -542,6 +543,7 @@ export const propertiesSlice = createSlice({
         if (state.selectedProperty && state.selectedProperty.id === action.payload.id) {
           state.selectedProperty.acceptingBookings = action.payload.acceptingBookings;
         }
+        saveProperties(state.items);
       })
       .addCase(createPropertyAsync.fulfilled, (state, action) => {
         state.items = [action.payload, ...state.items];

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Megaphone,
@@ -13,10 +13,14 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  UploadCloud,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { AdCampaignItem, AdPlacement, AdType } from '../../types';
+import { uploadImageToCloudinary } from '../../lib/upload';
+import { toast } from '../ui/Toast';
 
 interface EditAdModalProps {
   isOpen: boolean;
@@ -42,6 +46,27 @@ export default function EditAdModal({ isOpen, onClose, ad }: EditAdModalProps) {
   const [placement, setPlacement] = useState<AdPlacement>('homepage');
   const [priority, setPriority] = useState<number>(5);
   const [isActive, setIsActive] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      toast.info('Uploading image to Cloudinary...', 'Uploading');
+      const res = await uploadImageToCloudinary(file, 'ad_creative');
+      if (res?.url) {
+        setImageUrl(res.url);
+        toast.success('Image uploaded successfully!', 'Uploaded');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Parse existing ad data when modal opens
   useEffect(() => {
@@ -395,15 +420,42 @@ export default function EditAdModal({ isOpen, onClose, ad }: EditAdModalProps) {
             {/* Image URL & Destination Link */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                  Image Web URL *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                    Image Media *
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#ea110d] hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-2.5 h-2.5" />
+                        <span>Upload File</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="url"
                   required
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
+                  placeholder="Paste URL or click Upload File above"
                   className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
                 />
               </div>

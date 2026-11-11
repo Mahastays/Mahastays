@@ -18,13 +18,18 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
   const { createExperience } = useData();
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Trekking');
+  const [category, setCategory] = useState('Fun Activity & Resort Games');
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [duration, setDuration] = useState('4 Hours');
   const [city, setCity] = useState('Mahabaleshwar');
-  const [priceType, setPriceType] = useState<'per_person' | 'per_night'>('per_person');
+  const [locationType, setLocationType] = useState<'fixed_location' | 'customer_location' | 'both'>('fixed_location');
+  const [meetingPoint, setMeetingPoint] = useState('');
+  const [priceType, setPriceType] = useState<'per_person' | 'per_activity' | 'per_night'>('per_person');
   const [personLimit, setPersonLimit] = useState('15');
   const [numericPrice, setNumericPrice] = useState('');
+  const [hasChildPrice, setHasChildPrice] = useState(false);
+  const [childPrice, setChildPrice] = useState('');
+  const [childAgeLimit, setChildAgeLimit] = useState('Below 12 years');
   const [description, setDescription] = useState('');
   const [guideName, setGuideName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -55,15 +60,29 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
     e.preventDefault();
     if (!title.trim()) return;
 
+    const basePriceNum = parseInt(numericPrice, 10) || 0;
+    const cPriceNum = hasChildPrice ? (parseInt(childPrice, 10) || Math.round(basePriceNum * 0.6)) : undefined;
+
     createExperience({
       title: title.trim(),
       category,
       difficulty,
       duration,
       city,
+      locationType,
+      location: locationType === 'customer_location' ? 'At Your Stay / Villa' : (meetingPoint.trim() || city),
+      meetingPoint: locationType === 'customer_location' ? 'Delivered at customer stay / villa' : (meetingPoint.trim() || undefined),
       priceType,
       personLimit: parseInt(personLimit, 10) || 15,
-      numericPrice: parseInt(numericPrice, 10) || 0,
+      numericPrice: basePriceNum,
+      hasChildPrice,
+      childPrice: cPriceNum,
+      childAgeLimit: hasChildPrice ? (childAgeLimit.trim() || 'Below 12 years') : undefined,
+      pricingRules: {
+        hasChildPrice,
+        childPrice: cPriceNum,
+        childAgeLimit: hasChildPrice ? (childAgeLimit.trim() || 'Below 12 years') : undefined,
+      },
       description: description.trim(),
       image: imageUrl.trim(),
       vendorId: user?.vendorId || user?.id || '',
@@ -74,7 +93,7 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
         avatar: '',
       },
       slots: [
-        { slotId: `slot_${Date.now()}`, time: '07:00 AM - 11:00 AM', label: 'Morning Batch', capacity: 10, price: parseInt(numericPrice, 10) || 0 },
+        { slotId: `slot_${Date.now()}`, time: '07:00 AM - 11:00 AM', label: 'Morning Batch', capacity: 10, price: basePriceNum },
       ],
       highlights: ['Certified Guide'],
     });
@@ -89,7 +108,7 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-rose-600" />
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Add Mountain Experience / Trek
+              Add Experience / Activity
             </h3>
           </div>
           <button
@@ -105,7 +124,7 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
             <label className="font-semibold text-slate-700 dark:text-slate-300">Activity Title</label>
             <input
               type="text"
-              placeholder="e.g. Lingmala Waterfall Hidden Trail Trek"
+              placeholder="e.g. Resort Bonfire, Musical Night & Karaoke"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
@@ -121,11 +140,24 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
               >
-                <option value="Trekking">Trekking</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Culture & Food">Culture & Food</option>
-                <option value="Cruises">Boating & Water</option>
-                <option value="Safari & Desert">Wildlife Safari</option>
+                <option value="Fun Activity & Resort Games">Fun Activity & Resort Games</option>
+                <option value="Night Karaoke & Entertainment">Night Karaoke & Entertainment</option>
+                <option value="Bonfire & Music">Bonfire & Music</option>
+                <option value="Treasure Hunt">Treasure Hunt</option>
+                <option value="Group Games & Team Building">Group Games & Team Building</option>
+                <option value="Tower Building">Tower Building</option>
+                <option value="Musical Chair">Musical Chair</option>
+                <option value="Couple Balloon Games">Couple Balloon Games</option>
+                <option value="Antakshari & Musical Games">Antakshari & Musical Games</option>
+                <option value="Tambola & Housie">Tambola & Housie</option>
+                <option value="Trekking & Hiking">Trekking & Hiking</option>
+                <option value="Watersports & Boating">Watersports & Boating</option>
+                <option value="Stargazing & Camping">Stargazing & Camping</option>
+                <option value="Cycling & Mountain Biking">Cycling & Mountain Biking</option>
+                <option value="Cultural & Heritage Walk">Cultural & Heritage Walk</option>
+                <option value="Strawberry Farm Tour">Strawberry Farm Tour</option>
+                <option value="Adventure & Wildlife Safari">Adventure & Wildlife Safari</option>
+                <option value="Nature & Sightseeing">Nature & Sightseeing</option>
               </select>
             </div>
 
@@ -136,7 +168,7 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                 className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
               >
-                <option value="Easy">Easy (Family Friendly)</option>
+                <option value="Easy">Easy (Family & Kids Friendly)</option>
                 <option value="Moderate">Moderate</option>
                 <option value="Challenging">Challenging</option>
               </select>
@@ -157,7 +189,7 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="font-semibold text-slate-700 dark:text-slate-300">
-                Price (₹ {priceType === 'per_night' ? '/ Session' : '/ Person'})
+                Adult Price (₹ {priceType === 'per_activity' ? '/ Full Setup' : priceType === 'per_night' ? '/ Session' : '/ Person'})
               </label>
               <input
                 type="number"
@@ -175,7 +207,8 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 onChange={(e) => setPriceType(e.target.value as any)}
                 className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
               >
-                <option value="per_person">👤 Per Person</option>
+                <option value="per_person">👤 Per Person (Scales with guests)</option>
+                <option value="per_activity">🎪 Per Activity / Full Setup (Flat price)</option>
                 <option value="per_night">🌙 Per Night / Flat</option>
               </select>
             </div>
@@ -191,6 +224,108 @@ export default function CreateExperienceModal({ isOpen, onClose }: CreateExperie
                 className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
               />
             </div>
+          </div>
+
+          {/* Location Type Selector */}
+          <div className="space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <label className="font-semibold text-xs text-slate-700 dark:text-slate-300 block">
+              Activity Location Setup
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setLocationType('fixed_location')}
+                className={`py-1.5 px-2 rounded-lg font-semibold border transition text-center ${
+                  locationType === 'fixed_location'
+                    ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                }`}
+              >
+                📍 Host Venue
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationType('customer_location')}
+                className={`py-1.5 px-2 rounded-lg font-semibold border transition text-center ${
+                  locationType === 'customer_location'
+                    ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                }`}
+              >
+                🚗 At Your Stay
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationType('both')}
+                className={`py-1.5 px-2 rounded-lg font-semibold border transition text-center ${
+                  locationType === 'both'
+                    ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                }`}
+              >
+                🔄 Both / Flexible
+              </button>
+            </div>
+            {locationType !== 'customer_location' ? (
+              <input
+                type="text"
+                placeholder="Meeting Point Address (e.g. Arthur Seat Road, Mahabaleshwar)"
+                value={meetingPoint}
+                onChange={(e) => setMeetingPoint(e.target.value)}
+                className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+              />
+            ) : (
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                ✨ Delivered directly at the customer's booked stay/villa across Mahabaleshwar &amp; Panchgani.
+              </p>
+            )}
+          </div>
+
+          {/* Child Pricing */}
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">Different Child Pricing</span>
+                <span className="text-[10px] text-slate-500">Uncheck to charge default adult price for children</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={hasChildPrice}
+                onChange={(e) => {
+                  setHasChildPrice(e.target.checked);
+                  if (e.target.checked && !childPrice) {
+                    const p = parseInt(numericPrice, 10);
+                    setChildPrice(p ? String(Math.round(p * 0.6)) : '399');
+                  }
+                }}
+                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+              />
+            </div>
+            {hasChildPrice && (
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Child Rate (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="399"
+                    value={childPrice}
+                    onChange={(e) => setChildPrice(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Age Limit</label>
+                  <input
+                    type="text"
+                    placeholder="Below 12 yrs"
+                    value={childAgeLimit}
+                    onChange={(e) => setChildAgeLimit(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
             <div className="space-y-1">

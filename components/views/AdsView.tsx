@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Megaphone,
   CheckCircle2,
@@ -41,6 +42,7 @@ interface AdsViewProps {
 }
 
 export default function AdsView({ onOpenCreateModal }: AdsViewProps) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const { user, activeViewMode } = useAuth();
   const { ads, approveAdCampaign, toggleAdCampaign, deleteAdCampaign } = useData();
@@ -129,14 +131,7 @@ export default function AdsView({ onOpenCreateModal }: AdsViewProps) {
   const averageCtr = totalImpressions ? ((totalClicks / totalImpressions) * 100).toFixed(2) : '0.00';
 
   const handleOpenCreateForSection = (sec: AdSectionTab) => {
-    let targetPlacement: AdPlacement = 'homepage';
-    if (sec === 'packages') targetPlacement = 'packages';
-    else if (sec === 'experiences') targetPlacement = 'experiences';
-    else if (sec === 'stays') targetPlacement = 'stays';
-    else targetPlacement = 'homepage';
-
-    setModalPlacement(targetPlacement);
-    setIsModalOpen(true);
+    router.push(`/dashboard/ads/new?section=${sec}`);
   };
 
   // Section details

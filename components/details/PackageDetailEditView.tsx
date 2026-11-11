@@ -37,6 +37,8 @@ import {
   RotateCw,
   Video,
   X,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { VideoPlayerModal, getYouTubeThumbnailUrl } from '../modals/VideoPlayerModal';
 import { uploadImageToCloudinary } from '@/lib/upload';
@@ -49,6 +51,7 @@ import {
   updatePackageAsync,
   approvePackageAsync,
   rejectPackageAsync,
+  togglePackageBookingAsync,
 } from '@/store/slices/packagesSlice';
 import { PackageItem, PackageCategory, PackageType, PackageTierItem } from '@/types';
 import { toast } from '@/components/ui/Toast';
@@ -757,6 +760,21 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
     }
   };
 
+  const handleToggleBooking = async () => {
+    if (!pkg) return;
+    const next = pkg.acceptingBookings === false ? true : false;
+    setPkg((prev) => (prev ? { ...prev, acceptingBookings: next } : prev));
+    try {
+      await dispatch(togglePackageBookingAsync({ id: pkg.id, acceptingBookings: next })).unwrap();
+      toast.success(
+        next ? 'Package is now accepting bookings.' : 'Package bookings are now paused.',
+        'Booking Status'
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update booking status', 'Error');
+    }
+  };
+
   const guestPackageUrl = `http://localhost:3000/packages/${pkg.slug || pkg.code || pkg.id}`;
 
   return (
@@ -798,6 +816,18 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
               <Building className="w-3 h-3 text-slate-400" />
               <span>{pkg.vendorName || 'Holiday Concierge'}</span>
             </span>
+
+            {pkg.acceptingBookings === false ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs">
+                <PauseCircle className="w-3.5 h-3.5" />
+                Bookings Paused
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Bookings Open
+              </span>
+            )}
           </div>
         </div>
 
@@ -823,6 +853,30 @@ export default function PackageDetailEditView({ id }: PackageDetailEditViewProps
           >
             <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+
+          {/* Pause / Resume Bookings Button */}
+          <button
+            type="button"
+            onClick={handleToggleBooking}
+            title={pkg.acceptingBookings === false ? 'Click to resume accepting bookings' : 'Click to pause bookings'}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs border ${
+              pkg.acceptingBookings === false
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+            }`}
+          >
+            {pkg.acceptingBookings === false ? (
+              <>
+                <PlayCircle className="w-3.5 h-3.5" />
+                <span>Resume Bookings</span>
+              </>
+            ) : (
+              <>
+                <PauseCircle className="w-3.5 h-3.5" />
+                <span>Pause Bookings</span>
+              </>
+            )}
           </button>
 
           {/* Toggle between Customer View and Live Edit Mode */}

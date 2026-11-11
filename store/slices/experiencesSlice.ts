@@ -96,6 +96,14 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
     difficulty: (raw.difficulty || 'Easy') as any,
     duration: raw.duration || '',
     city: raw.city || 'Mahabaleshwar',
+    location: raw.location || raw.city || 'Mahabaleshwar',
+    priceType: raw.priceType || 'per_person',
+    personLimit: raw.personLimit,
+    hasChildPrice: raw.hasChildPrice ?? false,
+    childPrice: raw.childPrice,
+    childAgeLimit: raw.childAgeLimit,
+    locationType: raw.locationType || 'fixed_location',
+    serviceArea: raw.serviceArea,
     numericPrice: startingPrice,
     originalPrice: raw.originalPrice,
     image,
@@ -141,6 +149,7 @@ export const normalizeExperience = (raw: any): ExperienceItem => {
     rating: raw.ratingScore || raw.rating || 0,
     reviewsCount: raw.reviewsCount || 0,
     featured: !!raw.featured,
+    acceptingBookings: raw.acceptingBookings !== false,
     status: raw.status || 'active',
     rejectionReason: raw.rejectionReason,
     pricingRules: raw.pricingRules || undefined,
@@ -472,6 +481,7 @@ export const experiencesSlice = createSlice({
         if (state.selectedExperience && state.selectedExperience.id === action.payload.id) {
           state.selectedExperience.acceptingBookings = action.payload.acceptingBookings;
         }
+        saveExperiences(state.items);
       })
       .addCase(createExperienceAsync.fulfilled, (state, action) => {
         state.items = [action.payload, ...state.items];

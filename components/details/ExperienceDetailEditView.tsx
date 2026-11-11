@@ -35,6 +35,8 @@ import {
   RotateCw,
   Video,
   X,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { VideoPlayerModal, getYouTubeThumbnailUrl } from '../modals/VideoPlayerModal';
 import { uploadImageToCloudinary } from '@/lib/upload';
@@ -47,6 +49,7 @@ import {
   updateExperienceAsync,
   approveExperienceAsync,
   rejectExperienceAsync,
+  toggleExperienceBookingAsync,
 } from '@/store/slices/experiencesSlice';
 import {
   ExperienceItem,
@@ -61,13 +64,29 @@ interface ExperienceDetailEditViewProps {
 }
 
 const EXPERIENCE_CATEGORIES = [
+  'Fun Activity & Resort Games',
+  'Night Karaoke & Entertainment',
+  'Bonfire & Music',
+  'Treasure Hunt',
+  'Group Games & Team Building',
+  'Tower Building',
+  'Musical Chair',
+  'Couple Balloon Games',
+  'Antakshari & Musical Games',
+  'Tambola & Housie',
+  'Trekking & Hiking',
+  'Watersports & Boating',
+  'Stargazing & Camping',
+  'Cycling & Mountain Biking',
+  'Cultural & Heritage Walk',
+  'Strawberry Farm Tour',
+  'Adventure & Wildlife Safari',
+  'Nature & Sightseeing',
   'Trekking',
   'Culture & Food',
   'Cruises',
   'Safari & Desert',
   'Adventure',
-  'Nature & Sightseeing',
-  'Water Sports',
 ];
 
 const DIFFICULTY_LEVELS: Difficulty[] = ['Easy', 'Moderate', 'Challenging'];
@@ -746,16 +765,37 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
     }
   };
 
+  const handleToggleBooking = async () => {
+    if (!exp) return;
+    const next = exp.acceptingBookings === false ? true : false;
+    setExp((prev) => (prev ? { ...prev, acceptingBookings: next } : prev));
+    try {
+      await dispatch(toggleExperienceBookingAsync({ id: exp.id, acceptingBookings: next })).unwrap();
+      toast.success(
+        next ? 'Experience is now accepting bookings.' : 'Experience bookings are now paused.',
+        'Booking Status'
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update booking status', 'Error');
+    }
+  };
+
   // Pricing calculations for live preview ledger
   const currentTier = tiers[selectedTierIndex] || tiers[0];
+  const isFullSetup = exp.priceType === 'per_activity' || exp.priceType === 'full_setup' || exp.priceType === 'per_night';
   const isPerNight = exp.priceType === 'per_night';
   const personLimit = exp.personLimit || 15;
   const pricePerPerson = currentTier?.pricePerPerson || exp.numericPrice;
   const originalPricePerPerson = currentTier?.originalPrice || exp.originalPrice || pricePerPerson + 800;
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
-  const baseCost = isPerNight
+  const hasChildPrice = exp.hasChildPrice ?? exp.pricingRules?.hasChildPrice ?? false;
+  const configuredChildPrice = exp.childPrice ?? exp.pricingRules?.childPrice ?? (currentTier as any)?.childPricePerPerson ?? null;
+  const childPriceLimit = exp.childAgeLimit ?? exp.pricingRules?.childAgeLimit ?? 'Below 12 years';
+  const effectiveChildPrice = hasChildPrice && configuredChildPrice !== null ? configuredChildPrice : pricePerPerson;
+
+  const baseCost = isFullSetup
     ? pricePerPerson
-    : pricePerPerson * Math.max(1, adults) + Math.round(pricePerPerson * 0.7) * children;
+    : pricePerPerson * Math.max(1, adults) + effectiveChildPrice * children;
 
   // Custom Pricing, Discounts & GST Rules
   const pricingRules = exp.pricingRules || {};
@@ -834,16 +874,69 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
               <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                 Vendor: {exp.vendorName || 'Outdoor Mahabaleshwar Guild'}
               </span>
+              {exp.acceptingBookings === false ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs">
+                  <PauseCircle className="w-3 h-3" />
+                  BOOKINGS PAUSED
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                  <CheckCircle2 className="w-3 h-3" />
+                  BOOKINGS OPEN
+                </span>
+              )}
             </div>
             {isEditMode ? (
-              <input
-                type="text"
-                value={exp.title}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                className="text-lg font-bold text-slate-900 border border-slate-200 rounded-lg px-2 py-0.5 mt-0.5 w-full max-w-md focus:outline-rose-500"
-              />
+              <div className="space-y-2 mt-1 w-full max-w-xl">
+                <input
+                  type="text"
+                  value={exp.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  className="text-lg font-bold text-slate-900 border border-slate-200 rounded-lg px-2.5 py-1 w-full focus:outline-rose-500"
+                  placeholder="Experience title"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span className="text-[11px] font-bold text-slate-500">Category:</span>
+                    <select
+                      value={exp.category}
+                      onChange={(e) => handleFieldChange('category', e.target.value)}
+                      className="text-xs font-bold text-slate-900 bg-white border border-slate-200 rounded-md px-2 py-0.5 focus:outline-rose-500 cursor-pointer"
+                    >
+                      {EXPERIENCE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span className="text-[11px] font-bold text-slate-500">Difficulty:</span>
+                    <select
+                      value={exp.difficulty}
+                      onChange={(e) => handleFieldChange('difficulty', e.target.value as any)}
+                      className="text-xs font-bold text-slate-900 bg-white border border-slate-200 rounded-md px-2 py-0.5 focus:outline-rose-500 cursor-pointer"
+                    >
+                      {DIFFICULTY_LEVELS.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {lvl}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <h1 className="text-lg font-bold text-slate-900 mt-0.5 line-clamp-1">{exp.title}</h1>
+              <div className="mt-0.5">
+                <h1 className="text-lg font-bold text-slate-900 line-clamp-1">{exp.title}</h1>
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-1">
+                  <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px]">
+                    📂 {exp.category}
+                  </span>
+                  <span>•</span>
+                  <span>{exp.difficulty} Difficulty</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -860,6 +953,30 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
           >
             <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#ea110d]' : ''}`} />
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+
+          {/* Pause / Resume Bookings Toggle */}
+          <button
+            type="button"
+            onClick={handleToggleBooking}
+            title={exp.acceptingBookings === false ? 'Click to resume accepting bookings' : 'Click to pause bookings'}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs border ${
+              exp.acceptingBookings === false
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+            }`}
+          >
+            {exp.acceptingBookings === false ? (
+              <>
+                <PlayCircle className="w-3.5 h-3.5" />
+                <span>Resume Bookings</span>
+              </>
+            ) : (
+              <>
+                <PauseCircle className="w-3.5 h-3.5" />
+                <span>Pause Bookings</span>
+              </>
+            )}
           </button>
 
           {/* Mode Switch Pill */}
@@ -1021,13 +1138,48 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
             {/* Badges on hero */}
-            <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-slate-900 rounded-full text-xs font-bold shadow-sm font-poppins">
-                {exp.category}
-              </span>
-              <span className="px-3 py-1 bg-amber-500 text-slate-950 rounded-full text-xs font-bold shadow-sm font-poppins">
-                {exp.difficulty} Difficulty
-              </span>
+            <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-10">
+              {isEditMode ? (
+                <div className="flex flex-wrap items-center gap-2 bg-black/75 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 shadow-lg">
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-[10px] uppercase font-bold text-white/90">Category:</span>
+                    <select
+                      value={exp.category}
+                      onChange={(e) => handleFieldChange('category', e.target.value)}
+                      className="px-2.5 py-1 bg-white text-slate-900 rounded-xl text-xs font-bold shadow-xs cursor-pointer focus:outline-none"
+                    >
+                      {EXPERIENCE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-[10px] uppercase font-bold text-white/90">Difficulty:</span>
+                    <select
+                      value={exp.difficulty}
+                      onChange={(e) => handleFieldChange('difficulty', e.target.value as any)}
+                      className="px-2.5 py-1 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold shadow-xs cursor-pointer focus:outline-none"
+                    >
+                      {DIFFICULTY_LEVELS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-slate-900 rounded-full text-xs font-bold shadow-sm font-poppins">
+                    {exp.category}
+                  </span>
+                  <span className="px-3 py-1 bg-amber-500 text-slate-950 rounded-full text-xs font-bold shadow-sm font-poppins">
+                    {exp.difficulty} Difficulty
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Photo Indicator & Delete */}
@@ -1708,6 +1860,40 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                       </p>
                     )}
 
+                    {/* Activity Category Spec Card */}
+                    <div className="p-3 mb-3 rounded-xl bg-rose-50/50 border border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📂</span>
+                        <div>
+                          <div className="text-[10px] uppercase font-bold text-slate-400">Activity Category</div>
+                          <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                            <span>{exp.category}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {isEditMode ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-rose-600">Change:</span>
+                          <select
+                            value={exp.category}
+                            onChange={(e) => handleFieldChange('category', e.target.value)}
+                            className="text-xs font-bold text-slate-900 border border-rose-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-rose-500 cursor-pointer shadow-xs"
+                          >
+                            {EXPERIENCE_CATEGORIES.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                          Verified Activity
+                        </span>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                         <div className="text-[10px] uppercase font-bold text-slate-400">Duration</div>
@@ -2327,7 +2513,70 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
 
           {/* ─── Tab 6: Location & Basecamp ─── */}
           {(activeDetailTab === 'all' || activeDetailTab === 'location') && (
-            <div id="location">
+            <div id="location" className="space-y-4">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span>Location Setup Type:</span>
+                    <span className="text-xs text-rose-600 font-bold uppercase">{exp.locationType || 'fixed_location'}</span>
+                  </h3>
+                  {isEditMode && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setExp((prev) => prev ? { ...prev, locationType: 'fixed_location' } : prev)}
+                        className={`px-3 py-1.5 rounded-lg font-bold border transition ${
+                          (exp.locationType || 'fixed_location') === 'fixed_location'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        📍 Host Venue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExp((prev) => prev ? { ...prev, locationType: 'customer_location' } : prev)}
+                        className={`px-3 py-1.5 rounded-lg font-bold border transition ${
+                          exp.locationType === 'customer_location'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        🚗 At Customer's Stay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExp((prev) => prev ? { ...prev, locationType: 'both' } : prev)}
+                        className={`px-3 py-1.5 rounded-lg font-bold border transition ${
+                          exp.locationType === 'both'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        🔄 Both / Flexible
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {exp.locationType === 'customer_location' && (
+                  <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-xs flex flex-col gap-1.5">
+                    <span className="font-bold">🚗 Delivered At Customer's Location / Stay:</span>
+                    <span>The host / vendor travels directly to the customer's booked villa, resort, or accommodation with full equipment &amp; setup.</span>
+                    {isEditMode && (
+                      <div className="pt-2">
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Service Area / Coverage:</label>
+                        <input
+                          type="text"
+                          value={exp.serviceArea || 'Across Mahabaleshwar & Panchgani villas/resorts'}
+                          onChange={(e) => setExp((prev) => prev ? { ...prev, serviceArea: e.target.value } : prev)}
+                          placeholder="e.g. Mahabaleshwar & Panchgani (within 20 km)"
+                          className="w-full p-2 rounded-lg bg-white border border-emerald-300 text-xs text-slate-800 font-semibold"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <LocationMapPicker
                 propertyName={exp.title}
                 locationArea={exp.location || exp.city || 'Old Mahabaleshwar & Panchgani'}
@@ -2488,29 +2737,57 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
               <span className="text-xs font-bold text-[#ea110d] font-poppins">Active</span>
             </div>
 
-            <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/40 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Explorers</div>
-                <div className="text-xs font-bold text-slate-900">
-                  {adults} Adults, {children} Child
+            <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Adult Explorers</div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {adults} Adult{adults > 1 ? 's' : ''} (₹{pricePerPerson.toLocaleString('en-IN')})
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAdults((prev) => Math.max(1, prev - 1))}
+                    className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-bold w-4 text-center">{adults}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAdults((prev) => prev + 1)}
+                    className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setAdults((prev) => Math.max(1, prev - 1))}
-                  className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
-                >
-                  -
-                </button>
-                <span className="text-xs font-bold w-4 text-center">{adults}</span>
-                <button
-                  type="button"
-                  onClick={() => setAdults((prev) => prev + 1)}
-                  className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
-                >
-                  +
-                </button>
+
+              <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Child Explorers</div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {children} Child{children > 1 ? 'ren' : ''} {hasChildPrice ? `(₹${effectiveChildPrice.toLocaleString('en-IN')})` : `(₹${pricePerPerson.toLocaleString('en-IN')} adult rate)`}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setChildren((prev) => Math.max(0, prev - 1))}
+                    className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-bold w-4 text-center">{children}</span>
+                  <button
+                    type="button"
+                    onClick={() => setChildren((prev) => prev + 1)}
+                    className="w-6 h-6 rounded-md bg-white border border-slate-200 text-xs font-bold cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2543,17 +2820,17 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                     <span className="text-[10px] text-amber-600 font-normal">Saves on &ldquo;Save to Backend&rdquo;</span>
                   </div>
 
-                  {/* 0. Pricing Model (Per Person vs Per Night) */}
+                  {/* 0. Pricing Model (Per Person vs Per Activity / Full Setup vs Per Night) */}
                   <div className="space-y-1.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                     <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>Price Model</span>
                       <span className="text-[10px] text-rose-600 font-bold uppercase">{exp.priceType || 'per_person'}</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       <button
                         type="button"
                         onClick={() => setExp({ ...exp, priceType: 'per_person' })}
-                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition ${
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
                           (exp.priceType || 'per_person') === 'per_person'
                             ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
@@ -2563,20 +2840,33 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                       </button>
                       <button
                         type="button"
+                        onClick={() => setExp({ ...exp, priceType: 'per_activity' })}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
+                          exp.priceType === 'per_activity' || exp.priceType === 'full_setup'
+                            ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                        }`}
+                      >
+                        🎪 Full Setup
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setExp({ ...exp, priceType: 'per_night' })}
-                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition ${
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition text-center ${
                           exp.priceType === 'per_night'
                             ? 'bg-rose-50 border-rose-400 text-rose-700 dark:bg-rose-950/40'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
                         }`}
                       >
-                        🌙 Per Night / Flat
+                        🌙 Per Night
                       </button>
                     </div>
                     <p className="text-[10px] text-slate-400 leading-tight">
-                      {(exp.priceType || 'per_person') === 'per_person'
-                        ? 'Price multiplies with each participant.'
-                        : 'Fixed flat activity price with a person limit.'}
+                      {exp.priceType === 'per_activity' || exp.priceType === 'full_setup'
+                        ? '🎪 Full Setup / Per Activity: Flat rate for the entire activity. Price does NOT increase with guest count.'
+                        : exp.priceType === 'per_night'
+                        ? '🌙 Per Night: Flat session rate per night.'
+                        : '👤 Per Person: Total price multiplies by adult & child participants.'}
                     </p>
                   </div>
 
@@ -2721,6 +3011,90 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                       </div>
                     </div>
                   </div>
+
+                  {/* 4. Child Pricing Configuration */}
+                  <div className="space-y-2 pt-2 border-t border-slate-200/60 dark:border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Different Child Pricing</span>
+                        <span className="text-[10px] text-slate-400">If unchecked, children use default adult rate</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={hasChildPrice}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setExp((prev) => {
+                            if (!prev) return prev;
+                            const defaultC = prev.childPrice || Math.round(pricePerPerson * 0.6);
+                            return {
+                              ...prev,
+                              hasChildPrice: val,
+                              childPrice: val ? defaultC : undefined,
+                              pricingRules: {
+                                ...(prev.pricingRules || {}),
+                                hasChildPrice: val,
+                                childPrice: val ? defaultC : undefined,
+                              },
+                            };
+                          });
+                        }}
+                        className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+                      />
+                    </div>
+
+                    {hasChildPrice && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block">Child Rate (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="399"
+                            value={configuredChildPrice ?? ''}
+                            onChange={(e) => {
+                              const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                              setExp((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  childPrice: val,
+                                  pricingRules: {
+                                    ...(prev.pricingRules || {}),
+                                    childPrice: val,
+                                  },
+                                };
+                              });
+                            }}
+                            className="w-full p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block">Child Age Limit</label>
+                          <input
+                            type="text"
+                            placeholder="Below 12 years"
+                            value={childPriceLimit}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setExp((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  childAgeLimit: val,
+                                  pricingRules: {
+                                    ...(prev.pricingRules || {}),
+                                    childAgeLimit: val,
+                                  },
+                                };
+                              });
+                            }}
+                            className="w-full p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs bg-white dark:bg-slate-900"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -2736,7 +3110,9 @@ export default function ExperienceDetailEditView({ id }: ExperienceDetailEditVie
                 <span>
                   {isPerNight
                     ? `₹${pricePerPerson.toLocaleString('en-IN')} / session (flat up to ${personLimit} explorers)`
-                    : `₹${pricePerPerson.toLocaleString('en-IN')} × ${adults} explorer${adults > 1 ? 's' : ''}${children > 0 ? ` + ${children} kids` : ''}`}
+                    : hasChildPrice && children > 0
+                    ? `₹${pricePerPerson.toLocaleString('en-IN')} × ${adults} adult${adults > 1 ? 's' : ''} + ₹${effectiveChildPrice.toLocaleString('en-IN')} × ${children} child (${childPriceLimit})`
+                    : `₹${pricePerPerson.toLocaleString('en-IN')} × ${adults + children} participant${(adults + children) > 1 ? 's' : ''}`}
                 </span>
                 <span className="text-slate-900 font-semibold">₹{baseCost.toLocaleString('en-IN')}</span>
               </div>
