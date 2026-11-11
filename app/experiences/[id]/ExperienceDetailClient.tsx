@@ -45,7 +45,9 @@ export default function ExperienceDetailsPage() {
           tagline: t.tagline || "",
           priceType: t.priceType || e.priceType || 'per_person',
           personLimit: t.personLimit != null ? Number(t.personLimit) : (e.personLimit != null ? Number(e.personLimit) : 15),
+          hasChildPrice: t.hasChildPrice !== undefined ? Boolean(t.hasChildPrice) : (t.childPricePerPerson != null && Number(t.childPricePerPerson) > 0),
           childPricePerPerson: t.childPricePerPerson != null ? Number(t.childPricePerPerson) : null,
+          childAgeLimit: t.childAgeLimit || (e as any)?.childAgeLimit || 'Below 12 years',
           pricePerPerson: Number(t.pricePerPerson) || e.numericPrice || 499,
           originalPrice: Number(t.originalPrice) || Math.round((Number(t.pricePerPerson) || e.numericPrice || 499) * 1.3),
           features: t.features || ["Certified Guide", "Refreshments Included"],
@@ -57,6 +59,9 @@ export default function ExperienceDetailsPage() {
             tagline: "Guided excursion with certified expert",
             priceType: e.priceType || 'per_person',
             personLimit: e.personLimit || 15,
+            hasChildPrice: false,
+            childPricePerPerson: undefined,
+            childAgeLimit: 'Below 12 years',
             pricePerPerson: e.numericPrice || 499,
             originalPrice: Math.round((e.numericPrice || 499) * 1.3),
             features: ["Certified Guide", "Safety Equipment", "Refreshments"],
@@ -345,10 +350,16 @@ export default function ExperienceDetailsPage() {
   const savingsPerPerson = Math.max(0, originalPricePerPerson - pricePerPerson);
 
   const pricingRules = (exp as any)?.pricingRules;
-  const hasChildPrice = Boolean((exp as any)?.hasChildPrice ?? pricingRules?.hasChildPrice);
-  const rawChildPrice = (selectedTier as any)?.childPricePerPerson ?? (exp as any)?.childPrice ?? pricingRules?.childPrice;
+  const hasChildPrice = Boolean(
+    selectedTier?.hasChildPrice ??
+    (selectedTier?.childPricePerPerson != null && selectedTier.childPricePerPerson > 0) ??
+    (exp as any)?.hasChildPrice ??
+    pricingRules?.hasChildPrice ??
+    false
+  );
+  const rawChildPrice = selectedTier?.childPricePerPerson ?? (exp as any)?.childPrice ?? pricingRules?.childPrice;
   const childPrice = (hasChildPrice && typeof rawChildPrice === 'number') ? rawChildPrice : null;
-  const childAgeLimit = (exp as any)?.childAgeLimit || pricingRules?.childAgeLimit || 'Ages 3-12';
+  const childAgeLimit = selectedTier?.childAgeLimit || (exp as any)?.childAgeLimit || pricingRules?.childAgeLimit || 'Below 12 years';
   const effectiveChildPrice = (hasChildPrice && childPrice !== null) ? childPrice : pricePerPerson;
 
   const memberDiscountPercent = typeof pricingRules?.memberDiscountPercent === 'number'
@@ -902,7 +913,7 @@ export default function ExperienceDetailsPage() {
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               <h3 className="text-sm sm:text-base font-bold text-slate-900 font-poppins truncate">
                                 {tier.name}
                               </h3>
@@ -911,6 +922,25 @@ export default function ExperienceDetailsPage() {
                                   {tier.badge}
                                 </span>
                               )}
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                                {((tier as any).priceType || (exp as any)?.priceType) === 'full_setup' || ((tier as any).priceType || (exp as any)?.priceType) === 'per_activity'
+                                  ? '🎪 Full Setup'
+                                  : ((tier as any).priceType || (exp as any)?.priceType) === 'per_night'
+                                  ? '🌙 Per Night'
+                                  : '👤 Per Person'}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-50 text-slate-600 border border-slate-200 shrink-0">
+                                👥 Max {(tier as any).personLimit || (exp as any)?.personLimit || 15} guests
+                              </span>
+                              {Boolean(tier.hasChildPrice || ((tier as any).childPricePerPerson != null && (tier as any).childPricePerPerson > 0)) ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                  👶 Child: ₹{((tier as any).childPricePerPerson || 0).toLocaleString('en-IN')} ({(tier as any).childAgeLimit || 'Below 12 yrs'})
+                                </span>
+                              ) : (((tier as any).priceType || (exp as any)?.priceType) === 'full_setup' || ((tier as any).priceType || (exp as any)?.priceType) === 'per_activity') ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                  👶 Children included in setup
+                                </span>
+                              ) : null}
                             </div>
                             <p className="text-[11px] text-slate-500 font-roboto line-clamp-1 sm:line-clamp-2 mb-2">
                               {tier.tagline || (tier as any).description}
@@ -1476,6 +1506,19 @@ export default function ExperienceDetailsPage() {
                   </div>
                   <div className="text-xs font-bold text-slate-900 font-poppins truncate max-w-[210px]">
                     {selectedTier?.name} • {selectedSlot?.time}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className="text-[9px] font-bold text-slate-700 bg-white px-1.5 py-0.5 rounded border border-rose-200">
+                      {isFullSetup ? '🎪 Full Setup' : isPerNight ? '🌙 Per Night' : '👤 Per Person'}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-medium">
+                      Max {personLimit} guests
+                    </span>
+                    {hasChildPrice && childPrice !== null ? (
+                      <span className="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        Child: ₹{childPrice.toLocaleString('en-IN')}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <span className="text-xs font-bold text-[#ea110d] font-poppins">Change →</span>

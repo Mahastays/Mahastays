@@ -39,7 +39,9 @@ export interface ExperienceTier {
   tagline: string;
   priceType?: 'per_person' | 'per_activity' | 'full_setup' | 'per_night';
   personLimit?: number;
+  hasChildPrice?: boolean;
   childPricePerPerson?: number;
+  childAgeLimit?: string;
   pricePerPerson: number;
   originalPrice: number;
   features: string[];
