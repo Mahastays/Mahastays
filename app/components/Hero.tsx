@@ -86,23 +86,6 @@ interface AdOffer {
   link: string;
 }
 
-const DEFAULT_FALLBACK_OFFERS: AdOffer[] = [
-  {
-    id: "home-special-offer-1",
-    name: "3 BHK Villa Near Mapro Garden",
-    duration: "3D / 2N",
-    view: "Scenic View",
-    location: "Mahabaleshwar, India",
-    originalPrice: 18500,
-    discountedPrice: 12499,
-    discountPercent: 32,
-    badgeText: "Hot Deal",
-    badgeType: "hot",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop&q=80",
-    link: "/explore",
-  },
-];
-
 export default function Hero() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -264,11 +247,11 @@ export default function Hero() {
 
           setOffers(mapped);
         } else if (isMounted) {
-          // Use verified fallback so the special offers section is reliably shown
-          setOffers(DEFAULT_FALLBACK_OFFERS);
+          // No active ads from backend -> do not show any dummy ad
+          setOffers([]);
         }
       } catch {
-        if (isMounted) setOffers(DEFAULT_FALLBACK_OFFERS);
+        if (isMounted) setOffers([]);
       } finally {
         if (isMounted) setIsLoadingOffers(false);
       }
