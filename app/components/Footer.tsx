@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-footer-bg text-white pt-20 pb-24 sm:pb-28 lg:pb-9 relative overflow-hidden border-t border-white/10" id="footer">
+    <footer className="bg-footer-bg text-white pt-20 pb-24 sm:pb-28 md:pb-32 xl:pb-10 relative overflow-hidden border-t border-white/10" id="footer">
       {/* ─── Top Call-To-Action Block (Tailwind utility classes) ─ */}
       <div className="max-w-4xl mx-auto px-6 text-center relative z-10 flex flex-col items-center">
         <span className="text-xs font-bold tracking-widest uppercase text-primary mb-3">
@@ -75,8 +75,31 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ─── Giant Watermark Background Typography (Tailwind) ─── */}
-      <div className="relative w-full text-center pointer-events-none select-none overflow-hidden my-4 sm:my-6" aria-hidden="true">
+      {/* ─── Ambient Watermark Main Logo in Background ─── */}
+      <div
+        className="absolute -right-12 sm:right-4 -bottom-10 sm:-bottom-14 pointer-events-none select-none opacity-[0.035] overflow-hidden z-0"
+        aria-hidden="true"
+      >
+        <Image
+          src="/brand/mahastays-logo-main.png"
+          alt=""
+          width={500}
+          height={500}
+          className="w-[280px] sm:w-[400px] lg:w-[520px] h-auto object-contain filter grayscale contrast-200 pointer-events-none"
+        />
+      </div>
+
+      {/* ─── Giant Watermark Background Typography & Main Logo (Tailwind) ─── */}
+      <div className="relative w-full text-center pointer-events-none select-none overflow-hidden my-4 sm:my-6 flex flex-col items-center justify-center z-0" aria-hidden="true">
+        <div className="flex items-center justify-center opacity-[0.06] -mb-6 sm:-mb-10 md:-mb-14">
+          <Image
+            src="/brand/mahastays-logo-main.png"
+            alt=""
+            width={180}
+            height={180}
+            className="w-16 sm:w-24 md:w-32 h-auto object-contain filter grayscale contrast-200 pointer-events-none"
+          />
+        </div>
         <span className="text-6xl sm:text-8xl md:text-9xl lg:text-[160px] font-black tracking-widest uppercase whitespace-nowrap leading-none block watermark-gradient">
           MAHASTAYS
         </span>

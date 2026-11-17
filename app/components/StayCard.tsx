@@ -160,7 +160,7 @@ function StayCard({ stay, onBook }: StayCardProps) {
 
   return (
     <article
-      className="bg-white rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1 relative group h-full border border-slate-200/90 hover:border-slate-300 w-full mx-auto"
+      className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1 relative group h-full border border-slate-200/90 hover:border-slate-300 w-full mx-auto"
       id={`stay-card-${stay.id}`}
     >
       {/* Top Image Container - Compact height */}

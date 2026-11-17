@@ -3,7 +3,7 @@ import React from "react";
 // ─── 1. Stay Card Skeleton (Light Theme) ─────────────────────
 export function StayCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden flex flex-col border border-slate-200/90 h-full w-full mx-auto animate-pulse">
+    <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden flex flex-col border border-slate-200/90 h-full w-full mx-auto animate-pulse">
       {/* Top Image Shimmer */}
       <div className="w-full h-36 xs:h-40 sm:h-44 relative overflow-hidden bg-slate-200">
         <div className="w-full h-full animate-shimmer" />

@@ -179,42 +179,42 @@ export default function Navbar() {
         }`}
       >
         <nav
-          className={`mx-auto transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-between gap-3 sm:gap-5 lg:gap-6 ${
+          className={`mx-auto transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-between gap-2.5 sm:gap-4 xl:gap-6 ${
             isScrolled
-              ? "w-[96%] sm:w-[94%] xl:w-[92%] max-w-[1440px] px-4 sm:px-7 lg:px-8 py-2 sm:py-2.5 rounded-full bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_12px_30px_rgba(0,0,0,0.1),0_2px_8px_rgba(0,0,0,0.04)]"
+              ? "w-[96%] sm:w-[95%] xl:w-[92%] max-w-[1440px] px-3.5 sm:px-5 md:px-6 xl:px-8 py-2 sm:py-2.5 rounded-full bg-white/95 backdrop-blur-md border border-white/60 shadow-[0_12px_30px_rgba(0,0,0,0.1),0_2px_8px_rgba(0,0,0,0.04)]"
               : isHomePage
-              ? "w-full max-w-[100%] px-4 sm:px-8 lg:px-12 py-3.5 sm:py-5 rounded-none bg-transparent border-b border-transparent shadow-none"
-              : "w-full max-w-[100%] px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-none bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-none"
+              ? "w-full max-w-[100%] px-4 sm:px-6 md:px-8 xl:px-12 py-3.5 sm:py-5 rounded-none bg-transparent border-b border-transparent shadow-none"
+              : "w-full max-w-[100%] px-4 sm:px-6 md:px-8 xl:px-12 py-3 sm:py-4 rounded-none bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-none"
           }`}
         >
           {/* Brand Logo: Icon & Text styled responsively for all devices */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 group" aria-label="Mahastays Home">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group" aria-label="Mahastays Home">
             <Image
               src="/brand/mahastays-logo-main.png"
               alt="Mahastays Icon"
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               style={{ width: "auto" }}
               className={`w-auto object-contain transition-all duration-500 group-hover:scale-105 ${
-                isScrolled ? "h-7 sm:h-8" : "h-8 sm:h-10"
+                isScrolled ? "h-7 sm:h-7.5 md:h-8" : "h-7.5 sm:h-8 md:h-9"
               }`}
               priority
             />
             <Image
               src="/brand/mahastays-logo-text.png"
               alt="Mahastays"
-              width={180}
-              height={42}
+              width={160}
+              height={38}
               style={{ width: "auto" }}
               className={`w-auto object-contain transition-all duration-500 ${
-                isScrolled ? "h-6 sm:h-7" : "h-7 sm:h-9"
+                isScrolled ? "h-5.5 sm:h-6 md:h-7" : "h-6 sm:h-7 md:h-8"
               }`}
               priority
             />
           </Link>
 
-          {/* Desktop Nav Links (Hidden on mobile & tablet; rendered as floating rounded tab at bottom on < lg) */}
-          <ul className="hidden lg:flex items-center gap-1.5 list-none">
+          {/* Desktop Nav Links (Hidden on mobile & tablet; rendered as floating rounded tab at bottom on < xl) */}
+          <ul className="hidden xl:flex items-center gap-1 xl:gap-1.5 list-none shrink-0">
             {navItems.map((item) => {
               const currentPath = pathname || "/";
               const isActive =
@@ -239,7 +239,7 @@ export default function Navbar() {
                   <Link
                     href={item.href}
                     onClick={() => setActiveTab(item.name)}
-                    className={`inline-flex items-center gap-2 px-3.5 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-semibold rounded-full transition-all duration-300 whitespace-nowrap cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 xl:px-3.5 py-1.5 xl:py-2 text-xs xl:text-[13px] font-semibold rounded-full transition-all duration-300 whitespace-nowrap cursor-pointer ${
                       isActive
                         ? "bg-primary text-white shadow-[0_2px_10px_rgba(234,17,13,0.35)]"
                         : isScrolled
@@ -257,8 +257,8 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* Top Right: Search (Desktop only) + Profile / Login CTA */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Top Right: Search + Profile / Login CTA */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 xl:gap-3 shrink-0">
             {/* Live Search Across Location, Villa, Experience, Packages */}
             <NavSearch isScrolled={isScrolled} isHomePage={isHomePage} />
 
@@ -269,7 +269,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={openNotificationDrawer}
-                  className={`relative p-1.5 sm:p-2 transition-all rounded-full cursor-pointer ${
+                  className={`relative p-1.5 sm:p-2 transition-all rounded-full cursor-pointer shrink-0 ${
                     isScrolled
                       ? "text-slate-700 hover:text-[#ea110d] hover:bg-slate-100/70"
                       : "text-slate-800 bg-white/85 hover:bg-white hover:text-[#ea110d] border border-white/60 backdrop-blur-md"
@@ -295,11 +295,11 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 p-1 md:pl-1.5 md:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 transition-all whitespace-nowrap cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 p-1 xl:pl-1.5 xl:pr-3.5 bg-white/95 hover:bg-white text-slate-800 rounded-full border border-slate-200/90 transition-all whitespace-nowrap cursor-pointer shadow-xs shrink-0"
                     id="navbar-profile-btn"
                     aria-label="User Profile Menu"
                   >
-                    <div className="w-7 h-7 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#ea110d] text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
                       {user?.avatarUrl ? (
                         <img
                           src={user.avatarUrl}
@@ -312,11 +312,11 @@ export default function Navbar() {
                         <span>{user?.fullName ? user.fullName.charAt(0).toUpperCase() : "A"}</span>
                       )}
                     </div>
-                    <span className="hidden md:inline text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[85px] sm:max-w-[120px] font-poppins">
+                    <span className="hidden xl:inline text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[85px] 2xl:max-w-[110px] font-poppins">
                       {user?.fullName?.split(" ")[0] || "Abhishek"}
                     </span>
                     <svg
-                      className={`hidden md:block w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
+                      className={`hidden xl:block w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -408,13 +408,13 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* ─── Floating Bottom Navigation Tab (Mobile & Tablets: < lg) ─── */}
+      {/* ─── Floating Bottom Navigation Tab (Mobile & Tablets: < xl) ─── */}
       {!hideBottomNav && (
         <nav
-          className="fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 lg:hidden w-[95%] max-w-md sm:max-w-xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.15)] rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-all duration-300"
+          className="fixed bottom-3 sm:bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 z-50 xl:hidden w-[95%] max-w-md sm:max-w-lg md:max-w-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.15)] rounded-full px-2 sm:px-3 md:px-5 py-1.5 sm:py-2 transition-all duration-300"
           aria-label="Bottom Navigation Menu"
         >
-          <div className="flex items-center justify-between gap-1 sm:gap-1.5">
+          <div className="flex items-center justify-between gap-1 sm:gap-2 md:gap-3">
             {navItems.map((item) => {
               const currentPath = pathname || "/";
               const isActive =
@@ -439,7 +439,7 @@ export default function Navbar() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setActiveTab(item.name)}
-                  className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 flex-1 sm:flex-initial py-1 sm:py-2 px-1.5 sm:px-4 rounded-full transition-all duration-200 select-none cursor-pointer ${
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 md:gap-2 flex-1 sm:flex-initial py-1 sm:py-1.5 md:py-2 px-1.5 sm:px-3 md:px-4 rounded-full transition-all duration-200 select-none cursor-pointer ${
                     isActive
                       ? "bg-[#ea110d] text-white shadow-[0_3px_12px_rgba(234,17,13,0.35)] font-bold scale-[1.02]"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 active:scale-95 font-medium"
@@ -453,7 +453,7 @@ export default function Navbar() {
                     {item.icon}
                   </span>
                   <span
-                    className={`text-[10px] sm:text-xs tracking-tight whitespace-nowrap transition-colors duration-200 ${
+                    className={`text-[10px] sm:text-xs md:text-sm tracking-tight whitespace-nowrap transition-colors duration-200 ${
                       isActive ? "text-white font-bold" : "text-slate-600"
                     }`}
                   >

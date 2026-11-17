@@ -333,10 +333,10 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
 
   return (
     <>
-      {/* ─── Desktop Search Input Bar ───────────────────────────────── */}
-      <div ref={containerRef} className="relative hidden md:block">
+      {/* ─── Desktop / Tablet Search Input Bar ──────────────────────── */}
+      <div ref={containerRef} className="relative hidden md:block shrink min-w-0">
         <div
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 h-10 w-44 md:w-56 lg:w-64 xl:w-72 focus-within:w-56 md:focus-within:w-72 lg:focus-within:w-80 xl:focus-within:w-96 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 ${
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 h-9 sm:h-10 w-44 md:w-56 lg:w-64 xl:w-52 2xl:w-64 focus-within:w-52 md:focus-within:w-64 lg:focus-within:w-72 xl:focus-within:w-60 2xl:focus-within:w-80 focus-within:bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 ${
             isScrolled || !isHomePage
               ? "bg-slate-100 border border-slate-200"
               : "bg-white/85 backdrop-blur-md border border-white/60"
@@ -360,7 +360,7 @@ export default function NavSearch({ isScrolled = false, isHomePage = false }: Na
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search location, villa, packages..."
+            placeholder="Search stays, packages..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
