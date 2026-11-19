@@ -187,7 +187,7 @@ export const AMENITY_TABS: AmenityTab[] = [
 ];
 
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 15;
 
 export default function ExplorePage() {
   const dispatch = useAppDispatch();
@@ -916,7 +916,7 @@ export default function ExplorePage() {
             {/* ─── Stays Grid (Using Universal StayCard, 3 Columns on Large) ─ */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 pt-2">
-                {[1, 2, 3, 4, 5, 6].map((idx) => (
+                {Array.from({ length: 9 }).map((_, idx) => (
                   <StayCardSkeleton key={idx} />
                 ))}
               </div>

@@ -37,7 +37,7 @@ export default function PackageSection() {
   }, [items]);
 
   // If there are no packages, hide the entire section (heading, subtitle, cards, view all)
-  if (mappedPackages.length === 0) {
+  if (!loading && mappedPackages.length === 0) {
     return null;
   }
 
@@ -45,14 +45,14 @@ export default function PackageSection() {
     <section className="max-w-7xl mx-auto my-16 px-6 w-full" id="packages">
       {/* Header with Title */}
       <div className="mb-6 sm:mb-8 max-w-xl">
-        <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1.5 block">
-          EXCLUSIVE BUNDLES
+        <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1 block">
+          PACKAGES
         </span>
-        <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight mb-2">
-          Featured Stay Packages
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight mb-1.5">
+          Holiday Packages
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-          All-inclusive verified stays with premium hosts, private pools, and curated local itineraries.
+          All-inclusive verified stays with curated local itineraries.
         </p>
       </div>
 

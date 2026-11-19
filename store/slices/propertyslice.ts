@@ -152,7 +152,7 @@ export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
   async (params: PropertyFilters | undefined, { rejectWithValue }) => {
     try {
-      const res = await api.get('/properties', { params });
+      const res = await api.get('/properties', { params: { limit: 100, ...params } });
       return {
         items: (res.data?.data || []) as PropertyItem[],
         total: res.data?.meta?.total ?? res.data?.data?.length ?? 0,
